@@ -1,10 +1,14 @@
-from hatchet_sdk import Hatchet
+from epengine.hatchet import hatchet
+from epengine.workflows import Fanout, Simulate
 
-from epengine.workflows import MyWorkflow
+worker = hatchet.worker(
+    "ep-worker",
+    max_runs=40,
+)
 
-hatchet = Hatchet()
-
-worker = hatchet.worker("first-worker")
-worker.register_workflow(MyWorkflow())
+# TODO: use two separate workers for this?
+# TODO: should we be using the async worker registration?
+worker.register_workflow(Simulate())
+worker.register_workflow(Fanout())
 
 worker.start()

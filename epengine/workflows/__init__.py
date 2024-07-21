@@ -1,3 +1,4 @@
-from .basic import MyWorkflow
+from .fanout import Fanout
+from .simulate import Simulate
 
-__all__ = ["MyWorkflow"]
+__all__ = ["Simulate", "Fanout"]
