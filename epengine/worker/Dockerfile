@@ -2,7 +2,7 @@
 
 FROM python:3.10-slim-buster
 
-ENV POETRY_VERSION=1.4 \
+ENV POETRY_VERSION=1.8 \
     POETRY_VIRTUALENVS_CREATE=false
 
 ENV TRAVIS_OS_NAME=linux
@@ -28,11 +28,12 @@ WORKDIR /code
 COPY poetry.lock pyproject.toml /code/
 
 # Project initialization:
-RUN poetry install --no-interaction --no-ansi --no-root --no-dev
+RUN poetry install --no-interaction --no-ansi --no-root --with worker
 
 # Copy Python code to the Docker image
 COPY epengine /code/epengine/
 
 ENV PYTHONPATH=/code
 
+# ENTRYPOINT [ "poetry", "run", "worker" ]
 CMD [ "python", "epengine/worker/main.py"]

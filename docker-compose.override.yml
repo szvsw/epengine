@@ -1,0 +1,6 @@
+services:
+  api:
+    command: ["--reload"]
+    volumes:
+      - ./epengine:/code/epengine
+    restart: always

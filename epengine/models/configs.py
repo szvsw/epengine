@@ -15,7 +15,7 @@ s3 = boto3.client("s3")
 # TODO: should experiment ids be uuid trims?
 # or should they be human readable (creating unicity issues...)?
 # or should they also relate to hatchet auto-generated data?
-class BaseSpec(BaseModel, arbitrary_types_allowed=True):
+class BaseSpec(BaseModel, arbitrary_types_allowed=True, extra="allow"):
     experiment_id: str = Field(..., description="The experiment_id of the spec")
     hcontext: Context | None = Field(
         None,
