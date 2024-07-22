@@ -5,6 +5,9 @@ services:
       dockerfile: epengine/worker/Dockerfile
     env_file:
       - .env
+    deploy:
+      mode: replicated
+      replicas: 3
   api:
     build:
       context: .
