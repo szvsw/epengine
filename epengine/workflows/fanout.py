@@ -1,10 +1,14 @@
 import asyncio
+import tempfile
 
+import boto3
 from hatchet_sdk import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.configs import SimulationsSpec
 from epengine.utils.results import collate_subdictionaries, serialize_df_dict
+
+s3 = boto3.client("s3")
 
 
 @hatchet.workflow(
@@ -17,7 +21,8 @@ class Fanout:
     @hatchet.step(timeout="20m")
     async def spawn_children(self, context: Context):
         workflow_input = context.workflow_input()
-        specs = SimulationsSpec(**workflow_input, hcontext=context)
+        specs = SimulationsSpec.from_payload(workflow_input)
+        specs.hcontext = context
 
         promises = []
         ids = []
@@ -46,8 +51,20 @@ class Fanout:
         # for run_id, err in errors:
         #     context.log(f"Error in child workflow {run_id}: {err}")
 
-        # TODO: will need to send large files to a storage service
-        # > 4MB
-        dfs = serialize_df_dict(collate_subdictionaries(results))
+        collated_dfs = collate_subdictionaries(results)
 
-        return dfs
+        if specs.bucket:
+            # save as hdfs
+            workflow_run_id = context.workflow_run_id()
+            # TODO: hatchet prefix should come from task!
+            output_key = f"hatchet/{specs.experiment_id}/results/{workflow_run_id}.h5"
+            with tempfile.TemporaryDirectory() as tempdir:
+                local_path = f"{tempdir}/results.h5"
+                for key, df in collated_dfs.items():
+                    df.to_hdf(local_path, key=key, mode="a")
+                s3.upload_file(Bucket=specs.bucket, Key=output_key, Filename=local_path)
+                uri = f"s3://{specs.bucket}/{output_key}"
+                return {"uri": uri}
+        else:
+            dfs = serialize_df_dict(collated_dfs)
+            return dfs

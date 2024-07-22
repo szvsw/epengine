@@ -4,13 +4,16 @@ import shutil
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from uuid import uuid4
+from typing import Literal
 
 import boto3
 import pandas as pd
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from hatchet_sdk import new_client
 from tqdm import tqdm
+
+from epengine.models.configs import SimulationsSpec, fetch_uri
 
 api = FastAPI()
 client = new_client()
@@ -18,8 +21,9 @@ client = new_client()
 # Make clients
 s3 = boto3.client("s3")
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 
 @api.get("/")
@@ -28,16 +32,16 @@ def root():
 
 
 @api.post("/simulate-artifacts")
-def simulate_artifacts(  # noqa: C901
+async def simulate_artifacts(  # noqa: C901
     experiment_id: str,
     epws: UploadFile = File(...),  # noqa: B008
     idfs: UploadFile = File(...),  # noqa: B008
-    config: UploadFile = File(...),  # noqa: B008
+    specs: UploadFile = File(...),  # noqa: B008
     bucket: str = "ml-for-bem",
     bucket_prefix: str = "hatchet",
+    existing_artifacts: Literal["overwrite", "forbid"] = "forbid",
 ):
-    job_id = str(uuid4())
-    remote_root = f"{bucket_prefix}/{experiment_id}/{job_id[:8]}"
+    remote_root = f"{bucket_prefix}/{experiment_id}"
 
     def format_path(folder, key):
         return f"{remote_root}/{folder}/{key}"
@@ -45,33 +49,40 @@ def simulate_artifacts(  # noqa: C901
     def format_s3_path(folder, key):
         return f"s3://{bucket}/{format_path(folder, key)}"
 
-    logger.info(f"Loading config file {config.filename}...")
-    with open(config.file) as f:
-        config_data = json.load(f)
-    logger.info(f"Config file {config.filename} loaded.")
-    df: pd.DataFrame = pd.DataFrame.from_dict(config_data, orient="records")
+    # check if experiment_id already exists
+    if s3.list_objects_v2(Bucket=bucket, Prefix=remote_root).get("KeyCount", 0) > 0 and existing_artifacts == "forbid":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Experiment '{experiment_id}' already exists. Set 'existing_artifacts' to 'overwrite' to confirm.",
+        )
+
+    logger.info(f"Loading config file {specs.filename}...")
+    contents = await specs.read()
+    spec_data = json.loads(contents.decode("utf-8"))
+    logger.info(f"Config file {specs.filename} loaded.")
+    df: pd.DataFrame = pd.DataFrame(spec_data)
 
     if "epw_path" not in df.columns and "epw_generator" not in df.columns:
         raise HTTPException(
             status_code=400,
-            detail="epw_path or epw_generator column required in config dataframe.",
+            detail="epw_path or epw_generator column required in specs dataframe.",
         )
     if "epw_path" in df.columns and "epw_generator" in df.columns:
         raise HTTPException(
             status_code=400,
-            detail="epw_path and epw_generator columns cannot both be present in config dataframe.",
+            detail="epw_path and epw_generator columns cannot both be present in specs dataframe.",
         )
 
     if "idf_path" not in df.columns and "idf_generator" not in df.columns:
         raise HTTPException(
             status_code=400,
-            detail="idf_path or idf_generator column required in config dataframe.",
+            detail="idf_path or idf_generator column required in specs dataframe.",
         )
 
     if "idf_path" in df.columns and "idf_generator" in df.columns:
         raise HTTPException(
             status_code=400,
-            detail="idf_path and idf_generator columns cannot both be present in config dataframe.",
+            detail="idf_path and idf_generator columns cannot both be present in specs dataframe.",
         )
 
     uploads_epws = "epw_path" in df.columns
@@ -100,6 +111,7 @@ def simulate_artifacts(  # noqa: C901
             df.pop("epw_path")
             epw_paths_to_upload = [(Path(tempdir) / path).as_posix() for path in epw_paths_to_upload]
             epw_path_destinations = [format_path("epw", Path(path).name) for path in epw_paths_to_upload]
+            logger.info("Uploading epws to s3...")
             with ThreadPoolExecutor(max_workers=10) as executor:
                 list(
                     tqdm(
@@ -119,7 +131,7 @@ def simulate_artifacts(  # noqa: C901
             if not set(idf_paths_to_upload).issubset({path.name for path in local_idf_paths}):
                 raise HTTPException(
                     status_code=400,
-                    detail="Not all idfs listed in config dataframe are present in idfs.zip.",
+                    detail="Not all idfs listed in specs dataframe are present in idfs.zip.",
                 )
             df["idf_uri"] = df.idf_path.apply(lambda x: format_s3_path("idf", Path(x).name))
             df.pop("idf_path")
@@ -134,29 +146,59 @@ def simulate_artifacts(  # noqa: C901
                     )
                 )
 
-    config_dict = df.to_dict(orient="records")
-    with tempfile.TemporaryDirectory() as tempdir:
-        with open(Path(tempdir) / "config.json", "w") as f:
-            json.dump(config_dict, f)
-        config_path = Path(tempdir) / "config.json"
-        upload_to_s3(format_path("config", "config.json"), config_path.as_posix())
+    specs_dict = df.to_dict(orient="records")
 
-    config_uri = format_s3_path("config", "config.json")
+    specs_uri = format_s3_path("specs", "specs.json")
 
     payload = {
-        "specs": config_dict,
-        "config_uri": config_uri,
+        "specs": specs_dict,
         "experiment_id": experiment_id,
         "bucket": bucket,
-        "job_id": job_id,
-        "workflow_run_id": None,
+    }
+    specs = SimulationsSpec(**payload.copy())
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        with open(Path(tempdir) / "specs.json", "w") as f:
+            json.dump(payload, f)
+        specs_path = Path(tempdir) / "specs.json"
+        upload_to_s3(format_path("specs", "specs.json"), specs_path.as_posix())
+
+    workflow_payload = {
+        "uri": specs_uri,
     }
 
-    workflow_run_id = client.admin.run_workflow(
+    workflowRef = client.admin.run_workflow(
         workflow_name="scatter_gather",
-        input=payload,
+        input=workflow_payload,
     )
-    return {"workflow_run_id": workflow_run_id, "job_id": job_id}
+    return {"workflow_run_id": workflowRef.workflow_run_id, "n_jobs": len(specs_dict)}
+
+
+@api.get("/workflows/{workflow_run_id}")
+async def get_workflow(workflow_run_id: str, bg_tasks: BackgroundTasks) -> FileResponse:
+    workflow = client.admin.get_workflow_run(workflow_run_id)
+    res = await workflow.result()
+    if "spawn_children" in res:
+        data = res["spawn_children"]
+        tempdir = tempfile.mkdtemp()
+
+        local_path = Path(tempdir) / "results.h5"
+        if "uri" in data:
+            local_path = fetch_uri(data["uri"], local_path, use_cache=False)
+        else:
+            for key, df_dict in data.items():
+                df = pd.DataFrame.from_dict(df_dict, orient="tight")
+                df.to_hdf(local_path, key=key, mode="a")
+        bg_tasks.add_task(shutil.rmtree, tempdir)
+        return FileResponse(
+            local_path.as_posix(),
+            media_type="application/octet-stream",
+            filename=f"{workflow_run_id[:8]}.h5",
+            background=bg_tasks,
+        )
+
+    else:
+        raise HTTPException(status_code=404, detail="Results not found")
 
 
 @api.get("/workflows")

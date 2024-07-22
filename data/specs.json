@@ -1,0 +1,38 @@
+[
+    {
+        "epw_path": "ARE_Abu.Dhabi.412170_IWEC.epw",
+        "idf_path": "Office_totalBaseline.idf",
+        "typology": "Office",
+        "wmo_index": "412170"
+    },
+    {
+        "epw_path": "ARE_Abu.Dhabi.412170_IWEC.epw",
+        "idf_path": "Residential_totalBaseline.idf",
+        "typology": "Residential",
+        "wmo_index": "412170"
+    },
+    {
+        "epw_path": "ARG_Buenos.Aires.875760_IWEC.epw",
+        "idf_path": "Office_totalBaseline.idf",
+        "typology": "Office",
+        "wmo_index": "875760"
+    },
+    {
+        "epw_path": "ARG_Buenos.Aires.875760_IWEC.epw",
+        "idf_path": "Residential_totalBaseline.idf",
+        "typology": "Residential",
+        "wmo_index": "875760"
+    },
+    {
+        "epw_path": "AUS_WA.Port.Hedland.943120_IWEC.epw",
+        "idf_path": "Office_totalBaseline.idf",
+        "typology": "Office",
+        "wmo_index": "943120"
+    },
+    {
+        "epw_path": "AUS_WA.Port.Hedland.943120_IWEC.epw",
+        "idf_path": "Residential_totalBaseline.idf",
+        "typology": "Residential",
+        "wmo_index": "943120"
+    }
+]
