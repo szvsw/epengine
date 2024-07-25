@@ -1,4 +1,5 @@
 import asyncio
+import os
 import tempfile
 
 import boto3
@@ -11,6 +12,11 @@ from epengine.utils.results import collate_subdictionaries, serialize_df_dict
 s3 = boto3.client("s3")
 
 
+class AWSCredsMissing(Exception):
+    def __init__(self) -> None:
+        super().__init__("No AWS credentials found")
+
+
 @hatchet.workflow(
     name="scatter_gather",
     version="0.2",
@@ -20,6 +26,8 @@ s3 = boto3.client("s3")
 class Fanout:
     @hatchet.step(timeout="20m")
     async def spawn_children(self, context: Context):
+        if os.getenv("AWS_SECRET_ACCESS_KEY", None) is None:
+            raise AWSCredsMissing()
         workflow_input = context.workflow_input()
         specs = SimulationsSpec.from_payload(workflow_input)
         specs.hcontext = context
