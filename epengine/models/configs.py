@@ -153,6 +153,7 @@ class BaseSpec(BaseModel, arbitrary_types_allowed=True, extra="allow"):
 class SimulationSpec(BaseSpec):
     idf_uri: AnyUrl = Field(..., description="The uri of the idf file to fetch and simulate")
     epw_uri: AnyUrl = Field(..., description="The uri of the epw file to fetch and simulate")
+    ddy_uri: AnyUrl | None = Field(None, description="The uri of the ddy file to fetch and simulate")
 
     @cached_property
     def idf_path(self):
@@ -167,6 +168,15 @@ class SimulationSpec(BaseSpec):
         Fetch the epw file and return the local path.
         """
         return self.fetch_uri(self.epw_uri)
+
+    @cached_property
+    def ddy_path(self):
+        """
+        Fetch the ddy file and return the local path.
+        """
+        if self.ddy_uri:
+            return self.fetch_uri(self.ddy_uri)
+        return None
 
 
 class SimulationsSpec(BaseSpec):

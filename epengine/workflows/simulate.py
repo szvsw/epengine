@@ -1,5 +1,6 @@
 import logging
 import tempfile
+from pathlib import Path
 
 from archetypal import IDF
 from archetypal.idfclass.sql import Sql
@@ -28,6 +29,8 @@ class Simulate:
         spec = SimulationSpec(**data)
         with tempfile.TemporaryDirectory() as tmpdir:
             idf = IDF(spec.idf_path, epw=spec.epw_path, output_directory=tmpdir)
+            if spec.ddy_path:
+                add_sizing_design_day(idf, spec.ddy_path)
             context.log(f"Simulating {spec.idf_path}...")
             idf.simulate()
             sql = Sql(idf.sql_file)
@@ -43,3 +46,25 @@ class Simulate:
         dfs = serialize_df_dict(dfs)
 
         return dfs
+
+
+def add_sizing_design_day(idf: IDF, ddy_file: Path | str):
+    """Read ddy file and copy objects over to self.
+
+    Note:
+        Will **NOT** add the Rain file to the model
+    """
+    ddy = IDF(ddy_file, as_version="9.2.0", file_version="9.2.0", prep_outputs=False)
+    for sequence in ddy.idfobjects.values():
+        if sequence:
+            for obj in sequence:
+                if obj.key.upper() in [
+                    "SITE:PRECIPITATION",
+                    "ROOFIRRIGATION",
+                    "SCHEDULE:FILE",
+                ] and getattr(obj, "File_Name", "rain").endswith("rain"):
+                    continue
+
+                idf.addidfobject(obj)
+
+    del ddy
