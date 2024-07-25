@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 @hatchet.workflow(
     name="simulate_epw_idf",
     on_events=["simulation:run_artifacts"],
-    timeout="4m",
-    version="0.2",
+    timeout="10m",
+    version="0.3",
 )
 class Simulate:
     @hatchet.step(name="simulate", timeout="4m")

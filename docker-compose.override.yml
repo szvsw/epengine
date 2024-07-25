@@ -19,7 +19,7 @@ services:
       aws:
         condition: service_healthy
     env_file:
-      - .env
+      - .env.dev
   api:
     command: ["--reload"]
     volumes:
@@ -28,7 +28,11 @@ services:
     depends_on:
       initialize:
         condition: service_completed_successfully
+    env_file:
+      - .env.dev
   worker:
     depends_on:
       initialize:
         condition: service_completed_successfully
+    env_file:
+      - .env.dev
