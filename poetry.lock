@@ -2287,6 +2287,32 @@ files = [
 ]
 
 [[package]]
+name = "ladybug-core"
+version = "0.43.2"
+description = "Python library to load, analyze and modify EnergyPlus Weather files (epw)."
+optional = false
+python-versions = "*"
+files = [
+    {file = "ladybug-core-0.43.2.tar.gz", hash = "sha256:bff89f3026ed0073afb0d8072f76af4e4f38a4c5ccc28da700270df2612fdb6e"},
+    {file = "ladybug_core-0.43.2-py2.py3-none-any.whl", hash = "sha256:49aa5f3d789cd2b4dd4edab00aa330b1c465deeede24dbab8c3ab26a12cfbb85"},
+]
+
+[package.dependencies]
+click = {version = "8.1.7", markers = "python_version >= \"3.8\""}
+ladybug-geometry = "1.32.8"
+
+[[package]]
+name = "ladybug-geometry"
+version = "1.32.8"
+description = "Library housing basic geometry objects and computation methods needed for the Ladybug Tools core libraries."
+optional = false
+python-versions = "*"
+files = [
+    {file = "ladybug-geometry-1.32.8.tar.gz", hash = "sha256:d221afd9f0b04bcb1cf07289256244f93eb423066a905796e1a576d6a9458c63"},
+    {file = "ladybug_geometry-1.32.8-py2.py3-none-any.whl", hash = "sha256:f94510c2f0c28a9746a7bb10ca368e7d4d0c9f23c994345f1420ec3dd6da2e94"},
+]
+
+[[package]]
 name = "littleutils"
 version = "0.2.4"
 description = "Small personal collection of python utility functions"
@@ -5680,4 +5706,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "28eba04f5ccead8da1b686cc69ca643a88f36ca3cbb306146beaecc7d1089d7d"
+content-hash = "f896cd3d326b73ce16fb14178d7ca88fbf1e078381d21e5c0aa282cfdfdeb6b5"
