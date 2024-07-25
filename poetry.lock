@@ -1466,13 +1466,13 @@ files = [
 
 [[package]]
 name = "hatchet-sdk"
-version = "0.31.2"
+version = "0.31.5"
 description = ""
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "hatchet_sdk-0.31.2-py3-none-any.whl", hash = "sha256:1cd7af00364a46b80973f41c88a65616b2e3c1d02adaf6621296cea402d0f6a5"},
-    {file = "hatchet_sdk-0.31.2.tar.gz", hash = "sha256:a183ab32051e26af0b5e585b4f484672bbec403999c582654203fd6e7a8c04f9"},
+    {file = "hatchet_sdk-0.31.5-py3-none-any.whl", hash = "sha256:9eae437d1354859106e24b7c88f55d10739f081388fe0383eb8d5bd7cbe9246f"},
+    {file = "hatchet_sdk-0.31.5.tar.gz", hash = "sha256:950d5512e57937e72108a67f968cfd8e59d02385e6f727980c8021cccf5fe324"},
 ]
 
 [package.dependencies]
