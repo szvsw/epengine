@@ -14,7 +14,7 @@ s3 = boto3.client("s3")
 @hatchet.workflow(
     name="scatter_gather",
     version="0.2",
-    timeout="20m",
+    timeout="600m",
     on_events=["simulations:fanout"],
 )
 class Fanout:
