@@ -4,8 +4,8 @@ from epengine.workflows import Fanout, Simulate
 
 def run():
     worker = hatchet.worker(
-        "ep-worker",
-        max_runs=7,
+        "ep-worker-15-runs-cloud",
+        max_runs=15,
     )
 
     # TODO: use two separate workers for this?

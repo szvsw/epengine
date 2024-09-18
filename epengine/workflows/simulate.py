@@ -1,5 +1,6 @@
 import logging
 import re
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -20,17 +21,19 @@ logger = logging.getLogger(__name__)
 @hatchet.workflow(
     name="simulate_epw_idf",
     on_events=["simulation:run_artifacts"],
-    timeout="10m",
+    timeout="20m",
     version="0.3",
 )
 class Simulate:
-    @hatchet.step(name="simulate", timeout="4m")
+    @hatchet.step(name="simulate", timeout="20m")
     def simulate(self, context: Context):
         data = context.workflow_input()
         data["hcontext"] = context
         spec = SimulationSpec(**data)
         with tempfile.TemporaryDirectory() as tmpdir:
-            idf = IDF(spec.idf_path, epw=spec.epw_path, output_directory=tmpdir)
+            local_pth = Path(tmpdir) / "model.idf"
+            shutil.copy(spec.idf_path, local_pth)
+            idf = IDF(local_pth, epw=spec.epw_path)
             if spec.ddy_path:
                 add_sizing_design_day(idf, spec.ddy_path)
             context.log(f"Simulating {spec.idf_path}...")
