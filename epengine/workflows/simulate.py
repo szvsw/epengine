@@ -1,7 +1,9 @@
 import logging
+import re
 import tempfile
 from pathlib import Path
 
+import pandas as pd
 from archetypal import IDF
 from archetypal.idfclass.sql import Sql
 from hatchet_sdk.context import Context
@@ -33,6 +35,7 @@ class Simulate:
                 add_sizing_design_day(idf, spec.ddy_path)
             context.log(f"Simulating {spec.idf_path}...")
             idf.simulate()
+
             sql = Sql(idf.sql_file)
             index_data = spec.model_dump(mode="json", exclude_none=True)
             workflow_run_id = context.workflow_run_id()
@@ -42,7 +45,21 @@ class Simulate:
                 sql,
                 index_data=index_data,
                 tabular_lookups=[("AnnualBuildingUtilityPerformanceSummary", "End Uses")],
+                columns=["Electricity", "Natural Gas", "Fuel Oil No 2"],
             )
+
+            # TODO: move these into a separate function
+            end_file = idf.simulation_dir / "eplusout.end"
+            err_str = end_file.read_text()
+            severe_reg = r".*\s(\d+)\sSevere Errors.*"
+            warning_reg = r".*\s(\d+)\sWarning.*"
+            severe_ct = int(re.match(severe_reg, err_str).groups()[0])
+            warning_ct = int(re.match(warning_reg, err_str).groups()[0])
+
+            err_index = pd.MultiIndex.from_tuples([tuple(index_data.values())], names=list(index_data.keys()))
+            err_df = pd.DataFrame({"warnings": [warning_ct], "severe": [severe_ct]}, index=err_index)
+            dfs["errors"] = err_df
+
         dfs = serialize_df_dict(dfs)
 
         return dfs
@@ -55,7 +72,7 @@ def add_sizing_design_day(idf: IDF, ddy_file: Path | str):
         Will **NOT** add the Rain file to the model
     """
     ddy = IDF(ddy_file, as_version="9.2.0", file_version="9.2.0", prep_outputs=False)
-    for sequence in ddy.idfobjects.values():
+    for objtype, sequence in ddy.idfobjects.items():
         if sequence:
             for obj in sequence:
                 if obj.key.upper() in [
@@ -65,6 +82,8 @@ def add_sizing_design_day(idf: IDF, ddy_file: Path | str):
                 ] and getattr(obj, "File_Name", "rain").endswith("rain"):
                     continue
 
+                idf.removeallidfobjects(objtype)
+                # idf.removeallidfobjects()
                 idf.addidfobject(obj)
 
     del ddy

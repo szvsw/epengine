@@ -10,6 +10,7 @@ def postprocess(
     sql: Sql,
     index_data: dict,
     tabular_lookups: list[tuple[str, str]],
+    columns: list[str] | None = None,
 ) -> dict[str, pd.DataFrame]:
     dfs = {}
     for tabular_lookup in tabular_lookups:
@@ -19,6 +20,7 @@ def postprocess(
             logger.exception(f"Error while loading tabular data: {tabular_lookup}.")
             continue
         else:
+            df = df[columns] if columns else df
             df = df.unstack()
 
             df = pd.DataFrame(df).T

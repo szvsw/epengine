@@ -37,6 +37,7 @@ async def simulate_artifacts(  # noqa: C901
     epws: UploadFile = File(...),  # noqa: B008
     idfs: UploadFile = File(...),  # noqa: B008
     specs: UploadFile = File(...),  # noqa: B008
+    ddys: UploadFile = File(...),  # noqa: B008
     bucket: str = "ml-for-bem",
     bucket_prefix: str = "hatchet",
     existing_artifacts: Literal["overwrite", "forbid"] = "forbid",
@@ -87,6 +88,7 @@ async def simulate_artifacts(  # noqa: C901
 
     uploads_epws = "epw_path" in df.columns
     uploads_idfs = "idf_path" in df.columns
+    upload_ddys = "ddy_path" in df.columns
 
     def upload_to_s3(destination_key: str, source_path: str):
         s3.upload_file(
@@ -143,6 +145,31 @@ async def simulate_artifacts(  # noqa: C901
                         executor.map(upload_to_s3, idf_path_destinations, idf_paths_to_upload),
                         total=len(idf_paths_to_upload),
                         desc="Uploading idfs to s3...",
+                    )
+                )
+
+    if upload_ddys:
+        with tempfile.TemporaryDirectory() as tempdir:
+            with open(Path(tempdir) / ddys.filename, "wb") as f:
+                f.write(ddys.file.read())
+            shutil.unpack_archive(Path(tempdir) / ddys.filename, tempdir)
+            local_ddy_paths: list[Path] = list(Path(tempdir).rglob("*.ddy"))
+            ddy_paths_to_upload: list[str] = df.ddy_path.unique().tolist()
+            if not set(ddy_paths_to_upload).issubset({path.name for path in local_ddy_paths}):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Not all ddys listed in specs dataframe are present in ddys.zip.",
+                )
+            df["ddy_uri"] = df.ddy_path.apply(lambda x: format_s3_path("ddy", Path(x).name))
+            df.pop("ddy_path")
+            ddy_paths_to_upload = [(Path(tempdir) / path).as_posix() for path in ddy_paths_to_upload]
+            ddy_path_destinations = [format_path("ddy", Path(path).name) for path in ddy_paths_to_upload]
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                list(
+                    tqdm(
+                        executor.map(upload_to_s3, ddy_path_destinations, ddy_paths_to_upload),
+                        total=len(ddy_paths_to_upload),
+                        desc="Uploading ddys to s3...",
                     )
                 )
 
