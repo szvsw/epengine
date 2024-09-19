@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
     on_events=["simulation:run_artifacts"],
     timeout="20m",
     version="0.3",
+    schedule_timeout="1000m",
 )
 class Simulate:
     @hatchet.step(name="simulate", timeout="20m", retries=2)
