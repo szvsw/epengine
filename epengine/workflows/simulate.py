@@ -2,6 +2,7 @@ import logging
 import re
 import shutil
 import tempfile
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -11,6 +12,7 @@ from hatchet_sdk.context import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.configs import SimulationSpec
+from epengine.models.ddy_injector import DDYSizingSpec
 from epengine.utils.results import postprocess, serialize_df_dict
 
 logger = logging.getLogger(__name__)
@@ -25,7 +27,7 @@ logger = logging.getLogger(__name__)
     version="0.3",
 )
 class Simulate:
-    @hatchet.step(name="simulate", timeout="20m")
+    @hatchet.step(name="simulate", timeout="20m", retries=2)
     def simulate(self, context: Context):
         data = context.workflow_input()
         data["hcontext"] = context
@@ -35,10 +37,26 @@ class Simulate:
             shutil.copy(spec.idf_path, local_pth)
             idf = IDF(local_pth, epw=spec.epw_path)
             if spec.ddy_path:
-                add_sizing_design_day(idf, spec.ddy_path)
+                # add_sizing_design_day(idf, spec.ddy_path)
+                ddy = IDF(
+                    spec.ddy_path,
+                    epw=spec.epw_path,
+                    as_version="9.5.0",
+                    file_version="9.5.0",
+                    prep_outputs=False,
+                )
+
+                ddy_spec = DDYSizingSpec(
+                    design_days=[
+                        "Ann Clg .4% Condns DB=>MWB",
+                        "Ann Htg 99.6% Condns DB",
+                    ]
+                )
+                ddy_spec.inject_ddy(idf, ddy)
             context.log(f"Simulating {spec.idf_path}...")
             idf.simulate()
 
+            time.sleep(1)
             sql = Sql(idf.sql_file)
             index_data = spec.model_dump(mode="json", exclude_none=True)
             workflow_run_id = context.workflow_run_id()

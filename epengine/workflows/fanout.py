@@ -14,11 +14,11 @@ s3 = boto3.client("s3")
 @hatchet.workflow(
     name="scatter_gather",
     version="0.2",
-    timeout="600m",
+    timeout="1000m",
     on_events=["simulations:fanout"],
 )
 class Fanout:
-    @hatchet.step(timeout="20m")
+    @hatchet.step(timeout="1000m")
     async def spawn_children(self, context: Context):
         workflow_input = context.workflow_input()
         specs = SimulationsSpec.from_payload(workflow_input)
