@@ -36,11 +36,15 @@ class Simulate:
         with tempfile.TemporaryDirectory() as tmpdir:
             local_pth = Path(tmpdir) / "model.idf"
             shutil.copy(spec.idf_path, local_pth)
-            idf = IDF(local_pth, epw=spec.epw_path, output_directory=tmpdir)
+            idf = IDF(
+                local_pth,  # pyright: ignore [reportArgumentType]
+                epw=spec.epw_path,
+                output_directory=tmpdir,
+            )  # pyright: ignore [reportArgumentType]
             if spec.ddy_path:
                 # add_sizing_design_day(idf, spec.ddy_path)
                 ddy = IDF(
-                    spec.ddy_path,
+                    spec.ddy_path,  # pyright: ignore [reportArgumentType]
                     epw=spec.epw_path,
                     as_version="9.5.0",
                     file_version="9.5.0",
@@ -75,8 +79,10 @@ class Simulate:
             err_str = end_file.read_text()
             severe_reg = r".*\s(\d+)\sSevere Errors.*"
             warning_reg = r".*\s(\d+)\sWarning.*"
-            severe_ct = int(re.match(severe_reg, err_str).groups()[0])
-            warning_ct = int(re.match(warning_reg, err_str).groups()[0])
+            severe_matcher = re.match(severe_reg, err_str)
+            warning_matcher = re.match(warning_reg, err_str)
+            severe_ct = int(severe_matcher.groups()[0]) if severe_matcher else 0
+            warning_ct = int(warning_matcher.groups()[0]) if warning_matcher else 0
 
             err_index = pd.MultiIndex.from_tuples([tuple(index_data.values())], names=list(index_data.keys()))
             err_df = pd.DataFrame({"warnings": [warning_ct], "severe": [severe_ct]}, index=err_index)
@@ -93,7 +99,12 @@ def add_sizing_design_day(idf: IDF, ddy_file: Path | str):
     Note:
         Will **NOT** add the Rain file to the model
     """
-    ddy = IDF(ddy_file, as_version="9.2.0", file_version="9.2.0", prep_outputs=False)
+    ddy = IDF(
+        ddy_file,  # pyright: ignore [reportArgumentType]
+        as_version="9.2.0",
+        file_version="9.2.0",
+        prep_outputs=False,
+    )
     for objtype, sequence in ddy.idfobjects.items():
         if sequence:
             for obj in sequence:

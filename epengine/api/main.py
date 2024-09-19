@@ -99,9 +99,10 @@ async def simulate_artifacts(  # noqa: C901
 
     if uploads_epws:
         with tempfile.TemporaryDirectory() as tempdir:
-            with open(Path(tempdir) / epws.filename, "wb") as f:
+            epw_local_path = Path(tempdir) / (epws.filename or "epw.zip")
+            with open(epw_local_path, "wb") as f:
                 f.write(epws.file.read())
-            shutil.unpack_archive(Path(tempdir) / epws.filename, tempdir)
+            shutil.unpack_archive(epw_local_path, tempdir)
             local_epw_paths: list[Path] = list(Path(tempdir).rglob("*.epw"))
             epw_paths_to_upload: list[str] = df.epw_path.unique().tolist()
             if not set(epw_paths_to_upload).issubset({path.name for path in local_epw_paths}):
@@ -125,9 +126,10 @@ async def simulate_artifacts(  # noqa: C901
 
     if uploads_idfs:
         with tempfile.TemporaryDirectory() as tempdir:
-            with open(Path(tempdir) / idfs.filename, "wb") as f:
+            idf_local_path = Path(tempdir) / (idfs.filename or "idf.zip")
+            with open(idf_local_path, "wb") as f:
                 f.write(idfs.file.read())
-            shutil.unpack_archive(Path(tempdir) / idfs.filename, tempdir)
+            shutil.unpack_archive(idf_local_path, tempdir)
             local_idf_paths: list[Path] = list(Path(tempdir).rglob("*.idf"))
             idf_paths_to_upload: list[str] = df.idf_path.unique().tolist()
             if not set(idf_paths_to_upload).issubset({path.name for path in local_idf_paths}):
@@ -150,9 +152,10 @@ async def simulate_artifacts(  # noqa: C901
 
     if upload_ddys:
         with tempfile.TemporaryDirectory() as tempdir:
-            with open(Path(tempdir) / ddys.filename, "wb") as f:
+            ddy_local_path = Path(tempdir) / (ddys.filename or "ddy.zip")
+            with open(ddy_local_path, "wb") as f:
                 f.write(ddys.file.read())
-            shutil.unpack_archive(Path(tempdir) / ddys.filename, tempdir)
+            shutil.unpack_archive(ddy_local_path, tempdir)
             local_ddy_paths: list[Path] = list(Path(tempdir).rglob("*.ddy"))
             ddy_paths_to_upload: list[str] = df.ddy_path.unique().tolist()
             if not set(ddy_paths_to_upload).issubset({path.name for path in local_ddy_paths}):
@@ -182,8 +185,11 @@ async def simulate_artifacts(  # noqa: C901
         "experiment_id": experiment_id,
         "bucket": bucket,
     }
-    specs = SimulationsSpec(**payload.copy())
 
+    # validate the payload
+    SimulationsSpec(**payload.copy())
+
+    # upload the specs to s3
     with tempfile.TemporaryDirectory() as tempdir:
         with open(Path(tempdir) / "specs.json", "w") as f:
             json.dump(payload, f)
@@ -230,4 +236,4 @@ async def get_workflow(workflow_run_id: str, bg_tasks: BackgroundTasks) -> FileR
 
 @api.get("/workflows")
 def get_workflows():
-    return [row.name for row in client.rest.workflow_list().rows]
+    return [row.name for row in client.rest.workflow_list().rows or []]

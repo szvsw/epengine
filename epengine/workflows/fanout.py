@@ -14,11 +14,11 @@ s3 = boto3.client("s3")
 @hatchet.workflow(
     name="scatter_gather",
     version="0.2",
-    timeout="1000m",
+    timeout="1200m",
     on_events=["simulations:fanout"],
 )
 class Fanout:
-    @hatchet.step(timeout="1000m")
+    @hatchet.step(timeout="1200m")
     async def spawn_children(self, context: Context):
         workflow_input = context.workflow_input()
         specs = SimulationsSpec.from_payload(workflow_input)
@@ -28,13 +28,14 @@ class Fanout:
         ids = []
 
         for i, spec in enumerate(specs.specs):
-            # TODO: workflowname should be an enum probably, or dynamic on input
-            # TODO: passing in child index - can meta be accessed in the child?
-            # or alternatively, can spawn index?
             task = await context.aio.spawn_workflow(
                 "simulate_epw_idf",
                 spec.model_dump(mode="json"),
-                options={"additional_metadata": {"index": i}},
+                options={
+                    "additional_metadata": {
+                        "index": i,  # pyright: ignore [reportArgumentType]
+                    },
+                },
             )
             # TODO: check error handling
             promise = task.result()

@@ -30,14 +30,16 @@ def postprocess(
     return dfs
 
 
-def collate_subdictionaries(results: list[dict[str, dict]]) -> dict[str, pd.DataFrame]:
+def collate_subdictionaries(
+    results: list[dict[str, dict] | None | BaseException | Exception],
+) -> dict[str, pd.DataFrame]:
     dfs: dict[str, list[pd.DataFrame]] = {}
     for result in results:
-        if isinstance(result, Exception):
+        if isinstance(result, Exception) or result is None or isinstance(result, BaseException):
             continue
         if "simulate" in result:
-            data: dict[str, dict] = result["simulate"]
-            for key, _df in data.items():
+            row_data = result["simulate"]
+            for key, _df in row_data.items():
                 df = pd.DataFrame.from_dict(_df, orient="tight")
                 if key not in dfs:
                     dfs[key] = []

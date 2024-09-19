@@ -34,6 +34,8 @@ def fetch_uri(
         uri = AnyUrl(uri)
     if uri.scheme == "s3":
         bucket = uri.host
+        if not uri.path:
+            raise ValueError(f"S3URI:NO_PATH:{uri}")
         path = uri.path[1:]
         if not local_path.exists() or not use_cache:
             logger_fn(f"Downloading {uri}...")
@@ -53,7 +55,7 @@ def fetch_uri(
             logger_fn(f"Downloading {uri}...")
             local_path.parent.mkdir(parents=True, exist_ok=True)
             with open(local_path, "wb") as f:
-                f.write(requests.get(uri, timeout=60).content)
+                f.write(requests.get(str(uri), timeout=60).content)
         else:
             logger_fn(f"File {local_path} already exists, skipping download.")
     return local_path
@@ -81,6 +83,8 @@ class BaseSpec(BaseModel, arbitrary_types_allowed=True, extra="allow"):
             local_path (Path): The local path of the uri
         """
         path = pth.path
+        if not path:
+            raise ValueError(f"URI:NO_PATH:{pth}")
         return Path("/local_artifacts") / self.experiment_id / path
 
     def log(self, msg: str):

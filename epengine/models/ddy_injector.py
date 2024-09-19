@@ -150,7 +150,7 @@ class DDYSizingSpec(BaseModel):
     """A class to define how to inject a DDY file into an IDF file."""
 
     match: bool = Field(
-        True,
+        default=True,
         description="If True, will attempt to match design days adn weather condition types from the DDY to existing design days in the IDF file.",
     )
     design_days: list[DesignDayName] | Literal["All"] | None = Field(
@@ -244,7 +244,16 @@ class DDYSizingSpec(BaseModel):
         field = DDYField.design_day
         sequence = ddy.idfobjects[field.value]
         all_design_day_names = [d.Name for d in sequence]
-        target_obj_names = [name for name in all_design_day_names if any(d in name for d in self.design_days)]
+        if self.design_days == "All":
+            target_obj_names = all_design_day_names
+        else:
+            target_obj_names = (
+                [name for name in all_design_day_names if any(d in name for d in self.design_days)]
+                if self.design_days
+                else []
+            )
+        if self.raise_on_not_found and not target_obj_names and self.design_days:
+            raise DDYFieldNotFoundError(field=field, obj=", ".join(self.design_days))
         self.remove_and_replace(idf, ddy, field, set(target_obj_names))
 
     def handle_weather_file_condition_types(self, idf: IDF, ddy: IDF):
