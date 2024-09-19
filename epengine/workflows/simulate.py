@@ -36,7 +36,7 @@ class Simulate:
         with tempfile.TemporaryDirectory() as tmpdir:
             local_pth = Path(tmpdir) / "model.idf"
             shutil.copy(spec.idf_path, local_pth)
-            idf = IDF(local_pth, epw=spec.epw_path)
+            idf = IDF(local_pth, epw=spec.epw_path, output_directory=tmpdir)
             if spec.ddy_path:
                 # add_sizing_design_day(idf, spec.ddy_path)
                 ddy = IDF(
