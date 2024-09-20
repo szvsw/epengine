@@ -38,5 +38,5 @@ runs:
 
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --all-extras --with dev --with worker --with api
+      run: poetry install --no-interaction --all-extras --with dev --with worker --with api --with docs
       shell: bash
