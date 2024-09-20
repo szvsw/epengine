@@ -28,6 +28,8 @@ class Fanout:
         ids = []
 
         for i, spec in enumerate(specs.specs):
+            if i % 1000 == 0:
+                context.log(f"Queing {i}th child workflow...")
             task = await context.aio.spawn_workflow(
                 "simulate_epw_idf",
                 spec.model_dump(mode="json"),
