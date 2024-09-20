@@ -1,11 +1,11 @@
-site_name: epengine
+site_name: EPEngine-Hatchet
 repo_url: https://github.com/szvsw/epengine
 site_url: https://szvsw.github.io/epengine
 site_description: This is a repository for managing queues of EnergyPlus simulations with Hatchet.
 site_author: Sam Wolk
 edit_uri: edit/main/docs/
 repo_name: szvsw/epengine
-copyright: Maintained by <a href="https://szvsw.com">Florian</a>.
+copyright: Maintained by <a href="https://szvsw.com">Sam Wolk</a>.
 
 nav:
   - Home: index.md
