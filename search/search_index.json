@@ -1,0 +1,1 @@
+{"config":{"lang":["en"],"separator":"[\\s\\-]+","pipeline":["stopWordFilter"]},"docs":[{"location":"","title":"EPEngine Hatchet","text":"<p>This is a repository for managing queues of EnergyPlus simulations with Hatchet.</p>"},{"location":"modules/","title":"Modules","text":""}]}
