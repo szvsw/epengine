@@ -4,7 +4,7 @@ import shutil
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import boto3
 import pandas as pd
@@ -41,6 +41,7 @@ async def simulate_artifacts(  # noqa: C901
     bucket: str = "ml-for-bem",
     bucket_prefix: str = "hatchet",
     existing_artifacts: Literal["overwrite", "forbid"] = "forbid",
+    recursion_factor: int | None = 4,
 ):
     remote_root = f"{bucket_prefix}/{experiment_id}"
 
@@ -176,6 +177,7 @@ async def simulate_artifacts(  # noqa: C901
                     )
                 )
 
+    df["sort_index"] = list(range(len(df)))
     specs_dict = df.to_dict(orient="records")
 
     specs_uri = format_s3_path("specs", "specs.json")
@@ -196,12 +198,15 @@ async def simulate_artifacts(  # noqa: C901
         specs_path = Path(tempdir) / "specs.json"
         upload_to_s3(format_path("specs", "specs.json"), specs_path.as_posix())
 
-    workflow_payload = {
+    workflow_payload: dict[str, Any] = {
         "uri": specs_uri,
     }
 
+    if recursion_factor is not None:
+        workflow_payload["recursion_map"] = {"factor": recursion_factor}
+
     workflowRef = client.admin.run_workflow(
-        workflow_name="scatter_gather",
+        workflow_name="scatter_gather" if recursion_factor is None else "scatter_gather_recursive",
         input=workflow_payload,
     )
     return {"workflow_run_id": workflowRef.workflow_run_id, "n_jobs": len(specs_dict)}

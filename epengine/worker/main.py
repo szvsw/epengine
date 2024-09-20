@@ -3,7 +3,7 @@ import os
 from pydantic_settings import BaseSettings
 
 from epengine.hatchet import hatchet
-from epengine.workflows import Fanout, Simulate
+from epengine.workflows import ScatterGatherRecursiveWorkflow, ScatterGatherWorkflow, Simulate
 
 
 class SimWorkerSettings(BaseSettings):
@@ -42,7 +42,8 @@ def run():
     )
 
     if settings.FLY_REGION == "sea" or settings.FLY_REGION is None:
-        worker.register_workflow(Fanout())
+        worker.register_workflow(ScatterGatherWorkflow())
+        worker.register_workflow(ScatterGatherRecursiveWorkflow())
 
     worker.register_workflow(Simulate())
 
