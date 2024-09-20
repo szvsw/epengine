@@ -9,6 +9,12 @@ copyright: Maintained by <a href="https://szvsw.com">Sam Wolk</a>.
 
 nav:
   - Home: index.md
+  - Getting Started: getting-started.md
+  # - Getting Started:
+  #   - getting-started/index.md
+  #   - Installation: getting-started/installation.md
+  #   - Configuration: getting-started/configuration.md
+  #   - Running: getting-started/running.md
   - Modules: modules.md
 plugins:
   - search
@@ -22,6 +28,17 @@ theme:
   name: material
   feature:
     tabs: true
+  features:
+    # - toc.follow
+    # - toc.integrate
+    - navigation.top
+    - navigation.path
+    - navigation.indexes
+    - navigation.sections
+    - navigation.tracking
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -49,6 +66,6 @@ extra:
 
 markdown_extensions:
   - toc:
-      permalink: true
+      permalink: "#"
   - pymdownx.arithmatex:
       generic: true
