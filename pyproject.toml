@@ -83,7 +83,11 @@ show_error_codes = "True"
 testpaths = ["tests"]
 
 [tool.pyright]
+include = ["epengine"]
 ignore = ["**/data/**"]
+venvPath = "."
+venv = ".venv"
+
 
 [tool.ruff]
 target-version = "py310"
