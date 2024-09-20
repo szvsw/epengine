@@ -83,7 +83,7 @@ show_error_codes = "True"
 testpaths = ["tests"]
 
 [tool.pyright]
-include = ["epengine"]
+include = ["epengine", "tests"]
 ignore = ["**/data/**"]
 venvPath = "."
 venv = ".venv"
