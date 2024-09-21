@@ -42,6 +42,8 @@ def fetch_uri(
         bucket = uri.host
         if not uri.path:
             raise ValueError(f"S3URI:NO_PATH:{uri}")
+        if not bucket:
+            raise ValueError(f"S3URI:NO_BUCKET:{uri}")
         path = uri.path[1:]
         if not local_path.exists() or not use_cache:
             logger_fn(f"Downloading {uri}...")
