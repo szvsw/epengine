@@ -31,19 +31,15 @@ def postprocess(
 
 
 def collate_subdictionaries(
-    results: list[dict[str, dict] | None | BaseException | Exception],
+    results: list[dict[str, dict]],
 ) -> dict[str, pd.DataFrame]:
     dfs: dict[str, list[pd.DataFrame]] = {}
     for result in results:
-        if isinstance(result, Exception) or result is None or isinstance(result, BaseException):
-            continue
-        if "simulate" in result:
-            row_data = result["simulate"]
-            for key, _df in row_data.items():
-                df = pd.DataFrame.from_dict(_df, orient="tight")
-                if key not in dfs:
-                    dfs[key] = []
-                dfs[key].append(df)
+        for key, _df in result.items():
+            df = pd.DataFrame.from_dict(_df, orient="tight")
+            if key not in dfs:
+                dfs[key] = []
+            dfs[key].append(df)
 
     data: dict[str, pd.DataFrame] = {k: pd.concat(v) for k, v in dfs.items()}
 

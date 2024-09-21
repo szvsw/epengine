@@ -16,7 +16,7 @@ hatchet-sdk = "^0.31.1"
 pydantic = "^2.8.2"
 boto3 = "^1.34.145"
 pandas = "^2.2.2"
-numpy = "<2"
+numpy = "<2.3"
 tqdm = "^4.66.4"
 tables = "^3.9.2"
 
@@ -33,8 +33,8 @@ optional = true
 optional = true
 
 [tool.poetry.group.worker.dependencies]
-archetypal = {git = "https://github.com/samuelduchesne/archetypal", branch = "main"}
-energy-pandas = "^0.3.5"
+archetypal = {git = "https://github.com/samuelduchesne/archetypal", branch = "feature/508-basement-preprocessor-seems-to-fail-"}
+# energy-pandas = "^0.3.5"
 geomeppy = { git = "https://github.com/maynouf/geomeppy", branch = "fix-collections" }
 
 [tool.poetry.group.api.dependencies]
@@ -51,11 +51,13 @@ tox = "^4.11.1"
 jupyter = "^1.0.0"
 ladybug-core = "^0.43.2"
 pyright = "^1.1.381"
+boto3-stubs = {extras = ["essential"], version = "^1.35.23"}
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.4.2"
 mkdocs-material = "^9.2.7"
-mkdocstrings = {extras = ["python"], version = "^0.23.0"}
+mkdocstrings = {extras = ["python"], version = "^0.26.0"}
+mkdocstrings-python = "^1.11.1"
 
 
 [tool.poetry.group.coiled.dependencies]

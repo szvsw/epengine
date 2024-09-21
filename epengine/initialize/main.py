@@ -15,7 +15,12 @@ if __name__ == "__main__":
     # create the bucket if it does not exist
     try:
         region = os.getenv("AWS_DEFAULT_REGION")
-        s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": region})
+        s3.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={
+                "LocationConstraint": region,  # pyright: ignore [reportArgumentType]
+            },
+        )
         logger.info(f"Bucket {bucket_name} created")
     except Exception as e:
         logger.info(f"Bucket {bucket_name} already exists, {e}")

@@ -24,6 +24,8 @@ plugins:
           setup_commands:
             - import sys
             - sys.path.append('../')
+          options:
+            show_source: false
 theme:
   name: material
   feature:
