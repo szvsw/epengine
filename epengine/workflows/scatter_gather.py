@@ -122,14 +122,16 @@ class ScatterGatherRecursiveSpec(WithBucket, ScatterGatherSpec):
             tasks.append(task)
 
         recurse_task_promises = [task.result() for task in tasks]
+        self.log(f"Waiting for {len(recurse_task_promises)} children to complete...")
         results = await asyncio.gather(*recurse_task_promises, return_exceptions=True)
+        self.log("Children have completed!")
 
         safe_results, errored_results = separate_errors_and_safe_sim_results(task_ids, task_specs, results)
 
         # Log the children recurses which errored
         for workflow_id, *_ in errored_results:
-            self.hcontext.log(f"WORKFLOW_ID: {workflow_id}")
-            self.hcontext.log("Error in recursive scatter-gather!")
+            self.log(f"WORKFLOW_ID: {workflow_id}")
+            self.log("Error in recursive scatter-gather!")
 
         # TODO: some type safety here on the result objects so they conform to a spec would be
         # nice
@@ -139,15 +141,19 @@ class ScatterGatherRecursiveSpec(WithBucket, ScatterGatherSpec):
             for (step_name, step) in result.items()
             if step_name == "spawn_children"
         ]
+        self.log("Combining results...")
         collected_dfs = combine_recurse_results(step_results)
+        self.log("Results combined!")
 
         # serialize the dataframes and save to s3
+        self.log("Saving results...")
         uri = save_and_upload_results(
             collected_dfs,
             bucket=self.bucket,
             output_key=self.output_key,
         )
         del collected_dfs
+        self.log("Results saved!")
 
         return URIResponse(uri=AnyUrl(uri))
 
@@ -266,13 +272,16 @@ async def execute_simulations(specs: ScatterGatherSpecWithOptionalBucket):
         promises.append(promise)
         ids.append(task.workflow_run_id)
 
+    specs.log(f"Waiting for {len(promises)} children to complete...")
     results = await asyncio.gather(*promises, return_exceptions=True)
+    specs.log("Children have completed!")
 
     # get the results
     safe_results, errored_workflows = separate_errors_and_safe_sim_results(ids, specs.specs, results)
     sim_results = [result["simulate"] for _, _, result in safe_results if "simulate" in result]
 
     # combine the successful results
+    specs.log("Combining results...")
     collated_dfs = collate_subdictionaries(sim_results)
 
     # create the missing results and add to main results
@@ -281,18 +290,22 @@ async def execute_simulations(specs: ScatterGatherSpecWithOptionalBucket):
     if len(errored_df) > 0:
         collated_dfs["runtime_errors"] = errored_df
 
+    specs.log("Results combined!")
+
     # Finish up
     if specs.bucket:
         # save as hdfs
         workflow_run_id = specs.hcontext.workflow_run_id()
         # TODO: hatchet prefix should come from task!
         output_key = f"hatchet/{specs.experiment_id}/results/{workflow_run_id}.h5"
+        specs.log("Saving results...")
         uri = save_and_upload_results(
             collated_dfs,
             bucket=specs.bucket,
             output_key=output_key,
         )
         del collated_dfs
+        specs.log("Results saved!")
         return URIResponse(uri=AnyUrl(uri)).model_dump(mode="json")
 
     else:
