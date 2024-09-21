@@ -1,3 +1,5 @@
+"""A module containing the scatter-gather workflow and related classes."""
+
 import asyncio
 import tempfile
 from collections.abc import Coroutine
@@ -40,6 +42,8 @@ class ScatterGatherSpecWithOptionalBucket(WithOptionalBucket, ScatterGatherSpec)
 
 
 class RecursionId(BaseModel):
+    """A class representing the recursion ID for a scatter-gather recursive workflow."""
+
     index: int
     level: int
 
@@ -73,7 +77,6 @@ class ScatterGatherRecursiveSpec(WithBucket, ScatterGatherSpec):
         Returns:
             list[SimulationSpec]: The selected specs based on the recursion map.
         """
-
         spec_list = self.specs
         path = self.recursion_map.path
         # if path is present, we need to trim down
@@ -91,6 +94,7 @@ class ScatterGatherRecursiveSpec(WithBucket, ScatterGatherSpec):
 
         Args:
             workflow_input (dict): The input data for the workflow.
+
         Returns:
             URIResponse: The response containing the URI of the saved results.
         """
@@ -332,7 +336,6 @@ def separate_errors_and_safe_sim_results(
     Returns:
         tuple[list[tuple[str, ZipDataContent, ResultDataContent]], list[tuple[str, ZipDataContent, BaseException]]]: A tuple containing the safe results and errored workflows.
     """
-
     errored_workflows: list[tuple[str, ZipDataContent, BaseException]] = []
     safe_results: list[tuple[str, ZipDataContent, ResultDataContent]] = []
     for workflow_id, spec, result in zip(ids, zip_data, results, strict=True):
@@ -356,7 +359,6 @@ def create_errored_and_missing_df(
     Returns:
         pd.DataFrame: The DataFrame of errored and missing results.
     """
-
     error_dfs: list[pd.DataFrame] = []
     for child_workflow_run_id, spec, result in errored_workflows:
         index_data = spec.model_dump(mode="json")
@@ -391,7 +393,6 @@ def save_and_upload_results(
     Returns:
         uri (str): The URI of the uploaded results.
     """
-
     with tempfile.TemporaryDirectory() as tempdir:
         local_path = f"{tempdir}/results.h5"
         for key, df in collected_dfs.items():
@@ -419,7 +420,6 @@ def update_collected_with_df(collected_dfs: dict[str, pd.DataFrame], key: str, d
     Returns:
         None (mutates the collected_dfs dictionary).
     """
-
     if key in collected_dfs:
         df = pd.concat([collected_dfs[key], df], axis=0)
     collected_dfs[key] = df
@@ -438,7 +438,6 @@ def handle_explicit_result(collected_dfs: dict[str, pd.DataFrame], result: dict)
     Returns:
         None (mutates the collected_dfs dictionary).
     """
-
     for key, df_dict in result.items():
         df = pd.DataFrame.from_dict(df_dict, orient="tight")
         update_collected_with_df(collected_dfs, key, df)
@@ -458,7 +457,6 @@ def handle_referenced_result(collected_dfs: dict[str, pd.DataFrame], uri: str):
     Returns:
         None (mutates the collected_dfs dictionary).
     """
-
     with tempfile.TemporaryDirectory() as tmpdir:
         res_path = fetch_uri(uri=uri, use_cache=False, local_path=Path(tmpdir) / "result.h5")
         # list the keys in the h5 file

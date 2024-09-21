@@ -1,3 +1,5 @@
+"""Create the S3 bucket and other resources if they do not exist."""
+
 import logging
 import os
 

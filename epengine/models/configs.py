@@ -1,3 +1,5 @@
+"""Models for Simulation Specifications."""
+
 import json
 import logging
 import tempfile
@@ -124,7 +126,6 @@ class BaseSpec(BaseModel, extra="allow", arbitrary_types_allowed=True):
         Returns:
             spec (BaseSpec): The fetched spec
         """
-
         if isinstance(uri, str):
             uri = AnyUrl(uri)
 
@@ -203,9 +204,7 @@ class RecursionSpec(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def validate_offset_less_than_factor(cls, values):
-        """
-        Validate that the offset is less than the factor.
-        """
+        """Validate that the offset is less than the factor."""
         if values["offset"] is None:
             return values
         if values["offset"] >= values["factor"]:
@@ -226,9 +225,7 @@ class RecursionMap(BaseModel):
     @field_validator("path", mode="before")
     @classmethod
     def validate_path_is_length_ge_1(cls, values):
-        """
-        Validate that the path is at least length 1.
-        """
+        """Validate that the path is at least length 1."""
         if values is None:
             return values
         if len(values) < 1:
@@ -280,7 +277,6 @@ class SimulationsSpec(BaseSpec):
     @classmethod
     def set_children_experiment_id(cls, values: dict):
         """Set the experiment_id of each child spec to the experiment_id of the parent."""
-
         if values.get("specs") is not None:
             for spec in values["specs"]:
                 if isinstance(spec, dict):
@@ -294,6 +290,6 @@ class SimulationsSpec(BaseSpec):
 
 
 class URIResponse(BaseModel):
-    """A response containing the uri of a file"""
+    """A response containing the uri of a file."""
 
     uri: AnyUrl = Field(..., description="The uri of file")

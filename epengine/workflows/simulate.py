@@ -1,3 +1,5 @@
+"""Simulate an EnergyPlus model with associated artifacts."""
+
 import logging
 import re
 import shutil
@@ -19,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 class SimulationSpecWithContext(WithHContext, SimulationSpec):
+    """A simulation specification with a Hatchet Context."""
+
     pass
 
 
@@ -32,8 +36,18 @@ class SimulationSpecWithContext(WithHContext, SimulationSpec):
     schedule_timeout="1000m",
 )
 class Simulate:
+    """A workflow to simulate an EnergyPlus model."""
+
     @hatchet.step(name="simulate", timeout="20m", retries=2)
     def simulate(self, context: Context):
+        """Simulate an EnergyPlus model.
+
+        Args:
+            context (Context): The context of the workflow
+
+        Returns:
+            dict: A dictionary of dataframes with results.
+        """
         data = context.workflow_input()
         data["hcontext"] = context
         spec = SimulationSpecWithContext(**data)

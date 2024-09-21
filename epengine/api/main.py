@@ -1,3 +1,5 @@
+"""Main API module for the EP Engine."""
+
 import json
 import logging
 import shutil
@@ -28,6 +30,7 @@ logger.setLevel(logging.INFO)
 
 @api.get("/")
 def root():
+    """Root endpoint."""
     return {"Hello": "World"}
 
 
@@ -43,6 +46,26 @@ async def simulate_artifacts(  # noqa: C901
     existing_artifacts: Literal["overwrite", "forbid"] = "forbid",
     recursion_factor: int | None = 4,
 ):
+    """An endpoint to schedule simulation of EnergyPlus artifacts.
+
+    This endpoint will do the following:
+    1. Upload the epw, idf, specs and ddy files to s3.
+    2. Schedule the simulation of the EnergyPlus artifacts.
+
+    Args:
+        experiment_id (str): The experiment id.
+        epws (UploadFile): The epw zip file.
+        idfs (UploadFile): The idf zip file.
+        specs (UploadFile): The specs json file.
+        ddys (UploadFile): The ddy zip file.
+        bucket (str, optional): The bucket to use. Defaults to "ml-for-bem".
+        bucket_prefix (str, optional): The bucket prefix. Defaults to "hatchet".
+        existing_artifacts (Literal["overwrite", "forbid"], optional): Whether to overwrite existing artifacts. Defaults to "forbid".
+        recursion_factor (int | None, optional): The recursion factor. Defaults to 4.
+
+    Returns:
+        dict: The workflow run id and the number of jobs.
+    """
     remote_root = f"{bucket_prefix}/{experiment_id}"
 
     def format_path(folder, key):
@@ -214,10 +237,22 @@ async def simulate_artifacts(  # noqa: C901
 
 @api.get("/workflows/{workflow_run_id}")
 async def get_workflow(workflow_run_id: str, bg_tasks: BackgroundTasks) -> FileResponse:
+    """Get the results of a workflow run.
+
+    Args:
+        workflow_run_id (str): The workflow run id.
+        bg_tasks (BackgroundTasks): The background tasks.
+
+    Returns:
+        FileResponse: The results of the workflow run.
+    """
     workflow = client.admin.get_workflow_run(workflow_run_id)
     res = await workflow.result()
     if "spawn_children" in res:
         data = res["spawn_children"]
+        # TODO: why are we doing it this way with a bg task
+        # for removing the tmpdir?  why not use a context
+        # manager?
         tempdir = tempfile.mkdtemp()
 
         local_path = Path(tempdir) / "results.h5"
@@ -241,4 +276,9 @@ async def get_workflow(workflow_run_id: str, bg_tasks: BackgroundTasks) -> FileR
 
 @api.get("/workflows")
 def get_workflows():
+    """Get a list of workflows.
+
+    Returns:
+        list: The list of workflows.
+    """
     return [row.name for row in client.rest.workflow_list().rows or []]
