@@ -45,6 +45,10 @@ docs-test: ## Test if documentation can be built without warnings or errors
 docs: ## Build and serve the documentation
 	@poetry run mkdocs serve
 
+.PHONY: docs-deploy
+docs-deploy: ## Build and serve the documentation
+	@poetry run mkdocs gh-deploy
+
 .PHONY: down
 down: ## Stop the docker-compose services
 	@docker compose down
