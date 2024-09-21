@@ -45,6 +45,26 @@ docs-test: ## Test if documentation can be built without warnings or errors
 docs: ## Build and serve the documentation
 	@poetry run mkdocs serve
 
+.PHONY: down
+down: ## Stop the docker-compose services
+	@docker compose down
+
+.PHONY: prod
+prod: ## Start the docker compose services with the api and worker
+	@make down
+	@docker compose build
+	@docker compose -f docker-compose.yml up -d api worker
+
+.PHONY: dev
+dev: ## Start the docker compose services with the api and worker along with moto
+	@make down
+	@docker compose build
+	@docker compose up
+
+.PHONY: worker-it
+worker-it: ## Run the worker in interactive mode
+	@docker compose exec -it worker /bin/bash
+
 .PHONY: help
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
