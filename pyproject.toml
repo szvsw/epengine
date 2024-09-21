@@ -56,7 +56,8 @@ boto3-stubs = {extras = ["essential"], version = "^1.35.23"}
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.4.2"
 mkdocs-material = "^9.2.7"
-mkdocstrings = {extras = ["python"], version = "^0.23.0"}
+mkdocstrings = {extras = ["python"], version = "^0.26.0"}
+mkdocstrings-python = "^1.11.1"
 
 
 [tool.poetry.group.coiled.dependencies]
