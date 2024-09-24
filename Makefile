@@ -69,6 +69,11 @@ dev: ## Start the docker compose services with the api and worker along with mot
 worker-it: ## Run the worker in interactive mode
 	@docker compose exec -it worker /bin/bash
 
+.PHONY: docker-login
+docker-login: ## Login to aws docker ecr
+	@aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.${AWS_REGION}.amazonaws.com
+
+
 .PHONY: help
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
