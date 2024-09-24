@@ -75,7 +75,10 @@ async def simulate_artifacts(  # noqa: C901
         return f"s3://{bucket}/{format_path(folder, key)}"
 
     # check if experiment_id already exists
-    if s3.list_objects_v2(Bucket=bucket, Prefix=remote_root).get("KeyCount", 0) > 0 and existing_artifacts == "forbid":
+    if (
+        s3.list_objects_v2(Bucket=bucket, Prefix=remote_root).get("KeyCount", 0) > 0
+        and existing_artifacts == "forbid"
+    ):
         raise HTTPException(
             status_code=400,
             detail=f"Experiment '{experiment_id}' already exists. Set 'existing_artifacts' to 'overwrite' to confirm.",
@@ -129,20 +132,30 @@ async def simulate_artifacts(  # noqa: C901
             shutil.unpack_archive(epw_local_path, tempdir)
             local_epw_paths: list[Path] = list(Path(tempdir).rglob("*.epw"))
             epw_paths_to_upload: list[str] = df.epw_path.unique().tolist()
-            if not set(epw_paths_to_upload).issubset({path.name for path in local_epw_paths}):
+            if not set(epw_paths_to_upload).issubset({
+                path.name for path in local_epw_paths
+            }):
                 raise HTTPException(
                     status_code=400,
                     detail="Not all epws listed in config dataframe are present in epws.zip.",
                 )
-            df["epw_uri"] = df.epw_path.apply(lambda x: format_s3_path("epw", Path(x).name))
+            df["epw_uri"] = df.epw_path.apply(
+                lambda x: format_s3_path("epw", Path(x).name)
+            )
             df.pop("epw_path")
-            epw_paths_to_upload = [(Path(tempdir) / path).as_posix() for path in epw_paths_to_upload]
-            epw_path_destinations = [format_path("epw", Path(path).name) for path in epw_paths_to_upload]
+            epw_paths_to_upload = [
+                (Path(tempdir) / path).as_posix() for path in epw_paths_to_upload
+            ]
+            epw_path_destinations = [
+                format_path("epw", Path(path).name) for path in epw_paths_to_upload
+            ]
             logger.info("Uploading epws to s3...")
             with ThreadPoolExecutor(max_workers=10) as executor:
                 list(
                     tqdm(
-                        executor.map(upload_to_s3, epw_path_destinations, epw_paths_to_upload),
+                        executor.map(
+                            upload_to_s3, epw_path_destinations, epw_paths_to_upload
+                        ),
                         total=len(epw_paths_to_upload),
                         desc="Uploading epws to s3...",
                     )
@@ -156,19 +169,29 @@ async def simulate_artifacts(  # noqa: C901
             shutil.unpack_archive(idf_local_path, tempdir)
             local_idf_paths: list[Path] = list(Path(tempdir).rglob("*.idf"))
             idf_paths_to_upload: list[str] = df.idf_path.unique().tolist()
-            if not set(idf_paths_to_upload).issubset({path.name for path in local_idf_paths}):
+            if not set(idf_paths_to_upload).issubset({
+                path.name for path in local_idf_paths
+            }):
                 raise HTTPException(
                     status_code=400,
                     detail="Not all idfs listed in specs dataframe are present in idfs.zip.",
                 )
-            df["idf_uri"] = df.idf_path.apply(lambda x: format_s3_path("idf", Path(x).name))
+            df["idf_uri"] = df.idf_path.apply(
+                lambda x: format_s3_path("idf", Path(x).name)
+            )
             df.pop("idf_path")
-            idf_paths_to_upload = [(Path(tempdir) / path).as_posix() for path in idf_paths_to_upload]
-            idf_path_destinations = [format_path("idf", Path(path).name) for path in idf_paths_to_upload]
+            idf_paths_to_upload = [
+                (Path(tempdir) / path).as_posix() for path in idf_paths_to_upload
+            ]
+            idf_path_destinations = [
+                format_path("idf", Path(path).name) for path in idf_paths_to_upload
+            ]
             with ThreadPoolExecutor(max_workers=10) as executor:
                 list(
                     tqdm(
-                        executor.map(upload_to_s3, idf_path_destinations, idf_paths_to_upload),
+                        executor.map(
+                            upload_to_s3, idf_path_destinations, idf_paths_to_upload
+                        ),
                         total=len(idf_paths_to_upload),
                         desc="Uploading idfs to s3...",
                     )
@@ -182,19 +205,29 @@ async def simulate_artifacts(  # noqa: C901
             shutil.unpack_archive(ddy_local_path, tempdir)
             local_ddy_paths: list[Path] = list(Path(tempdir).rglob("*.ddy"))
             ddy_paths_to_upload: list[str] = df.ddy_path.unique().tolist()
-            if not set(ddy_paths_to_upload).issubset({path.name for path in local_ddy_paths}):
+            if not set(ddy_paths_to_upload).issubset({
+                path.name for path in local_ddy_paths
+            }):
                 raise HTTPException(
                     status_code=400,
                     detail="Not all ddys listed in specs dataframe are present in ddys.zip.",
                 )
-            df["ddy_uri"] = df.ddy_path.apply(lambda x: format_s3_path("ddy", Path(x).name))
+            df["ddy_uri"] = df.ddy_path.apply(
+                lambda x: format_s3_path("ddy", Path(x).name)
+            )
             df.pop("ddy_path")
-            ddy_paths_to_upload = [(Path(tempdir) / path).as_posix() for path in ddy_paths_to_upload]
-            ddy_path_destinations = [format_path("ddy", Path(path).name) for path in ddy_paths_to_upload]
+            ddy_paths_to_upload = [
+                (Path(tempdir) / path).as_posix() for path in ddy_paths_to_upload
+            ]
+            ddy_path_destinations = [
+                format_path("ddy", Path(path).name) for path in ddy_paths_to_upload
+            ]
             with ThreadPoolExecutor(max_workers=10) as executor:
                 list(
                     tqdm(
-                        executor.map(upload_to_s3, ddy_path_destinations, ddy_paths_to_upload),
+                        executor.map(
+                            upload_to_s3, ddy_path_destinations, ddy_paths_to_upload
+                        ),
                         total=len(ddy_paths_to_upload),
                         desc="Uploading ddys to s3...",
                     )
@@ -229,7 +262,9 @@ async def simulate_artifacts(  # noqa: C901
         workflow_payload["recursion_map"] = {"factor": recursion_factor}
 
     workflowRef = client.admin.run_workflow(
-        workflow_name="scatter_gather" if recursion_factor is None else "scatter_gather_recursive",
+        workflow_name="scatter_gather"
+        if recursion_factor is None
+        else "scatter_gather_recursive",
         input=workflow_payload,
     )
     return {"workflow_run_id": workflowRef.workflow_run_id, "n_jobs": len(specs_dict)}

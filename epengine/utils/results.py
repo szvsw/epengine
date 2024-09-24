@@ -41,7 +41,10 @@ def postprocess(
             df = df.unstack()
 
             df = pd.DataFrame(df).T
-            df.index = pd.MultiIndex.from_tuples([tuple(index_data.values())], names=list(index_data.keys()))
+            df.index = pd.MultiIndex.from_tuples(
+                [tuple(index_data.values())],
+                names=list(index_data.keys()),
+            )
             df = df.dropna(axis=1, how="all")
             dfs["_".join(tabular_lookup).replace(" ", "_")] = df
     return dfs

@@ -88,7 +88,9 @@ class Simulate:
             dfs = postprocess(
                 sql,
                 index_data=index_data,
-                tabular_lookups=[("AnnualBuildingUtilityPerformanceSummary", "End Uses")],
+                tabular_lookups=[
+                    ("AnnualBuildingUtilityPerformanceSummary", "End Uses")
+                ],
                 columns=["Electricity", "Natural Gas", "Fuel Oil No 2"],
             )
 
@@ -102,8 +104,13 @@ class Simulate:
             severe_ct = int(severe_matcher.groups()[0]) if severe_matcher else 0
             warning_ct = int(warning_matcher.groups()[0]) if warning_matcher else 0
 
-            err_index = pd.MultiIndex.from_tuples([tuple(index_data.values())], names=list(index_data.keys()))
-            err_df = pd.DataFrame({"warnings": [warning_ct], "severe": [severe_ct]}, index=err_index)
+            err_index = pd.MultiIndex.from_tuples(
+                [tuple(index_data.values())],
+                names=list(index_data.keys()),
+            )
+            err_df = pd.DataFrame(
+                {"warnings": [warning_ct], "severe": [severe_ct]}, index=err_index
+            )
             dfs["energyplus_message_counts"] = err_df
 
         dfs = serialize_df_dict(dfs)

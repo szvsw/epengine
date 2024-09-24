@@ -161,9 +161,15 @@ class BaseSpec(BaseModel, extra="allow", arbitrary_types_allowed=True):
 class SimulationSpec(BaseSpec):
     """A spec for running an EnergyPlus simulation."""
 
-    idf_uri: AnyUrl = Field(..., description="The uri of the idf file to fetch and simulate")
-    epw_uri: AnyUrl = Field(..., description="The uri of the epw file to fetch and simulate")
-    ddy_uri: AnyUrl | None = Field(None, description="The uri of the ddy file to fetch and simulate")
+    idf_uri: AnyUrl = Field(
+        ..., description="The uri of the idf file to fetch and simulate"
+    )
+    epw_uri: AnyUrl = Field(
+        ..., description="The uri of the epw file to fetch and simulate"
+    )
+    ddy_uri: AnyUrl | None = Field(
+        default=None, description="The uri of the ddy file to fetch and simulate"
+    )
 
     @cached_property
     def idf_path(self):
@@ -199,7 +205,9 @@ class RecursionSpec(BaseModel):
     """A spec for recursive calls."""
 
     factor: int = Field(..., description="The factor to use in recursive calls", ge=1)
-    offset: int | None = Field(default=None, description="The offset to use in recursive calls", ge=0)
+    offset: int | None = Field(
+        default=None, description="The offset to use in recursive calls", ge=0
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -219,7 +227,9 @@ class RecursionMap(BaseModel):
     it is in the recursion tree and how to behave.
     """
 
-    path: list[RecursionSpec] | None = Field(default=None, description="The path of recursion specs to use")
+    path: list[RecursionSpec] | None = Field(
+        default=None, description="The path of recursion specs to use"
+    )
     factor: int = Field(..., description="The factor to use in recursive calls", ge=1)
 
     @field_validator("path", mode="before")
@@ -260,7 +270,9 @@ class WithBucket(BaseModel):
 class WithOptionalBucket(BaseModel):
     """A model with an optional bucket to store results."""
 
-    bucket: str | None = Field(default=None, description="The bucket to store the results")
+    bucket: str | None = Field(
+        default=None, description="The bucket to store the results"
+    )
 
 
 class SimulationsSpec(BaseSpec):
@@ -271,7 +283,9 @@ class SimulationsSpec(BaseSpec):
     since they are both part of the same experiment.
     """
 
-    specs: list[SimulationSpec] = Field(..., description="The list of simulation specs to run")
+    specs: list[SimulationSpec] = Field(
+        ..., description="The list of simulation specs to run"
+    )
 
     @model_validator(mode="before")
     @classmethod

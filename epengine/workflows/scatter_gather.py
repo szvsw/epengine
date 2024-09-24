@@ -51,7 +51,10 @@ class RecursionId(BaseModel):
 class ScatterGatherRecursiveSpec(WithBucket, ScatterGatherSpec):
     """A class representing the specs for a scatter-gather recursive workflow."""
 
-    recursion_map: RecursionMap = Field(..., description="The recursion map to use in the scatter-gather workflow")
+    recursion_map: RecursionMap = Field(
+        ...,
+        description="The recursion map to use in the scatter-gather workflow",
+    )
 
     @property
     def output_key(self):
@@ -64,7 +67,11 @@ class ScatterGatherRecursiveSpec(WithBucket, ScatterGatherSpec):
             str: The output key for the results of the scatter-gather workflow.
         """
         output_key_base = f"hatchet/{self.experiment_id}/results"
-        output_results_dir = f"recurse/{len(self.recursion_map.path)}" if self.recursion_map.path else "root"
+        output_results_dir = (
+            f"recurse/{len(self.recursion_map.path)}"
+            if self.recursion_map.path
+            else "root"
+        )
         output_key_prefix = f"{output_key_base}/{output_results_dir}"
         workflow_run_id = self.hcontext.workflow_run_id()
         output_key = f"{output_key_prefix}/{workflow_run_id}.h5"
@@ -130,7 +137,11 @@ class ScatterGatherRecursiveSpec(WithBucket, ScatterGatherSpec):
         results = await asyncio.gather(*recurse_task_promises, return_exceptions=True)
         self.log("Children have completed!")
 
-        safe_results, errored_results = separate_errors_and_safe_sim_results(task_ids, task_specs, results)
+        safe_results, errored_results = separate_errors_and_safe_sim_results(
+            task_ids,
+            task_specs,
+            results,
+        )
 
         # Log the children recurses which errored
         for workflow_id, *_ in errored_results:
@@ -186,7 +197,10 @@ class ScatterGatherWorkflow:
         """
         workflow_input = context.workflow_input()
         specs_without_context = SimulationsSpec.from_payload(workflow_input)
-        specs = ScatterGatherSpecWithOptionalBucket(**specs_without_context.model_dump(), hcontext=context)
+        specs = ScatterGatherSpecWithOptionalBucket(
+            **specs_without_context.model_dump(),
+            hcontext=context,
+        )
 
         return await execute_simulations(specs)
 
@@ -281,15 +295,25 @@ async def execute_simulations(specs: ScatterGatherSpecWithOptionalBucket):
     specs.log("Children have completed!")
 
     # get the results
-    safe_results, errored_workflows = separate_errors_and_safe_sim_results(ids, specs.specs, results)
-    sim_results = [result["simulate"] for _, _, result in safe_results if "simulate" in result]
+    safe_results, errored_workflows = separate_errors_and_safe_sim_results(
+        ids,
+        specs.specs,
+        results,
+    )
+    sim_results = [
+        result["simulate"] for _, _, result in safe_results if "simulate" in result
+    ]
 
     # combine the successful results
     specs.log("Combining results...")
     collated_dfs = collate_subdictionaries(sim_results)
 
     # create the missing results and add to main results
-    missing_results = [(workflow_id, spec) for workflow_id, spec, result in safe_results if "simulate" not in result]
+    missing_results = [
+        (workflow_id, spec)
+        for workflow_id, spec, result in safe_results
+        if "simulate" not in result
+    ]
     errored_df = create_errored_and_missing_df(errored_workflows, missing_results)
     if len(errored_df) > 0:
         collated_dfs["runtime_errors"] = errored_df
@@ -363,7 +387,10 @@ def create_errored_and_missing_df(
     for child_workflow_run_id, spec, result in errored_workflows:
         index_data = spec.model_dump(mode="json")
         index_data.update({"workflow_run_id": child_workflow_run_id})
-        index = pd.MultiIndex.from_tuples([tuple(index_data.values())], names=list(index_data.keys()))
+        index = pd.MultiIndex.from_tuples(
+            [tuple(index_data.values())],
+            names=list(index_data.keys()),
+        )
         row_data = {"missing": [False], "errored": [str(result)]}
         df = pd.DataFrame(row_data, index=index)
         error_dfs.append(df)
@@ -371,16 +398,26 @@ def create_errored_and_missing_df(
     for workflow_id, spec in missing_results:
         index_data = spec.model_dump(mode="json")
         index_data.update({"workflow_run_id": workflow_id})
-        index = pd.MultiIndex.from_tuples([tuple(index_data.values())], names=list(index_data.keys()))
+        index = pd.MultiIndex.from_tuples(
+            [tuple(index_data.values())],
+            names=list(index_data.keys()),
+        )
         row_data = {"missing": [True], "errored": [None]}
         df = pd.DataFrame(row_data, index=index)
         error_dfs.append(df)
-    error_df = pd.concat(error_dfs) if error_dfs else pd.DataFrame({"missing": [], "errored": []})
+    error_df = (
+        pd.concat(error_dfs)
+        if error_dfs
+        else pd.DataFrame({"missing": [], "errored": []})
+    )
     return error_df
 
 
 def save_and_upload_results(
-    collected_dfs: dict[str, pd.DataFrame], bucket: str, output_key: str, save_errors: bool = False
+    collected_dfs: dict[str, pd.DataFrame],
+    bucket: str,
+    output_key: str,
+    save_errors: bool = False,
 ):
     """Saves and uploads the collected dataframes to S3.
 
@@ -406,7 +443,11 @@ def save_and_upload_results(
 
 # TODO: consider using a list based method which
 # concats all at once rather than repeated concats
-def update_collected_with_df(collected_dfs: dict[str, pd.DataFrame], key: str, df: pd.DataFrame):
+def update_collected_with_df(
+    collected_dfs: dict[str, pd.DataFrame],
+    key: str,
+    df: pd.DataFrame,
+):
     """Updates the collected dataframes with a new DataFrame.
 
     Note that this function mutates the collected_dfs dictionary and does
@@ -458,7 +499,11 @@ def handle_referenced_result(collected_dfs: dict[str, pd.DataFrame], uri: str):
         None (mutates the collected_dfs dictionary).
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-        res_path = fetch_uri(uri=uri, use_cache=False, local_path=Path(tmpdir) / "result.h5")
+        res_path = fetch_uri(
+            uri=uri,
+            use_cache=False,
+            local_path=Path(tmpdir) / "result.h5",
+        )
         # list the keys in the h5 file
         with pd.HDFStore(res_path, mode="r") as store:
             keys = store.keys()
@@ -502,4 +547,6 @@ class CombineRecurseResultsMultipleKeysError(ValueError):
 
     def __init__(self):
         """Initializes the error."""
-        super().__init__("Cannot have both a uri and other keys in the results dict when combining recurse results")
+        super().__init__(
+            "Cannot have both a uri and other keys in the results dict when combining recurse results"
+        )

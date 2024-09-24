@@ -205,7 +205,9 @@ class DDYSizingSpec(BaseModel):
 
         del ddy
 
-    def remove_and_replace(self, idf: IDF, ddy: IDF, field: DDYField, copy_names: set[str]):
+    def remove_and_replace(
+        self, idf: IDF, ddy: IDF, field: DDYField, copy_names: set[str]
+    ):
         """Removes all objects of the given field and replaces them with the new ones.
 
         Raises an error if the object is not found in the DDY file and `self.raise_on_not_found` is True.
@@ -248,7 +250,11 @@ class DDYSizingSpec(BaseModel):
             target_obj_names = all_design_day_names
         else:
             target_obj_names = (
-                [name for name in all_design_day_names if any(d in name for d in self.design_days)]
+                [
+                    name
+                    for name in all_design_day_names
+                    if any(d in name for d in self.design_days)
+                ]
                 if self.design_days
                 else []
             )
