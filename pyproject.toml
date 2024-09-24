@@ -2,7 +2,7 @@
 name = "epengine"
 version = "0.0.1"
 description = "This is a repository for managing queues of EnergyPlus simulations with Hatchet."
-authors = ["Sam Wolk <fwolk.sam@gmail.com>"]
+authors = ["Sam Wolk <wolk.sam@gmail.com>"]
 repository = "https://github.com/szvsw/epengine"
 documentation = "https://szvsw.github.io/epengine/"
 readme = "README.md"
