@@ -43,7 +43,10 @@ class SimWorkerSettings(BaseSettings):
     def max_runs(self) -> int:
         """Return the maximum number of runs."""
         cpu_ct = os.cpu_count() or 1
-        return max(1, cpu_ct - 1)
+        if cpu_ct < 8:
+            return cpu_ct
+        else:
+            return cpu_ct - 1
 
     def make_worker(self):
         """Create a worker with the settings.
