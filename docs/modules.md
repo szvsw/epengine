@@ -6,7 +6,7 @@
 
 ::: epengine.models.base
 
-::: epengine.models.leaves
+::: epengine.models.leafs
 
 ::: epengine.models.branches
 

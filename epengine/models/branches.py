@@ -5,7 +5,7 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from epengine.models.base import BaseSpec, LeafSpec
-from epengine.models.leaves import AvailableWorkflowSpecs, WorkflowName
+from epengine.models.leafs import AvailableWorkflowSpecs, WorkflowName
 
 
 class RecursionSpec(BaseModel):

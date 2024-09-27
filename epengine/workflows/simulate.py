@@ -14,7 +14,7 @@ from hatchet_sdk.context import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.ddy_injector import DDYSizingSpec
-from epengine.models.leaves import SimulationSpec
+from epengine.models.leafs import SimulationSpec
 from epengine.models.mixins import WithHContext
 from epengine.utils.results import postprocess, serialize_df_dict
 
