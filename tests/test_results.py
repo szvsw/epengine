@@ -135,7 +135,7 @@ def test_serialize_df_dict():
     assert serialize_df_dict(df_dict) == expected_output
 
 
-class TestZipDataContent(BaseModel):
+class ExampleZipDataContent(BaseModel):
     """Test class for separate_errors_and_safe_sim_results."""
 
     name: str
@@ -146,9 +146,9 @@ def test_separate_errors_and_safe_sim_results_all_safe():
     """Test case where all results are safe (no exceptions)."""
     ids = ["id1", "id2", "id3"]
     zip_data = [
-        TestZipDataContent(name="test1", value=10),
-        TestZipDataContent(name="test2", value=20),
-        TestZipDataContent(name="test3", value=30),
+        ExampleZipDataContent(name="test1", value=10),
+        ExampleZipDataContent(name="test2", value=20),
+        ExampleZipDataContent(name="test3", value=30),
     ]
     results: list[str | BaseException] = [
         "result1",
@@ -173,9 +173,9 @@ def test_separate_errors_and_safe_sim_results_all_errors():
     """Test case where all results are exceptions."""
     ids = ["id1", "id2", "id3"]
     zip_data = [
-        TestZipDataContent(name="test1", value=10),
-        TestZipDataContent(name="test2", value=20),
-        TestZipDataContent(name="test3", value=30),
+        ExampleZipDataContent(name="test1", value=10),
+        ExampleZipDataContent(name="test2", value=20),
+        ExampleZipDataContent(name="test3", value=30),
     ]
     results = [
         BaseException("Error1"),
@@ -200,10 +200,10 @@ def test_separate_errors_and_safe_sim_results_mixed():
     """Test case with a mix of safe results and exceptions."""
     ids = ["id1", "id2", "id3", "id4"]
     zip_data = [
-        TestZipDataContent(name="test1", value=10),
-        TestZipDataContent(name="test2", value=20),
-        TestZipDataContent(name="test3", value=30),
-        TestZipDataContent(name="test4", value=40),
+        ExampleZipDataContent(name="test1", value=10),
+        ExampleZipDataContent(name="test2", value=20),
+        ExampleZipDataContent(name="test3", value=30),
+        ExampleZipDataContent(name="test4", value=40),
     ]
     results = ["result1", BaseException("Error2"), "result3", BaseException("Error4")]
 
@@ -233,9 +233,9 @@ def test_separate_errors_and_safe_sim_results_unequal_lengths():
     """Test case where input lists have unequal lengths."""
     ids = ["id1", "id2"]
     zip_data = [
-        TestZipDataContent(name="test1", value=10),
-        TestZipDataContent(name="test2", value=20),
-        TestZipDataContent(name="test3", value=30),
+        ExampleZipDataContent(name="test1", value=10),
+        ExampleZipDataContent(name="test2", value=20),
+        ExampleZipDataContent(name="test3", value=30),
     ]
     results: list[str | BaseException] = ["result1", "result2"]
 
@@ -250,7 +250,7 @@ def test_separate_errors_and_safe_sim_results_custom_exception():
         pass
 
     ids = ["id1"]
-    zip_data = [TestZipDataContent(name="test1", value=10)]
+    zip_data = [ExampleZipDataContent(name="test1", value=10)]
     results: list[str | BaseException] = [CustomException("Custom error")]
 
     safe_results, errored_results = separate_errors_and_safe_sim_results(
@@ -280,12 +280,12 @@ def test_create_errored_and_missing_df_only_errored():
     errored_workflows = [
         (
             "workflow1",
-            TestZipDataContent(name="value1", value=1),
+            ExampleZipDataContent(name="value1", value=1),
             BaseException("Error1"),
         ),
         (
             "workflow2",
-            TestZipDataContent(name="value2", value=2),
+            ExampleZipDataContent(name="value2", value=2),
             BaseException("Error2"),
         ),
     ]
@@ -312,8 +312,8 @@ def test_create_errored_and_missing_df_only_missing():
     """Test with only missing results."""
     errored_workflows = []
     missing_results = [
-        ("workflow3", TestZipDataContent(name="value3", value=3)),
-        ("workflow4", TestZipDataContent(name="value4", value=4)),
+        ("workflow3", ExampleZipDataContent(name="value3", value=3)),
+        ("workflow4", ExampleZipDataContent(name="value4", value=4)),
     ]
     error_df = create_errored_and_missing_df(errored_workflows, missing_results)
 
@@ -338,12 +338,12 @@ def test_create_errored_and_missing_df_mixed():
     errored_workflows = [
         (
             "workflow1",
-            TestZipDataContent(name="value1", value=1),
+            ExampleZipDataContent(name="value1", value=1),
             BaseException("Error1"),
         ),
     ]
     missing_results = [
-        ("workflow2", TestZipDataContent(name="value2", value=2)),
+        ("workflow2", ExampleZipDataContent(name="value2", value=2)),
     ]
     error_df = create_errored_and_missing_df(errored_workflows, missing_results)
 
