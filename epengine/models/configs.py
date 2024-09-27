@@ -6,15 +6,21 @@ import tempfile
 from collections.abc import Callable
 from functools import cached_property
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import boto3
 import requests
 from hatchet_sdk import Context
 from pydantic import AnyUrl, BaseModel, Field, field_validator, model_validator
 
+if TYPE_CHECKING:
+    from mypy_boto3_s3.client import S3Client as S3ClientType
+else:
+    S3ClientType = object
+
 logger = logging.getLogger(__name__)
 
-s3 = boto3.client("s3")
+s3: S3ClientType = boto3.client("s3")
 
 
 def fetch_uri(
@@ -22,6 +28,7 @@ def fetch_uri(
     local_path: Path,
     use_cache: bool = True,
     logger_fn: Callable = logger.info,
+    s3: S3ClientType = s3,
 ) -> Path:
     """Fetch a file from a uri and return the local path.
 
@@ -34,6 +41,7 @@ def fetch_uri(
         local_path (Path): The local path to save the fetched file
         use_cache (bool): Whether to use the cache
         logger_fn (Callable): The logger function to use
+        s3 (S3Client): The S3 client to use
 
     Returns:
         local_path (Path): The local path of the fetched file
