@@ -5,7 +5,7 @@ site_description: This is a repository for managing queues of EnergyPlus simulat
 site_author: Sam Wolk
 edit_uri: edit/main/docs/
 repo_name: szvsw/epengine
-copyright: Maintained by <a href="https://szvsw.com">Sam Wolk</a>.
+copyright: Maintained by <a href="https://github.com/szvsw">Sam Wolk</a>.
 
 nav:
   - Home: index.md
