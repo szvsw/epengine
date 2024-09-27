@@ -240,7 +240,10 @@ def handle_explicit_result(collected_dfs: dict[str, pd.DataFrame], result: dict)
         result (dict): The explicit result to handle.
     """
     for key, df_dict in result.items():
-        df = pd.DataFrame.from_dict(df_dict, orient="tight")
+        try:
+            df = pd.DataFrame.from_dict(df_dict, orient="tight")
+        except Exception as e:
+            raise ValueError("EXPLICIT_RESULT:DESERIALIZE:NOT_TIGHT_DICT") from e
         update_collected_with_df(collected_dfs, key, df)
         del df, df_dict
 

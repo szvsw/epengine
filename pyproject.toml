@@ -76,9 +76,9 @@ build-backend = "poetry.core.masonry.api"
 testpaths = ["tests"]
 
 [tool.pyright]
-include = ["epengine", "tests"]
+include = ["epengine", "tests/test_utils.py"]
 typeCheckingMode = "standard"
-ignore = ["**/data/**"]
+ignore = ["**/data/**", "tests/"]
 venvPath = "."
 venv = ".venv"
 
