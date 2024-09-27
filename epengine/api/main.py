@@ -46,6 +46,7 @@ async def simulate_artifacts(  # noqa: C901
     bucket_prefix: str = "hatchet",
     existing_artifacts: Literal["overwrite", "forbid"] = "forbid",
     recursion_factor: int | None = 4,
+    max_depth: int = 3,
 ):
     """An endpoint to schedule simulation of EnergyPlus artifacts.
 
@@ -63,6 +64,7 @@ async def simulate_artifacts(  # noqa: C901
         bucket_prefix (str, optional): The bucket prefix. Defaults to "hatchet".
         existing_artifacts (Literal["overwrite", "forbid"], optional): Whether to overwrite existing artifacts. Defaults to "forbid".
         recursion_factor (int | None, optional): The recursion factor. Defaults to 4.
+        max_depth (int, optional): The maximum recursion depth. Defaults to 3. Ignored if recursion_factor is None.
 
     Returns:
         dict: The workflow run id and the number of jobs.
@@ -260,7 +262,10 @@ async def simulate_artifacts(  # noqa: C901
     }
 
     if recursion_factor is not None:
-        workflow_payload["recursion_map"] = {"factor": recursion_factor}
+        workflow_payload["recursion_map"] = {
+            "factor": recursion_factor,
+            "max_depth": max_depth,
+        }
 
     workflowRef = client.admin.run_workflow(
         workflow_name="scatter_gather"

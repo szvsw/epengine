@@ -179,6 +179,9 @@ class RecursionMap(BaseModel):
         default=None, description="The path of recursion specs to use"
     )
     factor: int = Field(..., description="The factor to use in recursive calls", ge=1)
+    max_depth: int = Field(
+        default=10, description="The maximum depth of the recursion", ge=1, le=10
+    )
 
     @field_validator("path", mode="before")
     @classmethod

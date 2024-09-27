@@ -13,8 +13,9 @@ from archetypal.idfclass.sql import Sql
 from hatchet_sdk.context import Context
 
 from epengine.hatchet import hatchet
-from epengine.models.configs import SimulationSpec, WithHContext
+from epengine.models.configs import SimulationSpec
 from epengine.models.ddy_injector import DDYSizingSpec
+from epengine.models.mixins import WithHContext
 from epengine.utils.results import postprocess, serialize_df_dict
 
 logger = logging.getLogger(__name__)

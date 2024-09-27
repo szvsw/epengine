@@ -20,9 +20,9 @@ from epengine.models.configs import (
     SimulationsSpec,
     URIResponse,
     WithBucket,
-    WithHContext,
     WithOptionalBucket,
 )
+from epengine.models.mixins import WithHContext
 from epengine.utils.filesys import fetch_uri
 from epengine.utils.results import collate_subdictionaries, serialize_df_dict
 
@@ -111,7 +111,11 @@ class ScatterGatherRecursiveSpec(WithBucket, ScatterGatherSpec):
         for i in range(self.recursion_map.factor):
             new_path = self.recursion_map.path.copy() if self.recursion_map.path else []
             new_path.append(RecursionSpec(factor=self.recursion_map.factor, offset=i))
-            recurse = RecursionMap(path=new_path, factor=self.recursion_map.factor)
+            recurse = RecursionMap(
+                path=new_path,
+                factor=self.recursion_map.factor,
+                max_depth=self.recursion_map.max_depth,
+            )
             payload = workflow_input.copy()
             payload.update({"recursion_map": recurse.model_dump(mode="json")})
             recursion_id = RecursionId(index=i, level=len(new_path))
@@ -243,7 +247,13 @@ class ScatterGatherRecursiveWorkflow:
         #     raise ValueError("RandomError")
 
         # Check to see if we have hit the base case
-        if len(selected_specs) <= manager.recursion_map.factor:
+        too_few_specs = len(selected_specs) <= manager.recursion_map.factor
+        past_max_depth = (
+            (len(manager.recursion_map.path) >= manager.recursion_map.max_depth)
+            if manager.recursion_map.path
+            else False
+        )
+        if too_few_specs or past_max_depth:
             # we are at a base case which should be run
             data = {**manager.model_dump(), "specs": selected_specs}
             new_specs = ScatterGatherSpecWithOptionalBucket(
