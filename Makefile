@@ -73,6 +73,9 @@ worker-it: ## Run the worker in interactive mode
 docker-login: ## Login to aws docker ecr
 	@aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.${AWS_REGION}.amazonaws.com
 
+.PHONY: dozzle
+dozzle: ## run the dozzle logs container
+	@docker run --detach --volume=/var/run/docker.sock:/var/run/docker.sock -p 9090:8080 amir20/dozzle
 
 .PHONY: help
 help:
