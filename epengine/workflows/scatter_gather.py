@@ -22,8 +22,8 @@ from epengine.models.configs import (
     WithBucket,
     WithHContext,
     WithOptionalBucket,
-    fetch_uri,
 )
+from epengine.utils.filesys import fetch_uri
 from epengine.utils.results import collate_subdictionaries, serialize_df_dict
 
 s3 = boto3.client("s3")

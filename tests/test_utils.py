@@ -6,9 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from epengine.models.configs import (
-    fetch_uri,  # Replace 'your_module' with the actual module name
-)
+from epengine.utils.filesys import fetch_uri
 
 
 def test_fetch_uri_http():

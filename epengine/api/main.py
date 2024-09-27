@@ -15,7 +15,8 @@ from fastapi.responses import FileResponse
 from hatchet_sdk import new_client
 from tqdm import tqdm
 
-from epengine.models.configs import SimulationsSpec, fetch_uri
+from epengine.models.configs import SimulationsSpec
+from epengine.utils.filesys import fetch_uri
 
 api = FastAPI()
 client = new_client()
