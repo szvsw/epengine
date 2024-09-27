@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse
 from hatchet_sdk import new_client
 from tqdm import tqdm
 
-from epengine.models.configs import SimulationsSpec
+from epengine.models.branches import BranchesSpec
 from epengine.utils.filesys import fetch_uri
 
 api = FastAPI()
@@ -248,7 +248,7 @@ async def simulate_artifacts(  # noqa: C901
     }
 
     # validate the payload
-    SimulationsSpec(**payload.copy())
+    BranchesSpec(**payload.copy())
 
     # upload the specs to s3
     with tempfile.TemporaryDirectory() as tempdir:
@@ -266,6 +266,9 @@ async def simulate_artifacts(  # noqa: C901
             "factor": recursion_factor,
             "max_depth": max_depth,
         }
+
+    # set the leaf workflow name
+    workflow_payload["workflow_name"] = "simulate_epw_idf"
 
     workflowRef = client.admin.run_workflow(
         workflow_name="scatter_gather"

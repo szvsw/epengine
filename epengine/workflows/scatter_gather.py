@@ -2,7 +2,7 @@
 
 import asyncio
 from collections.abc import Coroutine
-from typing import Any
+from typing import Any, Generic
 
 import boto3
 from hatchet_sdk import Context
@@ -10,13 +10,15 @@ from hatchet_sdk.workflow_run import WorkflowRunRef
 from pydantic import AnyUrl, BaseModel, Field
 
 from epengine.hatchet import hatchet
-from epengine.models.configs import (
+from epengine.models.branches import (
+    BranchesSpec,
     RecursionMap,
     RecursionSpec,
-    SimulationsSpec,
-    URIResponse,
+    SpecListItem,
+    WorkflowSelector,
 )
 from epengine.models.mixins import WithBucket, WithHContext, WithOptionalBucket
+from epengine.models.outputs import URIResponse
 from epengine.utils.results import (
     collate_subdictionaries,
     combine_recurse_results,
@@ -29,13 +31,17 @@ from epengine.utils.results import (
 s3 = boto3.client("s3")
 
 
-class ScatterGatherSpec(WithHContext, SimulationsSpec):
+class ScatterGatherSpec(
+    WithHContext, BranchesSpec[SpecListItem], Generic[SpecListItem]
+):
     """A class representing the specs for a scatter-gather workflow."""
 
     pass
 
 
-class ScatterGatherSpecWithOptionalBucket(WithOptionalBucket, ScatterGatherSpec):
+class ScatterGatherSpecWithOptionalBucket(
+    WithOptionalBucket, ScatterGatherSpec[SpecListItem], Generic[SpecListItem]
+):
     """A class representing the specs for a scatter-gather workflow with an optional bucket (non recursive)."""
 
     pass
@@ -48,7 +54,9 @@ class RecursionId(BaseModel):
     level: int
 
 
-class ScatterGatherRecursiveSpec(WithBucket, ScatterGatherSpec):
+class ScatterGatherRecursiveSpec(
+    WithBucket, ScatterGatherSpec[SpecListItem], Generic[SpecListItem]
+):
     """A class representing the specs for a scatter-gather recursive workflow."""
 
     recursion_map: RecursionMap = Field(
@@ -82,7 +90,7 @@ class ScatterGatherRecursiveSpec(WithBucket, ScatterGatherSpec):
         """Returns the selected specs based on the recursion map.
 
         Returns:
-            list[SimulationSpec]: The selected specs based on the recursion map.
+            list[BranchesSpec[LeafSpec]]: The selected specs based on the recursion map.
         """
         spec_list = self.specs
         path = self.recursion_map.path
@@ -201,13 +209,16 @@ class ScatterGatherWorkflow:
 
         """
         workflow_input = context.workflow_input()
-        specs_without_context = SimulationsSpec.from_payload(workflow_input)
-        specs = ScatterGatherSpecWithOptionalBucket(
+        workflow_selection = WorkflowSelector.model_validate(workflow_input)
+        specs_without_context = workflow_selection.BranchesSpec.from_payload(
+            workflow_input
+        )
+        specs = ScatterGatherSpecWithOptionalBucket[workflow_selection.Spec](
             **specs_without_context.model_dump(),
             hcontext=context,
         )
 
-        return await execute_simulations(specs)
+        return await execute_simulations(workflow_selection, specs)
 
 
 @hatchet.workflow(
@@ -231,8 +242,11 @@ class ScatterGatherRecursiveWorkflow:
         """
         workflow_input = context.workflow_input()
 
-        specs_without_context = SimulationsSpec.from_payload(workflow_input)
-        manager = ScatterGatherRecursiveSpec(
+        workflow_selection = WorkflowSelector.model_validate(workflow_input)
+        specs_without_context = workflow_selection.BranchesSpec.from_payload(
+            workflow_input
+        )
+        manager = ScatterGatherRecursiveSpec[workflow_selection.Spec](
             **specs_without_context.model_dump(),
             hcontext=context,
             recursion_map=workflow_input["recursion_map"],
@@ -257,23 +271,27 @@ class ScatterGatherRecursiveWorkflow:
         if too_few_specs or past_max_depth:
             # we are at a base case which should be run
             data = {**manager.model_dump(), "specs": selected_specs}
-            new_specs = ScatterGatherSpecWithOptionalBucket(
+            new_specs = ScatterGatherSpecWithOptionalBucket[workflow_selection.Spec](
                 **data,
                 hcontext=context,
             )
-            result = await execute_simulations(new_specs)
+            result = await execute_simulations(workflow_selection, new_specs)
             return result
         else:
             result = await manager.recurse(workflow_input)
             return result.model_dump(mode="json")
 
 
-async def execute_simulations(specs: ScatterGatherSpecWithOptionalBucket):
+async def execute_simulations(
+    workflow_selection: WorkflowSelector,
+    specs: ScatterGatherSpecWithOptionalBucket[SpecListItem],
+):
     """Executes the simulations in the given specs.
 
     Note that this requires the use of the Hatchet context. All simulations will be spawned (non-recursive).
 
     Args:
+        workflow_selection (WorkflowSelector): The workflow selection.
         specs (ScatterGatherSpecWithOptionalBucket): The specs to execute.
 
     Returns:
@@ -288,7 +306,7 @@ async def execute_simulations(specs: ScatterGatherSpecWithOptionalBucket):
         if i % 1000 == 0:
             specs.hcontext.log(f"Queing {i}th child workflow...")
         task = await specs.hcontext.aio.spawn_workflow(
-            "simulate_epw_idf",
+            workflow_selection.workflow_name,
             spec.model_dump(mode="json"),
             options={
                 "additional_metadata": {
