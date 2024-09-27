@@ -1,13 +1,25 @@
 # Modules Reference
 
-## Configs
+## Models
+
+### Configs
 
 ::: epengine.models.configs
 
-## DDY Injector
+### Mixins
+
+::: epengine.models.mixins
+
+### DDY Injector
 
 ::: epengine.models.ddy_injector
 
-## Results
+## Utils
+
+### Results
 
 ::: epengine.utils.results
+
+### FileSystem Utilities
+
+::: epengine.utils.filesys

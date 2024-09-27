@@ -121,7 +121,8 @@ def separate_errors_and_safe_sim_results(
         results (list[ResultDataContent | BaseException]): The list of results to separate.
 
     Returns:
-        tuple[list[tuple[str, ZipDataContent, ResultDataContent]], list[tuple[str, ZipDataContent, BaseException]]]: A tuple containing the safe results and errored workflows.
+        safe_results (list[tuple[str, ZipDataContent, ResultDataContent]]]): A list of safe results.
+        errored_results (list[tuple[str, ZipDataContent, BaseException]]): A list of errored results.
     """
     errored_workflows: list[tuple[str, ZipDataContent, BaseException]] = []
     safe_results: list[tuple[str, ZipDataContent, ResultDataContent]] = []
@@ -144,7 +145,7 @@ def create_errored_and_missing_df(
         missing_results (list[tuple[str, ZipDataContent]]): The list of missing results.
 
     Returns:
-        pd.DataFrame: The DataFrame of errored and missing results.
+        errors (pd.DataFrame): The DataFrame of errored and missing results.
     """
     error_dfs: list[pd.DataFrame] = []
     for child_workflow_run_id, spec, result in errored_workflows:
@@ -222,9 +223,6 @@ def update_collected_with_df(
         collected_dfs (dict[str, pd.DataFrame]): A dictionary containing the collected dataframes.
         key (str): The key to use for the new DataFrame.
         df (pd.DataFrame): The DataFrame to add to the collected dataframes.
-
-    Returns:
-        None (mutates the collected_dfs dictionary).
     """
     if key in collected_dfs:
         df = pd.concat([collected_dfs[key], df], axis=0)
@@ -240,9 +238,6 @@ def handle_explicit_result(collected_dfs: dict[str, pd.DataFrame], result: dict)
     Args:
         collected_dfs (dict[str, pd.DataFrame]): A dictionary containing the collected dataframes.
         result (dict): The explicit result to handle.
-
-    Returns:
-        None (mutates the collected_dfs dictionary).
     """
     for key, df_dict in result.items():
         df = pd.DataFrame.from_dict(df_dict, orient="tight")
@@ -259,9 +254,6 @@ def handle_referenced_result(collected_dfs: dict[str, pd.DataFrame], uri: str):
     Args:
         collected_dfs (dict[str, pd.DataFrame]): A dictionary containing the collected dataframes.
         uri (str): The URI of the result to fetch.
-
-    Returns:
-        None (mutates the collected_dfs dictionary).
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         res_path = fetch_uri(
@@ -289,7 +281,7 @@ def combine_recurse_results(results: list[dict[str, Any]]):
       results: A list of dictionaries representing the results of recursive operations.
 
     Returns:
-      collected_dfs: A dictionary containing the combined DataFrames, where the keys are the URIs of the DataFrames.
+      collected_dfs (dict[str, pd.DataFrame]): A dictionary containing the combined DataFrames, where the keys are the URIs of the DataFrames.
 
     Raises:
       CombineRecurseResultsMultipleKeysError: If a result dictionary contains more than one key when it has a "uri" key.
