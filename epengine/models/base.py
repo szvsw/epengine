@@ -37,8 +37,10 @@ class BaseSpec(BaseModel, extra="allow", arbitrary_types_allowed=True):
             local_path (Path): The local path of the uri
         """
         path = pth.path
-        if not path:
+        if not path or path == "/":
             raise ValueError(f"URI:NO_PATH:{pth}")
+        if path.startswith("/"):
+            path = path[1:]
         return Path("/local_artifacts") / self.experiment_id / path
 
     def log(self, msg: str):
