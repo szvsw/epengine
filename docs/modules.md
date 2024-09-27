@@ -2,9 +2,15 @@
 
 ## Models
 
-### Configs
+### Workflow Specs
 
-::: epengine.models.configs
+::: epengine.models.base
+
+::: epengine.models.leaves
+
+::: epengine.models.branches
+
+::: epengine.models.outputs
 
 ### Mixins
 
