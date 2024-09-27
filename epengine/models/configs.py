@@ -6,7 +6,6 @@ import tempfile
 from functools import cached_property
 from pathlib import Path
 
-from hatchet_sdk import Context
 from pydantic import AnyUrl, BaseModel, Field, field_validator, model_validator
 
 from epengine.utils.filesys import fetch_uri
@@ -192,38 +191,6 @@ class RecursionMap(BaseModel):
         if len(values) < 1:
             raise ValueError("PATH:LENGTH:GE:1")
         return values
-
-
-class WithHContext(BaseModel, extra="allow", arbitrary_types_allowed=True):
-    """A model with a Hatchet context."""
-
-    hcontext: Context = Field(
-        ...,
-        description="The context of the spec when running in hatchet",
-        exclude=True,
-    )
-
-    def log(self, msg: str):
-        """Log a message to the hatchet context.
-
-        Args:
-            msg (str): The message to log
-        """
-        self.hcontext.log(msg)
-
-
-class WithBucket(BaseModel):
-    """A model with a bucket to store results."""
-
-    bucket: str = Field(default=None, description="The bucket to store the results")
-
-
-class WithOptionalBucket(BaseModel):
-    """A model with an optional bucket to store results."""
-
-    bucket: str | None = Field(
-        default=None, description="The bucket to store the results"
-    )
 
 
 class SimulationsSpec(BaseSpec):

@@ -19,10 +19,8 @@ from epengine.models.configs import (
     SimulationSpec,
     SimulationsSpec,
     URIResponse,
-    WithBucket,
-    WithOptionalBucket,
 )
-from epengine.models.mixins import WithHContext
+from epengine.models.mixins import WithBucket, WithHContext, WithOptionalBucket
 from epengine.utils.filesys import fetch_uri
 from epengine.utils.results import collate_subdictionaries, serialize_df_dict
 
