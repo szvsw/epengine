@@ -247,7 +247,7 @@ class ScatterGatherRecursiveWorkflow:
             workflow_input
         )
         manager = ScatterGatherRecursiveSpec[workflow_selection.Spec](
-            **specs_without_context.model_dump(),
+            **specs_without_context.model_dump(exclude={"recursion_map"}),
             hcontext=context,
             recursion_map=workflow_input["recursion_map"],
         )

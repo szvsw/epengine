@@ -9,6 +9,7 @@ from epengine.workflows import (
     ScatterGatherRecursiveWorkflow,
     ScatterGatherWorkflow,
     Simulate,
+    SimulateShoebox,
 )
 
 
@@ -67,6 +68,7 @@ class SimWorkerSettings(BaseSettings):
             worker.register_workflow(ScatterGatherRecursiveWorkflow())
 
         worker.register_workflow(Simulate())
+        worker.register_workflow(SimulateShoebox())
 
         return worker
 

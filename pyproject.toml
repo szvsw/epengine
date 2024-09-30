@@ -19,6 +19,8 @@ pandas = "^2.2.2"
 numpy = "<2.3"
 tqdm = "^4.66.4"
 tables = "^3.9.2"
+archetypal = {git = "https://github.com/samuelduchesne/archetypal", branch = "main"}
+epinterface = {git = "https://github.com/szvsw/epinterface",  rev="fea154b"}
 
 [tool.poetry.group.dev]
 optional = true
@@ -33,9 +35,6 @@ optional = true
 optional = true
 
 [tool.poetry.group.worker.dependencies]
-archetypal = {git = "https://github.com/samuelduchesne/archetypal", branch = "main"}
-# energy-pandas = "^0.3.5"
-# geomeppy = { git = "https://github.com/maynouf/geomeppy", branch = "fix-collections" }
 
 [tool.poetry.group.api.dependencies]
 fastapi = "^0.111.1"
