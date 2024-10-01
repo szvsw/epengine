@@ -1,11 +1,14 @@
 """Models for lists and recursions of simulation specs."""
 
+from pathlib import Path
 from typing import Generic, TypeVar
 
+import pandas as pd
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from epengine.models.base import BaseSpec, LeafSpec
 from epengine.models.leafs import AvailableWorkflowSpecs, WorkflowName
+from epengine.utils.filesys import fetch_uri
 
 
 class RecursionSpec(BaseModel):
@@ -72,14 +75,29 @@ class BranchesSpec(BaseSpec, Generic[SpecListItem]):
     @classmethod
     def set_children_exp_id_and_sort_index(cls, values: dict):
         """Set the experiment_id of each child spec to the experiment_id of the parent along with the sort_index."""
+        experiment_id = values["experiment_id"]
         if values.get("specs") is not None:
+            if isinstance(values["specs"], str):
+                local_path = (
+                    Path("/local_artifacts")
+                    / experiment_id
+                    / Path(values["specs"]).name
+                )
+                local_path = fetch_uri(
+                    values["specs"], local_path=local_path, use_cache=True
+                )
+                if local_path.suffix.lower() in [".pq", ".parquet"]:
+                    specs = pd.read_parquet(local_path)
+                    values["specs"] = specs.to_dict(orient="records")
+                    del specs
+
             for i, spec in enumerate(values["specs"]):
                 if isinstance(spec, dict):
-                    spec["experiment_id"] = values["experiment_id"]
+                    spec["experiment_id"] = experiment_id
                     if "sort_index" not in spec:
                         spec["sort_index"] = i
                 elif isinstance(spec, LeafSpec):
-                    spec.experiment_id = values["experiment_id"]
+                    spec.experiment_id = experiment_id
                     if "sort_index" not in spec.model_dump(
                         exclude_none=True, exclude_unset=True
                     ):
