@@ -1,5 +1,6 @@
 """Simulate an EnergyPlus ubem shoebox model with associated artifacts."""
 
+import asyncio
 import logging
 
 from hatchet_sdk.context import Context
@@ -30,7 +31,7 @@ class SimulateShoebox:
     """A workflow to simulate an EnergyPlus model."""
 
     @hatchet.step(name="simulate", timeout="10m", retries=2)
-    async def simulate(self, context: Context):
+    def simulate(self, context: Context):
         """Simulate an EnergyPlus Shoebox UBEM model.
 
         Args:
@@ -42,7 +43,8 @@ class SimulateShoebox:
         data = context.workflow_input()
         data["hcontext"] = context
         spec = ShoeboxSimulationSpecWithContext(**data)
-        _idf, results, err_text = await spec.run()
+        # _idf, results, err_text = await spec.run()
+        _idf, results, err_text = asyncio.run(spec.run())
         context.log(err_text)
         dfs = {"results": results}
 
