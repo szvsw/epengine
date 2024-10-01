@@ -1,6 +1,5 @@
 """Simulate an EnergyPlus ubem shoebox model with associated artifacts."""
 
-import asyncio
 import logging
 
 from hatchet_sdk.context import Context
@@ -44,7 +43,7 @@ class SimulateShoebox:
         data["hcontext"] = context
         spec = ShoeboxSimulationSpecWithContext(**data)
         # _idf, results, err_text = await spec.run()
-        _idf, results, err_text = asyncio.run(spec.run())
+        _idf, results, err_text = spec.run()
         context.log(err_text)
         dfs = {"results": results}
 

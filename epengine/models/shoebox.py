@@ -107,7 +107,7 @@ class ShoeboxSimulationSpec(LeafSpec):
         )
         return model
 
-    async def run(self):
+    def run(self):
         """Build and run the shoebox simulation."""
         f2f_height = 3.5
         model = self.configure(f2f_height=f2f_height)
@@ -128,7 +128,7 @@ class ShoeboxSimulationSpec(LeafSpec):
         # weather_dir = self.local_path(AnyUrl(self.epwzip_path)).parent
         weather_dir = Path("notebooks") / "cache" / "weather"
         weather_dir.mkdir(parents=True, exist_ok=True)
-        idf, results, warning_text = await model.run(
+        idf, results, warning_text = model.run(
             weather_dir=weather_dir,
             move_energy=False,
             post_build_callback=post_build_callback,
@@ -163,7 +163,5 @@ if __name__ == "__main__":
         epwzip_path="https://climate.onebuilding.org/WMO_Region_4_North_and_Central_America/USA_United_States_of_America/MA_Massachusetts/USA_MA_Boston-Logan.Intl.AP.725090_TMYx.2009-2023.zip",
     )
 
-    import asyncio
-
-    idf, results, warnings = asyncio.run(spec.run())
+    idf, results, warnings = spec.run()
     print(results)
