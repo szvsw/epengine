@@ -1,7 +1,9 @@
 """Shoebox simulation workflow."""
 
 import json
+from functools import cached_property
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 from archetypal.idfclass import IDF
@@ -47,7 +49,7 @@ class ShoeboxSimulationSpec(LeafSpec):
         ..., description="The area ratio of the rotated rectangle."
     )
 
-    @property
+    @cached_property
     def lib_path(self) -> Path:
         """Fetch the library file and return the local path.
 
@@ -56,7 +58,7 @@ class ShoeboxSimulationSpec(LeafSpec):
         """
         return self.fetch_uri(self.lib_uri)
 
-    @property
+    @cached_property
     def lib(self) -> ClimateStudioLibraryV2:
         """Fetch the library file and return the library.
 
@@ -76,6 +78,9 @@ class ShoeboxSimulationSpec(LeafSpec):
         Returns:
             model (epinterface.climate_studio.builder.Model): The configured model
         """
+        if not self.is_residential:
+            raise ValueError("RESIDENTIAL_ONLY")
+
         # TODO: decide whether we should actually go up to core/perim or not
         use_core_perim = self.long_edge > 15 and self.short_edge > 15
         geometry = ShoeboxGeometry(
@@ -98,14 +103,107 @@ class ShoeboxSimulationSpec(LeafSpec):
 
         # TODO: select space use and envelope based off of
         # typology age and size
+        self.update_windows_by_age(self.envelope_name)
+
         model = Model(
             Weather=WeatherUrl(self.epwzip_path),  # pyright: ignore [reportCallIssue]
             geometry=geometry,
-            space_use_name=next(iter(self.lib.SpaceUses)),
-            envelope_name=next(iter(self.lib.Envelopes)),
+            space_use_name=self.space_use_name,
+            envelope_name=self.envelope_name,
             lib=self.lib,
         )
         return model
+
+    @property
+    def is_residential(self) -> bool:
+        """Check if the typology is residential.
+
+        Returns:
+            is_residential (bool): True if the typology is residential
+        """
+        return "residential" in self.typology.lower()
+
+    @property
+    def res_size(self) -> Literal["multi-family", "single-family"]:
+        """Return the size of the residential building.
+
+        Returns:
+            res_size (Literal["multi-family", "single-family"]): The size of the building
+        """
+        if (
+            "multi" in self.typology.lower()
+            or "mf" in self.typology.lower()
+            or self.num_floors > 3
+            or self.footprint_area > 1000
+        ):
+            return "multi-family"
+        return "single-family"
+
+    @property
+    def age_key(self):
+        """Return the age key of the building.
+
+        Returns:
+            age_key (str): The age key of the building
+        """
+        return (
+            "pre_1975"
+            if self.year_built < 1975
+            else ("btw_1975_2003" if self.year_built <= 2003 else "post_2003")
+        )
+
+    @property
+    def size_key(self):
+        """Return the size key of the building.
+
+        Returns:
+            size_key (str): The size key of the building
+        """
+        return "MFH" if self.res_size == "multi-family" else "SF"
+
+    @property
+    def space_use_name(self):
+        """Return the space use name of the building.
+
+        Returns:
+            space_use_name (str): The space use name of the building
+        """
+        space_use_name = f"Template_MA_{self.size_key}_{self.age_key}"
+        return space_use_name
+
+    @property
+    def envelope_name(self):
+        """Return the envelope name of the building.
+
+        Returns:
+            envelope_name (str): The envelope name of the building
+        """
+        envelope_name = f"Template_MA_{self.size_key}_{self.age_key}"
+        return envelope_name
+
+    def update_windows_by_age(self, envelope_name: str):
+        """Update the windows based off of the age of the building.
+
+        NB: this mutates the library in place.
+
+        Args:
+            envelope_name (str): The envelope name to update
+        """
+        if self.year_built < 1975:
+            window_name = "Template_pre_1975"
+        elif self.year_built <= 2003:
+            window_name = "Template_btw_1975_2003"
+        else:
+            window_name = "Template_post_2003"
+
+        # select window type based off of year
+        envelope = self.lib.Envelopes[envelope_name]
+        if envelope.WindowDefinition is None:
+            raise ValueError("Envelope:WindowDefinition:MISSING")
+        if window_name not in self.lib.GlazingConstructions:
+            raise ValueError(f"GlazingConstruction:NOT_FOUND:{window_name}")
+
+        envelope.WindowDefinition.Construction = window_name
 
     def run(self):
         """Build and run the shoebox simulation."""
@@ -146,12 +244,14 @@ class ShoeboxSimulationSpec(LeafSpec):
 
 if __name__ == "__main__":
     spec = ShoeboxSimulationSpec(
-        experiment_id="test",
+        experiment_id="test-2",
         sort_index=0,
-        lib_uri=AnyUrl("s3://ml-for-bem/tiles/massachusetts/2024_09_30/lib_demo.json"),
-        typology="Residential",
-        year_built=1972,
-        num_floors=3,
+        lib_uri=AnyUrl(
+            "s3://ml-for-bem/tiles/massachusetts/2024_09_30/everett_lib.json"
+        ),
+        typology="Residential, Multi-family",
+        year_built=2005,
+        num_floors=2,
         neighbor_polys=["POLYGON ((-10 0, -10 10, -5 10, -5 0, -10 0))"],
         neighbor_floors=[3],
         rotated_rectangle="POLYGON ((5 0, 5 10, 15 10, 15 0, 5 0))",
@@ -164,4 +264,4 @@ if __name__ == "__main__":
     )
 
     idf, results, warnings = spec.run()
-    print(results)
+    print(results.reset_index(drop=True))

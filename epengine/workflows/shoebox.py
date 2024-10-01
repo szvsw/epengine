@@ -59,10 +59,12 @@ if __name__ == "__main__":
     spec = ShoeboxSimulationSpec(
         experiment_id="test",
         sort_index=0,
-        lib_uri=AnyUrl("s3://ml-for-bem/tiles/massachusetts/2024_09_30/lib_demo.json"),
+        lib_uri=AnyUrl(
+            "s3://ml-for-bem/tiles/massachusetts/2024_09_30/everett_lib.json"
+        ),
         typology="Residential",
         year_built=1972,
-        num_floors=3,
+        num_floors=2,
         neighbor_polys=["POLYGON ((-10 0, -10 10, -5 10, -5 0, -10 0))"],
         neighbor_floors=[3],
         rotated_rectangle="POLYGON ((5 0, 5 10, 15 10, 15 0, 5 0))",
