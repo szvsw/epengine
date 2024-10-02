@@ -10,7 +10,9 @@
 1. Generate a [Hatchet API token](https://cloud.onhatchet.run/tenant-settings/api-tokens). _nb: in the future, Hatchet will be deployable as part of the Copilot specification._
 1. Configure an AWS CLI profile if you have not done so already: `aws configure --profile <your-profile-name>`
 
-### Command macro
+Once the prereqs are installed, you can either run a single command macro to stand up the whole stack at once, or you can stand-up pieces incrementally.
+
+### Command macro (all at once)
 
 Running the following command will walk you through all the steps necessary to stand-up the application in AWS.
 
