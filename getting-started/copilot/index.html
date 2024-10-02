@@ -427,9 +427,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#command-macro-all-at-once" class="md-nav__link">
+  <a href="#command-macro-whole-stack-at-once" class="md-nav__link">
     <span class="md-ellipsis">
-      Command macro (all at once)
+      Command macro (whole stack at once)
     </span>
   </a>
   
@@ -549,9 +549,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#command-macro-all-at-once" class="md-nav__link">
+  <a href="#command-macro-whole-stack-at-once" class="md-nav__link">
     <span class="md-ellipsis">
-      Command macro (all at once)
+      Command macro (whole stack at once)
     </span>
   </a>
   
@@ -609,6 +609,8 @@
 
 <h1 id="copilot-deployment">Copilot Deployment<a class="headerlink" href="#copilot-deployment" title="Permanent link">#</a></h1>
 <h2 id="first-time-setup">First Time Setup<a class="headerlink" href="#first-time-setup" title="Permanent link">#</a></h2>
+<p>Copilot is an official AWS tool used to quickly stand-up infrastructure in the cloud. For this project, it is responsible for setting up a backend service for running simulations (so no inbound internet-access, only outbound) and an S3 bucket. In the future, it will also include the distributed queuing system and the API which is used to submit tasks, however, for now those are expected to be running with managed hosting (for the queue) and locally (for the API, if needed).</p>
+<p>Once the prereqs are installed, you can either run a single command macro to stand up the whole stack at once, or you can stand-up pieces incrementally.</p>
 <h3 id="prereqs">Prereqs<a class="headerlink" href="#prereqs" title="Permanent link">#</a></h3>
 <ol>
 <li>Install <a href="https://docs.docker.com/get-started/get-docker/">Docker</a>.</li>
@@ -616,9 +618,10 @@
 <li>Create a <a href="https://cloud.onhatchet.run/auth/register">Hatchet account</a>.</li>
 <li>Generate a <a href="https://cloud.onhatchet.run/tenant-settings/api-tokens">Hatchet API token</a>. <em>nb: in the future, Hatchet will be deployable as part of the Copilot specification.</em></li>
 <li>Configure an AWS CLI profile if you have not done so already: <code>aws configure --profile &lt;your-profile-name&gt;</code></li>
+<li>Clone the repository: <code>git clone https://github.com/szvsw/epengine</code>.</li>
+<li>Move into the repository: <code>cd epengine</code></li>
 </ol>
-<p>Once the prereqs are installed, you can either run a single command macro to stand up the whole stack at once, or you can stand-up pieces incrementally.</p>
-<h3 id="command-macro-all-at-once">Command macro (all at once)<a class="headerlink" href="#command-macro-all-at-once" title="Permanent link">#</a></h3>
+<h3 id="command-macro-whole-stack-at-once">Command macro (whole stack at once)<a class="headerlink" href="#command-macro-whole-stack-at-once" title="Permanent link">#</a></h3>
 <p>Running the following command will walk you through all the steps necessary to stand-up the application in AWS.</p>
 <pre><code class="language-bash">make create-copilot-app
 </code></pre>
@@ -629,6 +632,7 @@
 <li>Any configuration necessary for the environment (e.g. security groups, VPCs, subnets etc), however you can use the defaults if desired (recommended for most users).</li>
 <li>The Hatchet Client Token</li>
 </ol>
+<p>Once complete, if all is susccessful, you should see one worker in your Hatchet pool.</p>
 <h3 id="manually-running-the-commands">Manually running the commands<a class="headerlink" href="#manually-running-the-commands" title="Permanent link">#</a></h3>
 <ol>
 <li><code>copilot app init</code></li>
@@ -639,6 +643,7 @@
 <li><code>copilot secret init --name HATCHET_CLIENT_TOKEN</code></li>
 <li><code>copilot deploy --init-wkld --env prod --all</code></li>
 </ol>
+<p>Once complete, if all is susccessful, you should see one worker in your Hatchet pool.</p>
 <h2 id="managing-worker-counts">Managing Worker Counts<a class="headerlink" href="#managing-worker-counts" title="Permanent link">#</a></h2>
 <p>In <code>copilot/worker/manifest.yml</code>, you can edit the worker count configuration to determine how many workers you would like, if scaling should be done based off of CPU utilization, etc.</p>
 <p>After making changes, run <code>copilot svc deploy</code>.</p>
