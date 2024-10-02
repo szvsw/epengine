@@ -427,9 +427,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#command-macro" class="md-nav__link">
+  <a href="#command-macro-all-at-once" class="md-nav__link">
     <span class="md-ellipsis">
-      Command macro
+      Command macro (all at once)
     </span>
   </a>
   
@@ -549,9 +549,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#command-macro" class="md-nav__link">
+  <a href="#command-macro-all-at-once" class="md-nav__link">
     <span class="md-ellipsis">
-      Command macro
+      Command macro (all at once)
     </span>
   </a>
   
@@ -617,7 +617,8 @@
 <li>Generate a <a href="https://cloud.onhatchet.run/tenant-settings/api-tokens">Hatchet API token</a>. <em>nb: in the future, Hatchet will be deployable as part of the Copilot specification.</em></li>
 <li>Configure an AWS CLI profile if you have not done so already: <code>aws configure --profile &lt;your-profile-name&gt;</code></li>
 </ol>
-<h3 id="command-macro">Command macro<a class="headerlink" href="#command-macro" title="Permanent link">#</a></h3>
+<p>Once the prereqs are installed, you can either run a single command macro to stand up the whole stack at once, or you can stand-up pieces incrementally.</p>
+<h3 id="command-macro-all-at-once">Command macro (all at once)<a class="headerlink" href="#command-macro-all-at-once" title="Permanent link">#</a></h3>
 <p>Running the following command will walk you through all the steps necessary to stand-up the application in AWS.</p>
 <pre><code class="language-bash">make create-copilot-app
 </code></pre>
