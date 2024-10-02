@@ -9,12 +9,10 @@ copyright: Maintained by <a href="https://github.com/szvsw">Sam Wolk</a>.
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
-  # - Getting Started:
-  #   - getting-started/index.md
-  #   - Installation: getting-started/installation.md
-  #   - Configuration: getting-started/configuration.md
-  #   - Running: getting-started/running.md
+  - Getting Started:
+      - getting-started/index.md
+      - Local/Dev: getting-started/local.md
+      - AWS/Copilot: getting-started/copilot.md
   - Modules: modules.md
 plugins:
   - search

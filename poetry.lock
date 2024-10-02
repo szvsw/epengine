@@ -566,17 +566,17 @@ xyzservices = ">=2021.09.1"
 
 [[package]]
 name = "boto3"
-version = "1.35.30"
+version = "1.35.31"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3-1.35.30-py3-none-any.whl", hash = "sha256:d89c3459db89c5408e83219ab849ffd0146bc4285e75cdc67c6e45d390a12df2"},
-    {file = "boto3-1.35.30.tar.gz", hash = "sha256:d2851aec8e9dc6937977acbe9a5124ecc31b3ad5f50a10cd9ae52636da3f52fa"},
+    {file = "boto3-1.35.31-py3-none-any.whl", hash = "sha256:2e9af74d10d8af7610a8d8468d2914961f116912a024fce17351825260385a52"},
+    {file = "boto3-1.35.31.tar.gz", hash = "sha256:8c593af260c4ea3eb6f079c09908f94494ca2222aa4e40a7ff490fab1cee8b39"},
 ]
 
 [package.dependencies]
-botocore = ">=1.35.30,<1.36.0"
+botocore = ">=1.35.31,<1.36.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.10.0,<0.11.0"
 
@@ -585,13 +585,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "boto3-stubs"
-version = "1.35.30"
-description = "Type annotations for boto3 1.35.30 generated with mypy-boto3-builder 8.1.2"
+version = "1.35.31"
+description = "Type annotations for boto3 1.35.31 generated with mypy-boto3-builder 8.1.2"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3_stubs-1.35.30-py3-none-any.whl", hash = "sha256:448f7025757f41926cf5c8a2ecae75954dcdc2a7a08d2a6e3250a7c8b5dbd7d7"},
-    {file = "boto3_stubs-1.35.30.tar.gz", hash = "sha256:159c242ebe82ef12ab561a809acc0b5036d23bc93be080ccd561d2661bbe33ef"},
+    {file = "boto3_stubs-1.35.31-py3-none-any.whl", hash = "sha256:d440ad57493534074024c999045929c617007712d395c86208b95b48f716269f"},
+    {file = "boto3_stubs-1.35.31.tar.gz", hash = "sha256:bc10fa6e0c0e46c2b7c664b2183bb524053eb7439d9ebf9ae66547b295b76675"},
 ]
 
 [package.dependencies]
@@ -649,7 +649,7 @@ bedrock-agent = ["mypy-boto3-bedrock-agent (>=1.35.0,<1.36.0)"]
 bedrock-agent-runtime = ["mypy-boto3-bedrock-agent-runtime (>=1.35.0,<1.36.0)"]
 bedrock-runtime = ["mypy-boto3-bedrock-runtime (>=1.35.0,<1.36.0)"]
 billingconductor = ["mypy-boto3-billingconductor (>=1.35.0,<1.36.0)"]
-boto3 = ["boto3 (==1.35.30)", "botocore (==1.35.30)"]
+boto3 = ["boto3 (==1.35.31)", "botocore (==1.35.31)"]
 braket = ["mypy-boto3-braket (>=1.35.0,<1.36.0)"]
 budgets = ["mypy-boto3-budgets (>=1.35.0,<1.36.0)"]
 ce = ["mypy-boto3-ce (>=1.35.0,<1.36.0)"]
@@ -1000,13 +1000,13 @@ xray = ["mypy-boto3-xray (>=1.35.0,<1.36.0)"]
 
 [[package]]
 name = "botocore"
-version = "1.35.30"
+version = "1.35.31"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.35.30-py3-none-any.whl", hash = "sha256:3bb9f9dde001608671ea74681ac3cec06bbbb10cba8cb8c1387a25e843075ce0"},
-    {file = "botocore-1.35.30.tar.gz", hash = "sha256:ab5350e8a50e48d371fa2d517d65c29a40c43788cb9a15387f93eac5a23df0fd"},
+    {file = "botocore-1.35.31-py3-none-any.whl", hash = "sha256:4cee814875bc78656aef4011d3d6b2231e96f53ea3661ee428201afb579d5c31"},
+    {file = "botocore-1.35.31.tar.gz", hash = "sha256:f7bfa910cf2cbcc8c2307c1cf7b93495d614c2d699883417893e0a337fe4eb63"},
 ]
 
 [package.dependencies]
@@ -1019,13 +1019,13 @@ crt = ["awscrt (==0.21.5)"]
 
 [[package]]
 name = "botocore-stubs"
-version = "1.35.30"
+version = "1.35.31"
 description = "Type annotations and code completion for botocore"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore_stubs-1.35.30-py3-none-any.whl", hash = "sha256:2b986965d1e62b78e2d0bdb5f24a57f911227f0da6f8b54686f726e9fb5ddca4"},
-    {file = "botocore_stubs-1.35.30.tar.gz", hash = "sha256:7c13533ccaf2941bd3c09b1a8564a841c7167c3cebb8bcfb7ea45f9b5607bf25"},
+    {file = "botocore_stubs-1.35.31-py3-none-any.whl", hash = "sha256:b7289c27b759dad40759c1421519cbd7ec65b79f7aa8be5dfc76004a61aef42b"},
+    {file = "botocore_stubs-1.35.31.tar.gz", hash = "sha256:b26f79253d8f2460aa8f2d49ae933c3f352fe38be72ea033651c15cd47a822a9"},
 ]
 
 [package.dependencies]
@@ -1931,7 +1931,7 @@ pydantic = "^2.9.2"
 type = "git"
 url = "https://github.com/szvsw/epinterface"
 reference = "main"
-resolved_reference = "33d6ab83849d779afc1d68f24288ef1e1488f55e"
+resolved_reference = "73661b7f97c4149928afc8bdd79d109aeb6d9143"
 
 [[package]]
 name = "eppy"
@@ -2731,13 +2731,13 @@ files = [
 
 [[package]]
 name = "httpcore"
-version = "1.0.5"
+version = "1.0.6"
 description = "A minimal low-level HTTP client."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "httpcore-1.0.5-py3-none-any.whl", hash = "sha256:421f18bac248b25d310f3cacd198d55b8e6125c107797b609ff9b7a6ba7991b5"},
-    {file = "httpcore-1.0.5.tar.gz", hash = "sha256:34a38e2f9291467ee3b44e89dd52615370e152954ba21721378a87b2960f7a61"},
+    {file = "httpcore-1.0.6-py3-none-any.whl", hash = "sha256:27b59625743b85577a8c0e10e55b50b5368a4f2cfe8cc7bcfa9cf00829c2682f"},
+    {file = "httpcore-1.0.6.tar.gz", hash = "sha256:73f6dbd6eb8c21bbf7ef8efad555481853f5f6acdeaff1edb0694289269ee17f"},
 ]
 
 [package.dependencies]
@@ -2748,7 +2748,7 @@ h11 = ">=0.13,<0.15"
 asyncio = ["anyio (>=4.0,<5.0)"]
 http2 = ["h2 (>=3,<5)"]
 socks = ["socksio (==1.*)"]
-trio = ["trio (>=0.22.0,<0.26.0)"]
+trio = ["trio (>=0.22.0,<1.0)"]
 
 [[package]]
 name = "httptools"
@@ -4467,13 +4467,13 @@ typing-extensions = {version = ">=4.1.0", markers = "python_version < \"3.12\""}
 
 [[package]]
 name = "mypy-boto3-rds"
-version = "1.35.25"
-description = "Type annotations for boto3.RDS 1.35.25 service generated with mypy-boto3-builder 8.1.2"
+version = "1.35.31"
+description = "Type annotations for boto3.RDS 1.35.31 service generated with mypy-boto3-builder 8.1.2"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "mypy_boto3_rds-1.35.25-py3-none-any.whl", hash = "sha256:eddd222b6d3107e7e6825e314510d217e02874aed4f6b59d786ea5b0995a5f09"},
-    {file = "mypy_boto3_rds-1.35.25.tar.gz", hash = "sha256:238953116b2591696b6b24674c6f7065c49d8a14840dde75177edaff375a318f"},
+    {file = "mypy_boto3_rds-1.35.31-py3-none-any.whl", hash = "sha256:18fc0f1cc2b1612cf8ab047d48ded8bb5a997a1d463911a8966364bab94139c6"},
+    {file = "mypy_boto3_rds-1.35.31.tar.gz", hash = "sha256:597d28d8b91860d5cc8ba20e47c0aa9ba7da4f05b9fd8da98abe3e18ea41cad2"},
 ]
 
 [package.dependencies]
@@ -5713,13 +5713,13 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pymdown-extensions"
-version = "10.11.1"
+version = "10.11.2"
 description = "Extension pack for Python Markdown."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pymdown_extensions-10.11.1-py3-none-any.whl", hash = "sha256:a2b28f5786e041f19cb5bb30a1c2c853668a7099da8e3dd822a5ad05f2e855e3"},
-    {file = "pymdown_extensions-10.11.1.tar.gz", hash = "sha256:a8836e955851542fa2625d04d59fdf97125ca001377478ed5618e04f9183a59a"},
+    {file = "pymdown_extensions-10.11.2-py3-none-any.whl", hash = "sha256:41cdde0a77290e480cf53892f5c5e50921a7ee3e5cd60ba91bf19837b33badcf"},
+    {file = "pymdown_extensions-10.11.2.tar.gz", hash = "sha256:bc8847ecc9e784a098efd35e20cba772bc5a1b529dfcef9dc1972db9021a1049"},
 ]
 
 [package.dependencies]
@@ -5931,13 +5931,13 @@ testing = ["covdefaults (>=2.3)", "pytest (>=8.3.3)", "pytest-cov (>=5)", "pytes
 
 [[package]]
 name = "pyright"
-version = "1.1.382.post1"
+version = "1.1.383"
 description = "Command line wrapper for pyright"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pyright-1.1.382.post1-py3-none-any.whl", hash = "sha256:21a4749dd1740e209f88d3a601e9f40748670d39481ea32b9d77edf7f3f1fb2e"},
-    {file = "pyright-1.1.382.post1.tar.gz", hash = "sha256:66a5d4e83be9452853d73e9dd9e95ba0ac3061845270e4e331d0070a597d3445"},
+    {file = "pyright-1.1.383-py3-none-any.whl", hash = "sha256:d864d1182a313f45aaf99e9bfc7d2668eeabc99b29a556b5344894fd73cb1959"},
+    {file = "pyright-1.1.383.tar.gz", hash = "sha256:1df7f12407f3710c9c6df938d98ec53f70053e6c6bbf71ce7bcb038d42f10070"},
 ]
 
 [package.dependencies]
@@ -7025,13 +7025,13 @@ files = [
 
 [[package]]
 name = "tomli"
-version = "2.0.1"
+version = "2.0.2"
 description = "A lil' TOML parser"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
-    {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
+    {file = "tomli-2.0.2-py3-none-any.whl", hash = "sha256:2ebe24485c53d303f690b0ec092806a085f07af5a5aa1464f3931eec36caaa38"},
+    {file = "tomli-2.0.2.tar.gz", hash = "sha256:d46d457a85337051c36524bc5349dd91b1877838e2979ac5ced3e710ed8a60ed"},
 ]
 
 [[package]]
@@ -7181,13 +7181,13 @@ typing-extensions = ">=3.7.4.3"
 
 [[package]]
 name = "types-awscrt"
-version = "0.21.5"
+version = "0.22.0"
 description = "Type annotations and code completion for awscrt"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "types_awscrt-0.21.5-py3-none-any.whl", hash = "sha256:117ff2b1bb657f09d01b7e0ce3fe3fa6e039be12d30b826896182725c9ce85b1"},
-    {file = "types_awscrt-0.21.5.tar.gz", hash = "sha256:9f7f47de68799cb2bcb9e486f48d77b9f58962b92fba43cb8860da70b3c57d1b"},
+    {file = "types_awscrt-0.22.0-py3-none-any.whl", hash = "sha256:b2c196bbd3226bab42d80fae13c34548de9ddc195f5a366d79c15d18e5897aa9"},
+    {file = "types_awscrt-0.22.0.tar.gz", hash = "sha256:67a660c90bad360c339f6a79310cc17094d12472042c7ca5a41450aaf5fc9a54"},
 ]
 
 [[package]]

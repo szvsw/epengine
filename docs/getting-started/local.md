@@ -1,6 +1,4 @@
-# Getting Started
-
-The following pages will walk you through setting up a distributed EnergyPlus simulation engine.
+# Local Development
 
 ## Installation
 
@@ -22,8 +20,6 @@ You will then want to enter your AWS credentials into `.env` and your Hatchet cr
 
 ## Running the System
 
-### Local
-
 ```bash
 make dev
 ```
@@ -31,5 +27,3 @@ make dev
 ```bash
 make prod
 ```
-
-### Cloud

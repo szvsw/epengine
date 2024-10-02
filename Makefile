@@ -81,4 +81,11 @@ dozzle: ## run the dozzle logs container
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
+.PHONY: create-copilot-app
+create-copilot-app: ## Create the entire stack with copilot
+	@copilot app init
+	@copilot env init --name prod
+	@copilot env deploy --name prod
+	@copilot secret init --name HATCHET_CLIENT_TOKEN
+	@copilot deploy --init-wkld --env prod --all
 .DEFAULT_GOAL := help

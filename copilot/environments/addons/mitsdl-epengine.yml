@@ -1,0 +1,69 @@
+Parameters:
+  App:
+    Type: String
+    Description: Your application's name.
+  Env:
+    Type: String
+    Description: The name of the environment being deployed.
+
+Resources:
+  mitsdlepengineBucket:
+    Metadata:
+      'aws:copilot:description': 'An Amazon S3 bucket, mitsdl-epengine, for storing and retrieving objects'
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireNonCurrentObjects
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+  mitsdlepengineBucketPolicy:
+    Metadata:
+      'aws:copilot:description': 'A bucket policy to deny unencrypted access to the bucket and its contents'
+    Type: AWS::S3::BucketPolicy
+    DeletionPolicy: Retain
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ForceHTTPS
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !Sub ${ mitsdlepengineBucket.Arn}/*
+              - !Sub ${ mitsdlepengineBucket.Arn}
+            Condition:
+              Bool:
+                "aws:SecureTransport": false
+      Bucket: !Ref mitsdlepengineBucket
+
+Outputs:
+  mitsdlepengineName:
+    Description: "The name of a user-defined bucket."
+    Value: !Ref mitsdlepengineBucket
+    Export:
+      Name: !Sub ${App}-${Env}-mitsdlepengineBucketName
+  mitsdlepengineBucketARN:
+    Description: "The ARN of the mitsdl-epengine bucket."
+    Value: !GetAtt mitsdlepengineBucket.Arn
+    Export:
+      Name: !Sub ${App}-${Env}-mitsdlepengineBucketARN
