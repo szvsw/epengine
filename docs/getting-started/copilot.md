@@ -13,6 +13,8 @@ Once the prereqs are installed, you can either run a single command macro to sta
 1. Create a [Hatchet account](https://cloud.onhatchet.run/auth/register).
 1. Generate a [Hatchet API token](https://cloud.onhatchet.run/tenant-settings/api-tokens). _nb: in the future, Hatchet will be deployable as part of the Copilot specification._
 1. Configure an AWS CLI profile if you have not done so already: `aws configure --profile <your-profile-name>`
+1. Clone the repository: `git clone https://github.com/szvsw/epengine`.
+1. Move into the repository: `cd epengine`
 
 ### Command macro (whole stack at once)
 
