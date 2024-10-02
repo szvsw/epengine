@@ -12,22 +12,28 @@
         <meta name="author" content="Sam Wolk">
       
       
+        <link rel="canonical" href="https://szvsw.github.io/epengine/getting-started/copilot/">
       
       
+        <link rel="prev" href="../local/">
       
-      <link rel="icon" href="/epengine/assets/images/favicon.png">
+      
+        <link rel="next" href="../../modules/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.39">
     
     
       
-        <title>EPEngine-Hatchet</title>
+        <title>AWS/Copilot - EPEngine-Hatchet</title>
       
     
     
-      <link rel="stylesheet" href="/epengine/assets/stylesheets/main.8c3ca2c6.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8c3ca2c6.min.css">
       
         
-        <link rel="stylesheet" href="/epengine/assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -46,9 +52,9 @@
       
     
     
-      <link rel="stylesheet" href="/epengine/assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("/epengine/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -73,6 +79,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#copilot-deployment" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -85,7 +96,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/epengine/." title="EPEngine-Hatchet" class="md-header__button md-logo" aria-label="EPEngine-Hatchet" data-md-component="logo">
+    <a href="../.." title="EPEngine-Hatchet" class="md-header__button md-logo" aria-label="EPEngine-Hatchet" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -105,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              AWS/Copilot
             
           </span>
         </div>
@@ -218,7 +229,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/epengine/." title="EPEngine-Hatchet" class="md-nav__button md-logo" aria-label="EPEngine-Hatchet" data-md-component="logo">
+    <a href="../.." title="EPEngine-Hatchet" class="md-nav__button md-logo" aria-label="EPEngine-Hatchet" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -248,7 +259,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/epengine/." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -265,6 +276,8 @@
       
   
   
+    
+  
   
   
     
@@ -286,16 +299,16 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="/epengine/getting-started/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -312,7 +325,7 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             Getting Started
@@ -328,7 +341,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/epengine/getting-started/local/" class="md-nav__link">
+      <a href="../local/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -346,10 +359,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/epengine/getting-started/copilot/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    AWS/Copilot
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -358,6 +391,86 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#first-time-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      First Time Setup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="First Time Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prereqs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prereqs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#command-macro" class="md-nav__link">
+    <span class="md-ellipsis">
+      Command macro
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manually-running-the-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manually running the commands
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#managing-worker-counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Managing Worker Counts
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cleanup
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -377,7 +490,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/epengine/modules/" class="md-nav__link">
+      <a href="../../modules/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -407,6 +520,76 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#first-time-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      First Time Setup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="First Time Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prereqs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prereqs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#command-macro" class="md-nav__link">
+    <span class="md-ellipsis">
+      Command macro
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manually-running-the-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manually running the commands
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#managing-worker-counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Managing Worker Counts
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cleanup
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -418,8 +601,64 @@
             <div class="md-content" data-md-component="content">
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+  
+  
+
+
+<h1 id="copilot-deployment">Copilot Deployment<a class="headerlink" href="#copilot-deployment" title="Permanent link">#</a></h1>
+<h2 id="first-time-setup">First Time Setup<a class="headerlink" href="#first-time-setup" title="Permanent link">#</a></h2>
+<h3 id="prereqs">Prereqs<a class="headerlink" href="#prereqs" title="Permanent link">#</a></h3>
+<ol>
+<li>Install <a href="https://docs.docker.com/get-started/get-docker/">Docker</a>.</li>
+<li>Install <a href="https://aws.amazon.com/cli/">AWS CLI</a> &amp; <a href="https://aws.github.io/copilot-cli/docs/getting-started/install/">AWS Copilot</a>.</li>
+<li>Create a <a href="https://cloud.onhatchet.run/auth/register">Hatchet account</a>.</li>
+<li>Generate a <a href="https://cloud.onhatchet.run/tenant-settings/api-tokens">Hatchet API token</a>. <em>nb: in the future, Hatchet will be deployable as part of the Copilot specification.</em></li>
+<li>Configure an AWS CLI profile if you have not done so already: <code>aws configure --profile &lt;your-profile-name&gt;</code></li>
+</ol>
+<h3 id="command-macro">Command macro<a class="headerlink" href="#command-macro" title="Permanent link">#</a></h3>
+<p>Running the following command will walk you through all the steps necessary to stand-up the application in AWS.</p>
+<pre><code class="language-bash">make create-copilot-app
+</code></pre>
+<p>You will be prompted to select a few things:</p>
+<ol>
+<li>A name for the application.</li>
+<li>The AWS profile to use.</li>
+<li>Any configuration necessary for the environment (e.g. security groups, VPCs, subnets etc), however you can use the defaults if desired (recommended for most users).</li>
+<li>The Hatchet Client Token</li>
+</ol>
+<h3 id="manually-running-the-commands">Manually running the commands<a class="headerlink" href="#manually-running-the-commands" title="Permanent link">#</a></h3>
+<ol>
+<li><code>copilot app init</code></li>
+<li>see <a href="https://aws.github.io/copilot-cli/docs/commands/app-init/"><code>app init</code> help</a> for more details like <code>--permissions-boundary</code> if needed</li>
+<li><code>copilot env init --name prod</code></li>
+<li>(see <a href="https://aws.github.io/copilot-cli/docs/commands/env-init/"><code>see init</code> help</a> for more details, as well as <a href="https://aws.github.io/copilot-cli/docs/manifest/environment/"><code>init</code> manifest help</a> for specs for VPCs etc.)</li>
+<li><code>copilot env deploy --name prod</code></li>
+<li><code>copilot secret init --name HATCHET_CLIENT_TOKEN</code></li>
+<li><code>copilot deploy --init-wkld --env prod --all</code></li>
+</ol>
+<h2 id="managing-worker-counts">Managing Worker Counts<a class="headerlink" href="#managing-worker-counts" title="Permanent link">#</a></h2>
+<p>In <code>copilot/worker/manifest.yml</code>, you can edit the worker count configuration to determine how many workers you would like, if scaling should be done based off of CPU utilization, etc.</p>
+<p>After making changes, run <code>copilot svc deploy</code>.</p>
+<h2 id="cleanup">Cleanup<a class="headerlink" href="#cleanup" title="Permanent link">#</a></h2>
+<ol>
+<li>Empty your buckets if they have files in them.</li>
+<li><code>copilot app delete</code></li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -491,10 +730,10 @@
       <div class="md-progress" data-md-component="progress" role="progressbar"></div>
     
     
-    <script id="__config" type="application/json">{"base": "/epengine/", "features": ["navigation.top", "navigation.path", "navigation.indexes", "navigation.sections", "navigation.tracking", "navigation.instant", "navigation.instant.prefetch", "navigation.instant.progress"], "search": "/epengine/assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.top", "navigation.path", "navigation.indexes", "navigation.sections", "navigation.tracking", "navigation.instant", "navigation.instant.prefetch", "navigation.instant.progress"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="/epengine/assets/javascripts/bundle.525ec568.min.js"></script>
+      <script src="../../assets/javascripts/bundle.525ec568.min.js"></script>
       
     
   </body>

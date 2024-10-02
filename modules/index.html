@@ -15,12 +15,12 @@
         <link rel="canonical" href="https://szvsw.github.io/epengine/modules/">
       
       
-        <link rel="prev" href="../getting-started/">
+        <link rel="prev" href="../getting-started/copilot/">
       
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.36">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.39">
     
     
       
@@ -28,7 +28,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.06209087.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.8c3ca2c6.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
@@ -276,16 +276,105 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../getting-started/" class="md-nav__link">
+    
+    
+      
         
+          
+        
+      
+        
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../getting-started/" class="md-nav__link ">
+              
   
   <span class="md-ellipsis">
     Getting Started
   </span>
   
 
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/local/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Local/Dev
+  </span>
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/copilot/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AWS/Copilot
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -353,9 +442,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#configs" class="md-nav__link">
+  <a href="#workflow-specs" class="md-nav__link">
     <span class="md-ellipsis">
-      Configs
+      Workflow Specs
     </span>
   </a>
   
@@ -367,16 +456,16 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs" class="md-nav__link">
+  <a href="#epengine.models.base" class="md-nav__link">
     <span class="md-ellipsis">
-      configs
+      base
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs.BaseSpec" class="md-nav__link">
+  <a href="#epengine.models.base.BaseSpec" class="md-nav__link">
     <span class="md-ellipsis">
       BaseSpec
     </span>
@@ -386,7 +475,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.BaseSpec.fetch_uri" class="md-nav__link">
+  <a href="#epengine.models.base.BaseSpec.fetch_uri" class="md-nav__link">
     <span class="md-ellipsis">
       fetch_uri
     </span>
@@ -395,7 +484,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.BaseSpec.from_payload" class="md-nav__link">
+  <a href="#epengine.models.base.BaseSpec.from_payload" class="md-nav__link">
     <span class="md-ellipsis">
       from_payload
     </span>
@@ -404,7 +493,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.BaseSpec.from_uri" class="md-nav__link">
+  <a href="#epengine.models.base.BaseSpec.from_uri" class="md-nav__link">
     <span class="md-ellipsis">
       from_uri
     </span>
@@ -413,7 +502,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.BaseSpec.local_path" class="md-nav__link">
+  <a href="#epengine.models.base.BaseSpec.local_path" class="md-nav__link">
     <span class="md-ellipsis">
       local_path
     </span>
@@ -422,7 +511,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.BaseSpec.log" class="md-nav__link">
+  <a href="#epengine.models.base.BaseSpec.log" class="md-nav__link">
     <span class="md-ellipsis">
       log
     </span>
@@ -436,55 +525,34 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs.RecursionMap" class="md-nav__link">
+  <a href="#epengine.models.base.LeafSpec" class="md-nav__link">
     <span class="md-ellipsis">
-      RecursionMap
+      LeafSpec
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="RecursionMap">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#epengine.models.configs.RecursionMap.validate_path_is_length_ge_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      validate_path_is_length_ge_1
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs.RecursionSpec" class="md-nav__link">
+  <a href="#epengine.models.leafs" class="md-nav__link">
     <span class="md-ellipsis">
-      RecursionSpec
+      leafs
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="RecursionSpec">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#epengine.models.configs.RecursionSpec.validate_offset_less_than_factor" class="md-nav__link">
-    <span class="md-ellipsis">
-      validate_offset_less_than_factor
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs.SimulationSpec" class="md-nav__link">
+  <a href="#epengine.models.leafs.SimpleSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      SimpleSpec
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epengine.models.leafs.SimulationSpec" class="md-nav__link">
     <span class="md-ellipsis">
       SimulationSpec
     </span>
@@ -494,7 +562,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.SimulationSpec.ddy_path" class="md-nav__link">
+  <a href="#epengine.models.leafs.SimulationSpec.ddy_path" class="md-nav__link">
     <span class="md-ellipsis">
       ddy_path
     </span>
@@ -503,7 +571,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.SimulationSpec.epw_path" class="md-nav__link">
+  <a href="#epengine.models.leafs.SimulationSpec.epw_path" class="md-nav__link">
     <span class="md-ellipsis">
       epw_path
     </span>
@@ -512,7 +580,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.SimulationSpec.idf_path" class="md-nav__link">
+  <a href="#epengine.models.leafs.SimulationSpec.idf_path" class="md-nav__link">
     <span class="md-ellipsis">
       idf_path
     </span>
@@ -526,19 +594,28 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs.SimulationsSpec" class="md-nav__link">
+  <a href="#epengine.models.branches" class="md-nav__link">
     <span class="md-ellipsis">
-      SimulationsSpec
+      branches
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="SimulationsSpec">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epengine.models.branches.BranchesSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      BranchesSpec
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BranchesSpec">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.SimulationsSpec.set_children_experiment_id" class="md-nav__link">
+  <a href="#epengine.models.branches.BranchesSpec.set_children_exp_id_and_sort_index" class="md-nav__link">
     <span class="md-ellipsis">
-      set_children_experiment_id
+      set_children_exp_id_and_sort_index
     </span>
   </a>
   
@@ -550,7 +627,97 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs.URIResponse" class="md-nav__link">
+  <a href="#epengine.models.branches.RecursionMap" class="md-nav__link">
+    <span class="md-ellipsis">
+      RecursionMap
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RecursionMap">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#epengine.models.branches.RecursionMap.validate_path_is_length_ge_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      validate_path_is_length_ge_1
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epengine.models.branches.RecursionSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      RecursionSpec
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RecursionSpec">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#epengine.models.branches.RecursionSpec.validate_offset_less_than_factor" class="md-nav__link">
+    <span class="md-ellipsis">
+      validate_offset_less_than_factor
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epengine.models.branches.WorkflowSelector" class="md-nav__link">
+    <span class="md-ellipsis">
+      WorkflowSelector
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WorkflowSelector">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#epengine.models.branches.WorkflowSelector.BranchesSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      BranchesSpec
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#epengine.models.branches.WorkflowSelector.Spec" class="md-nav__link">
+    <span class="md-ellipsis">
+      Spec
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epengine.models.outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      outputs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epengine.models.outputs.URIResponse" class="md-nav__link">
     <span class="md-ellipsis">
       URIResponse
     </span>
@@ -966,9 +1133,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#configs" class="md-nav__link">
+  <a href="#workflow-specs" class="md-nav__link">
     <span class="md-ellipsis">
-      Configs
+      Workflow Specs
     </span>
   </a>
   
@@ -980,16 +1147,16 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs" class="md-nav__link">
+  <a href="#epengine.models.base" class="md-nav__link">
     <span class="md-ellipsis">
-      configs
+      base
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs.BaseSpec" class="md-nav__link">
+  <a href="#epengine.models.base.BaseSpec" class="md-nav__link">
     <span class="md-ellipsis">
       BaseSpec
     </span>
@@ -999,7 +1166,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.BaseSpec.fetch_uri" class="md-nav__link">
+  <a href="#epengine.models.base.BaseSpec.fetch_uri" class="md-nav__link">
     <span class="md-ellipsis">
       fetch_uri
     </span>
@@ -1008,7 +1175,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.BaseSpec.from_payload" class="md-nav__link">
+  <a href="#epengine.models.base.BaseSpec.from_payload" class="md-nav__link">
     <span class="md-ellipsis">
       from_payload
     </span>
@@ -1017,7 +1184,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.BaseSpec.from_uri" class="md-nav__link">
+  <a href="#epengine.models.base.BaseSpec.from_uri" class="md-nav__link">
     <span class="md-ellipsis">
       from_uri
     </span>
@@ -1026,7 +1193,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.BaseSpec.local_path" class="md-nav__link">
+  <a href="#epengine.models.base.BaseSpec.local_path" class="md-nav__link">
     <span class="md-ellipsis">
       local_path
     </span>
@@ -1035,7 +1202,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.BaseSpec.log" class="md-nav__link">
+  <a href="#epengine.models.base.BaseSpec.log" class="md-nav__link">
     <span class="md-ellipsis">
       log
     </span>
@@ -1049,55 +1216,34 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs.RecursionMap" class="md-nav__link">
+  <a href="#epengine.models.base.LeafSpec" class="md-nav__link">
     <span class="md-ellipsis">
-      RecursionMap
+      LeafSpec
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="RecursionMap">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#epengine.models.configs.RecursionMap.validate_path_is_length_ge_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      validate_path_is_length_ge_1
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs.RecursionSpec" class="md-nav__link">
+  <a href="#epengine.models.leafs" class="md-nav__link">
     <span class="md-ellipsis">
-      RecursionSpec
+      leafs
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="RecursionSpec">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#epengine.models.configs.RecursionSpec.validate_offset_less_than_factor" class="md-nav__link">
-    <span class="md-ellipsis">
-      validate_offset_less_than_factor
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs.SimulationSpec" class="md-nav__link">
+  <a href="#epengine.models.leafs.SimpleSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      SimpleSpec
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epengine.models.leafs.SimulationSpec" class="md-nav__link">
     <span class="md-ellipsis">
       SimulationSpec
     </span>
@@ -1107,7 +1253,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.SimulationSpec.ddy_path" class="md-nav__link">
+  <a href="#epengine.models.leafs.SimulationSpec.ddy_path" class="md-nav__link">
     <span class="md-ellipsis">
       ddy_path
     </span>
@@ -1116,7 +1262,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.SimulationSpec.epw_path" class="md-nav__link">
+  <a href="#epengine.models.leafs.SimulationSpec.epw_path" class="md-nav__link">
     <span class="md-ellipsis">
       epw_path
     </span>
@@ -1125,7 +1271,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.SimulationSpec.idf_path" class="md-nav__link">
+  <a href="#epengine.models.leafs.SimulationSpec.idf_path" class="md-nav__link">
     <span class="md-ellipsis">
       idf_path
     </span>
@@ -1139,19 +1285,28 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs.SimulationsSpec" class="md-nav__link">
+  <a href="#epengine.models.branches" class="md-nav__link">
     <span class="md-ellipsis">
-      SimulationsSpec
+      branches
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="SimulationsSpec">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epengine.models.branches.BranchesSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      BranchesSpec
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BranchesSpec">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#epengine.models.configs.SimulationsSpec.set_children_experiment_id" class="md-nav__link">
+  <a href="#epengine.models.branches.BranchesSpec.set_children_exp_id_and_sort_index" class="md-nav__link">
     <span class="md-ellipsis">
-      set_children_experiment_id
+      set_children_exp_id_and_sort_index
     </span>
   </a>
   
@@ -1163,7 +1318,97 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#epengine.models.configs.URIResponse" class="md-nav__link">
+  <a href="#epengine.models.branches.RecursionMap" class="md-nav__link">
+    <span class="md-ellipsis">
+      RecursionMap
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RecursionMap">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#epengine.models.branches.RecursionMap.validate_path_is_length_ge_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      validate_path_is_length_ge_1
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epengine.models.branches.RecursionSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      RecursionSpec
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RecursionSpec">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#epengine.models.branches.RecursionSpec.validate_offset_less_than_factor" class="md-nav__link">
+    <span class="md-ellipsis">
+      validate_offset_less_than_factor
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epengine.models.branches.WorkflowSelector" class="md-nav__link">
+    <span class="md-ellipsis">
+      WorkflowSelector
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WorkflowSelector">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#epengine.models.branches.WorkflowSelector.BranchesSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      BranchesSpec
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#epengine.models.branches.WorkflowSelector.Spec" class="md-nav__link">
+    <span class="md-ellipsis">
+      Spec
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epengine.models.outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      outputs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#epengine.models.outputs.URIResponse" class="md-nav__link">
     <span class="md-ellipsis">
       URIResponse
     </span>
@@ -1554,14 +1799,14 @@
 
 <h1 id="modules-reference">Modules Reference<a class="headerlink" href="#modules-reference" title="Permanent link">#</a></h1>
 <h2 id="models">Models<a class="headerlink" href="#models" title="Permanent link">#</a></h2>
-<h3 id="configs">Configs<a class="headerlink" href="#configs" title="Permanent link">#</a></h3>
+<h3 id="workflow-specs">Workflow Specs<a class="headerlink" href="#workflow-specs" title="Permanent link">#</a></h3>
 
 
 <div class="doc doc-object doc-module">
 
 
 
-<a id="epengine.models.configs"></a>
+<a id="epengine.models.base"></a>
     <div class="doc doc-contents first">
 
         <p>Models for Simulation Specifications.</p>
@@ -1581,11 +1826,11 @@
 
 
 
-<h2 id="epengine.models.configs.BaseSpec" class="doc doc-heading">
+<h2 id="epengine.models.base.BaseSpec" class="doc doc-heading">
             <code>BaseSpec</code>
 
 
-<a href="#epengine.models.configs.BaseSpec" class="headerlink" title="Permanent link">#</a></h2>
+<a href="#epengine.models.base.BaseSpec" class="headerlink" title="Permanent link">#</a></h2>
 
 
     <div class="doc doc-contents ">
@@ -1614,10 +1859,10 @@ according to the experiment_id.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="epengine.models.configs.BaseSpec.fetch_uri" class="doc doc-heading">
+<h3 id="epengine.models.base.BaseSpec.fetch_uri" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">fetch_uri</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="n">use_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
 
-<a href="#epengine.models.configs.BaseSpec.fetch_uri" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#epengine.models.base.BaseSpec.fetch_uri" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -1697,14 +1942,14 @@ according to the experiment_id.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="epengine.models.configs.BaseSpec.from_payload" class="doc doc-heading">
+<h3 id="epengine.models.base.BaseSpec.from_payload" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">from_payload</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
 
-<a href="#epengine.models.configs.BaseSpec.from_payload" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#epengine.models.base.BaseSpec.from_payload" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -1754,7 +1999,7 @@ or validates it if it is already a spec dict.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>spec</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="epengine.models.configs.BaseSpec" href="#epengine.models.configs.BaseSpec">BaseSpec</a></code>
+                  <code><a class="autorefs autorefs-internal" title="epengine.models.base.BaseSpec" href="#epengine.models.base.BaseSpec">BaseSpec</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1772,14 +2017,14 @@ or validates it if it is already a spec dict.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="epengine.models.configs.BaseSpec.from_uri" class="doc doc-heading">
+<h3 id="epengine.models.base.BaseSpec.from_uri" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">from_uri</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
 
-<a href="#epengine.models.configs.BaseSpec.from_uri" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#epengine.models.base.BaseSpec.from_uri" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -1827,7 +2072,7 @@ or validates it if it is already a spec dict.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>spec</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="epengine.models.configs.BaseSpec" href="#epengine.models.configs.BaseSpec">BaseSpec</a></code>
+                  <code><a class="autorefs autorefs-internal" title="epengine.models.base.BaseSpec" href="#epengine.models.base.BaseSpec">BaseSpec</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1845,10 +2090,10 @@ or validates it if it is already a spec dict.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="epengine.models.configs.BaseSpec.local_path" class="doc doc-heading">
+<h3 id="epengine.models.base.BaseSpec.local_path" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">local_path</span><span class="p">(</span><span class="n">pth</span><span class="p">)</span></code>
 
-<a href="#epengine.models.configs.BaseSpec.local_path" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#epengine.models.base.BaseSpec.local_path" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -1915,10 +2160,10 @@ or validates it if it is already a spec dict.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="epengine.models.configs.BaseSpec.log" class="doc doc-heading">
+<h3 id="epengine.models.base.BaseSpec.log" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">log</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></code>
 
-<a href="#epengine.models.configs.BaseSpec.log" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#epengine.models.base.BaseSpec.log" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -1970,11 +2215,384 @@ or validates it if it is already a spec dict.</p>
 
 
 
-<h2 id="epengine.models.configs.RecursionMap" class="doc doc-heading">
+<h2 id="epengine.models.base.LeafSpec" class="doc doc-heading">
+            <code>LeafSpec</code>
+
+
+<a href="#epengine.models.base.LeafSpec" class="headerlink" title="Permanent link">#</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="epengine.models.base.BaseSpec" href="#epengine.models.base.BaseSpec">BaseSpec</a></code></p>
+
+
+        <p>A spec for running a leaf workflow.</p>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="epengine.models.leafs"></a>
+    <div class="doc doc-contents first">
+
+        <p>Models for leaf workflows.</p>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="epengine.models.leafs.SimpleSpec" class="doc doc-heading">
+            <code>SimpleSpec</code>
+
+
+<a href="#epengine.models.leafs.SimpleSpec" class="headerlink" title="Permanent link">#</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="epengine.models.base.LeafSpec" href="#epengine.models.base.LeafSpec">LeafSpec</a></code></p>
+
+
+        <p>A test spec for working with a simple leaf workflow.</p>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="epengine.models.leafs.SimulationSpec" class="doc doc-heading">
+            <code>SimulationSpec</code>
+
+
+<a href="#epengine.models.leafs.SimulationSpec" class="headerlink" title="Permanent link">#</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="epengine.models.base.LeafSpec" href="#epengine.models.base.LeafSpec">LeafSpec</a></code></p>
+
+
+        <p>A spec for running an EnergyPlus simulation.</p>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="epengine.models.leafs.SimulationSpec.ddy_path" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">ddy_path</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-cached"><code>cached</code></small>
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#epengine.models.leafs.SimulationSpec.ddy_path" class="headerlink" title="Permanent link">#</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Fetch the ddy file and return the local path.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>local_path</code></td>            <td>
+                  <code>Path</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The local path of the ddy file</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="epengine.models.leafs.SimulationSpec.epw_path" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">epw_path</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-cached"><code>cached</code></small>
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#epengine.models.leafs.SimulationSpec.epw_path" class="headerlink" title="Permanent link">#</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Fetch the epw file and return the local path.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>local_path</code></td>            <td>
+                  <code>Path</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The local path of the epw file</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="epengine.models.leafs.SimulationSpec.idf_path" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">idf_path</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-cached"><code>cached</code></small>
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#epengine.models.leafs.SimulationSpec.idf_path" class="headerlink" title="Permanent link">#</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Fetch the idf file and return the local path.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>local_path</code></td>            <td>
+                  <code>Path</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The local path of the idf file</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+    </div>
+
+</div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="epengine.models.branches"></a>
+    <div class="doc doc-contents first">
+
+        <p>Models for lists and recursions of simulation specs.</p>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="epengine.models.branches.BranchesSpec" class="doc doc-heading">
+            <code>BranchesSpec</code>
+
+
+<a href="#epengine.models.branches.BranchesSpec" class="headerlink" title="Permanent link">#</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="epengine.models.base.BaseSpec" href="#epengine.models.base.BaseSpec">BaseSpec</a></code>, <code><span title="typing.Generic">Generic</span>[<span title="epengine.models.branches.SpecListItem">SpecListItem</span>]</code></p>
+
+
+        <p>A spec for running multiple simulations.</p>
+<p>One key feature is that children simulations
+inherit the experiment_id of the parent simulations BaseSpec
+since they are both part of the same experiment.</p>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="epengine.models.branches.BranchesSpec.set_children_exp_id_and_sort_index" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">set_children_exp_id_and_sort_index</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#epengine.models.branches.BranchesSpec.set_children_exp_id_and_sort_index" class="headerlink" title="Permanent link">#</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Set the experiment_id of each child spec to the experiment_id of the parent along with the sort_index.</p>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="epengine.models.branches.RecursionMap" class="doc doc-heading">
             <code>RecursionMap</code>
 
 
-<a href="#epengine.models.configs.RecursionMap" class="headerlink" title="Permanent link">#</a></h2>
+<a href="#epengine.models.branches.RecursionMap" class="headerlink" title="Permanent link">#</a></h2>
 
 
     <div class="doc doc-contents ">
@@ -2002,14 +2620,14 @@ it is in the recursion tree and how to behave.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="epengine.models.configs.RecursionMap.validate_path_is_length_ge_1" class="doc doc-heading">
+<h3 id="epengine.models.branches.RecursionMap.validate_path_is_length_ge_1" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">validate_path_is_length_ge_1</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
 
-<a href="#epengine.models.configs.RecursionMap.validate_path_is_length_ge_1" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#epengine.models.branches.RecursionMap.validate_path_is_length_ge_1" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -2032,11 +2650,11 @@ it is in the recursion tree and how to behave.</p>
 
 
 
-<h2 id="epengine.models.configs.RecursionSpec" class="doc doc-heading">
+<h2 id="epengine.models.branches.RecursionSpec" class="doc doc-heading">
             <code>RecursionSpec</code>
 
 
-<a href="#epengine.models.configs.RecursionSpec" class="headerlink" title="Permanent link">#</a></h2>
+<a href="#epengine.models.branches.RecursionSpec" class="headerlink" title="Permanent link">#</a></h2>
 
 
     <div class="doc doc-contents ">
@@ -2062,14 +2680,14 @@ it is in the recursion tree and how to behave.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="epengine.models.configs.RecursionSpec.validate_offset_less_than_factor" class="doc doc-heading">
+<h3 id="epengine.models.branches.RecursionSpec.validate_offset_less_than_factor" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">validate_offset_less_than_factor</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
 
-<a href="#epengine.models.configs.RecursionSpec.validate_offset_less_than_factor" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#epengine.models.branches.RecursionSpec.validate_offset_less_than_factor" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -2092,19 +2710,19 @@ it is in the recursion tree and how to behave.</p>
 
 
 
-<h2 id="epengine.models.configs.SimulationSpec" class="doc doc-heading">
-            <code>SimulationSpec</code>
+<h2 id="epengine.models.branches.WorkflowSelector" class="doc doc-heading">
+            <code>WorkflowSelector</code>
 
 
-<a href="#epengine.models.configs.SimulationSpec" class="headerlink" title="Permanent link">#</a></h2>
+<a href="#epengine.models.branches.WorkflowSelector" class="headerlink" title="Permanent link">#</a></h2>
 
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="epengine.models.configs.BaseSpec" href="#epengine.models.configs.BaseSpec">BaseSpec</a></code></p>
+              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
 
 
-        <p>A spec for running an EnergyPlus simulation.</p>
+        <p>A class for generating a BranchSpec from a workflow name.</p>
 
 
 
@@ -2121,20 +2739,19 @@ it is in the recursion tree and how to behave.</p>
 
 
 
-<h3 id="epengine.models.configs.SimulationSpec.ddy_path" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">ddy_path</span></code>
+<h3 id="epengine.models.branches.WorkflowSelector.BranchesSpec" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">BranchesSpec</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BranchesSpec</span><span class="p">[</span><span class="n">LeafSpec</span><span class="p">]]</span></code>
 
   <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-cached"><code>cached</code></small>
       <small class="doc doc-label doc-label-property"><code>property</code></small>
   </span>
 
-<a href="#epengine.models.configs.SimulationSpec.ddy_path" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#epengine.models.branches.WorkflowSelector.BranchesSpec" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
 
-        <p>Fetch the ddy file and return the local path.</p>
+        <p>Return the branches spec class for the workflow.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -2147,12 +2764,12 @@ it is in the recursion tree and how to behave.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-<td><code>local_path</code></td>            <td>
-                  <code><span title="pathlib.Path">Path</span></code>
+<td><code>BranchesSpecClass</code></td>            <td>
+                  <code>type[<a class="autorefs autorefs-internal" title="epengine.models.branches.WorkflowSelector.BranchesSpec" href="#epengine.models.branches.WorkflowSelector.BranchesSpec">BranchesSpec</a>[<a class="autorefs autorefs-internal" title="epengine.models.base.LeafSpec" href="#epengine.models.base.LeafSpec">LeafSpec</a>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The local path of the ddy file</p>
+                <p>The branches spec class for the workflow</p>
               </div>
             </td>
           </tr>
@@ -2166,20 +2783,19 @@ it is in the recursion tree and how to behave.</p>
 
 
 
-<h3 id="epengine.models.configs.SimulationSpec.epw_path" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">epw_path</span></code>
+<h3 id="epengine.models.branches.WorkflowSelector.Spec" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">Spec</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">LeafSpec</span><span class="p">]</span></code>
 
   <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-cached"><code>cached</code></small>
       <small class="doc doc-label doc-label-property"><code>property</code></small>
   </span>
 
-<a href="#epengine.models.configs.SimulationSpec.epw_path" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#epengine.models.branches.WorkflowSelector.Spec" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
 
-        <p>Fetch the epw file and return the local path.</p>
+        <p>Return the spec class for the workflow.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -2192,57 +2808,12 @@ it is in the recursion tree and how to behave.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-<td><code>local_path</code></td>            <td>
-                  <code><span title="pathlib.Path">Path</span></code>
+<td><code>SpecClass</code></td>            <td>
+                  <code>type[<a class="autorefs autorefs-internal" title="epengine.models.base.LeafSpec" href="#epengine.models.base.LeafSpec">LeafSpec</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The local path of the epw file</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h3 id="epengine.models.configs.SimulationSpec.idf_path" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">idf_path</span></code>
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-cached"><code>cached</code></small>
-      <small class="doc doc-label doc-label-property"><code>property</code></small>
-  </span>
-
-<a href="#epengine.models.configs.SimulationSpec.idf_path" class="headerlink" title="Permanent link">#</a></h3>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Fetch the idf file and return the local path.</p>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-<th>Name</th>          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-<td><code>local_path</code></td>            <td>
-                  <code><span title="pathlib.Path">Path</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The local path of the idf file</p>
+                <p>The spec class for the workflow</p>
               </div>
             </td>
           </tr>
@@ -2262,27 +2833,23 @@ it is in the recursion tree and how to behave.</p>
 
 </div>
 
-<div class="doc doc-object doc-class">
 
 
 
-<h2 id="epengine.models.configs.SimulationsSpec" class="doc doc-heading">
-            <code>SimulationsSpec</code>
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
 
 
-<a href="#epengine.models.configs.SimulationsSpec" class="headerlink" title="Permanent link">#</a></h2>
 
+<a id="epengine.models.outputs"></a>
+    <div class="doc doc-contents first">
 
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="epengine.models.configs.BaseSpec" href="#epengine.models.configs.BaseSpec">BaseSpec</a></code></p>
-
-
-        <p>A spec for running multiple simulations.</p>
-<p>One key feature is that children simulations
-inherit the experiment_id of the parent simulations BaseSpec
-since they are both part of the same experiment.</p>
-
+        <p>Models for workflow outputs etc.</p>
 
 
 
@@ -2295,45 +2862,15 @@ since they are both part of the same experiment.</p>
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="epengine.models.configs.SimulationsSpec.set_children_experiment_id" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">set_children_experiment_id</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></code>
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
-  </span>
-
-<a href="#epengine.models.configs.SimulationsSpec.set_children_experiment_id" class="headerlink" title="Permanent link">#</a></h3>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Set the experiment_id of each child spec to the experiment_id of the parent.</p>
-
-    </div>
-
-</div>
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
 <div class="doc doc-object doc-class">
 
 
 
-<h2 id="epengine.models.configs.URIResponse" class="doc doc-heading">
+<h2 id="epengine.models.outputs.URIResponse" class="doc doc-heading">
             <code>URIResponse</code>
 
 
-<a href="#epengine.models.configs.URIResponse" class="headerlink" title="Permanent link">#</a></h2>
+<a href="#epengine.models.outputs.URIResponse" class="headerlink" title="Permanent link">#</a></h2>
 
 
     <div class="doc doc-contents ">
@@ -4305,7 +4842,7 @@ to avoid downloading the same file multiple times.</p>
     <script id="__config" type="application/json">{"base": "..", "features": ["navigation.top", "navigation.path", "navigation.indexes", "navigation.sections", "navigation.tracking", "navigation.instant", "navigation.instant.prefetch", "navigation.instant.progress"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.56dfad97.min.js"></script>
+      <script src="../assets/javascripts/bundle.525ec568.min.js"></script>
       
     
   </body>
