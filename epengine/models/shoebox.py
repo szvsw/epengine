@@ -1,6 +1,7 @@
 """Shoebox simulation workflow."""
 
 import json
+import math
 from functools import cached_property
 from pathlib import Path
 from typing import Literal
@@ -22,7 +23,7 @@ class ShoeboxSimulationSpec(LeafSpec):
     lib_uri: AnyUrl = Field(..., description="The uri of the library file to fetch.")
     typology: str = Field(..., description="The typology of the building to simulate.")
     year_built: int = Field(..., description="The year the building was built.")
-    num_floors: int = Field(..., description="The number of floors in the building.")
+    num_floors: float = Field(..., description="The number of floors in the building.")
     rotated_rectangle: str = Field(
         ..., description="The rotated rectangle of the building."
     )
@@ -86,20 +87,20 @@ class ShoeboxSimulationSpec(LeafSpec):
         geometry = ShoeboxGeometry(
             x=0,
             y=0,
-            w=10,
-            d=10,
+            w=self.short_edge,
+            d=self.long_edge,
             h=f2f_height,
-            num_stories=self.num_floors,
+            num_stories=math.ceil(self.num_floors),
             zoning="core/perim" if use_core_perim else "by_storey",
             perim_depth=3,
             roof_height=None,
             basement=has_basement,
             wwr=wwr,
         )
-        if AnyUrl(self.epwzip_path).scheme == "D":
-            parts = list(Path(self.epwzip_path).parts)
-            pth = "/".join(parts[2:])
-            self.epwzip_path = f"https://climate.onebuilding.org/{pth}"
+        # if AnyUrl(self.epwzip_path).scheme in ["D", "d"]:
+        #     parts = list(Path(self.epwzip_path).parts)
+        #     pth = "/".join(parts[2:])
+        #     self.epwzip_path = f"https://climate.onebuilding.org/{pth}"
 
         # TODO: select space use and envelope based off of
         # typology age and size
