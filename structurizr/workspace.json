@@ -1,0 +1,770 @@
+{
+    "configuration": {},
+    "description": "Description",
+    "documentation": {},
+    "id": 1,
+    "lastModifiedAgent": "structurizr-ui",
+    "lastModifiedDate": "2024-10-07T15:23:25Z",
+    "model": {
+        "people": [
+            {
+                "id": "35",
+                "location": "Unspecified",
+                "name": "User",
+                "properties": {
+                    "structurizr.dsl.identifier": "user"
+                },
+                "relationships": [
+                    {
+                        "description": "schedules jobs",
+                        "destinationId": "1",
+                        "id": "36",
+                        "properties": {
+                            "structurizr.dsl.identifier": "1413e136-d439-4fe2-80ef-2339b0f68851"
+                        },
+                        "sourceId": "35",
+                        "tags": "Relationship,DataPull"
+                    },
+                    {
+                        "description": "schedules jobs",
+                        "destinationId": "7",
+                        "id": "37",
+                        "properties": {
+                            "structurizr.dsl.identifier": "384f22dc-9d6e-4e88-89b1-ef8453c11d08"
+                        },
+                        "sourceId": "35",
+                        "tags": "Relationship,Browser"
+                    }
+                ],
+                "tags": "Element,Person,Researcher"
+            }
+        ],
+        "properties": {
+            "structurizr.groupSeparator": "/"
+        },
+        "softwareSystems": [
+            {
+                "containers": [
+                    {
+                        "documentation": {},
+                        "id": "2",
+                        "name": "Database",
+                        "properties": {
+                            "structurizr.dsl.identifier": "externalqueue.db"
+                        },
+                        "tags": "Element,Container,Database",
+                        "technology": "Postgres"
+                    },
+                    {
+                        "documentation": {},
+                        "id": "3",
+                        "name": "Queue",
+                        "properties": {
+                            "structurizr.dsl.identifier": "externalqueue.q"
+                        },
+                        "tags": "Element,Container,Queue",
+                        "technology": "RabbitMQ"
+                    },
+                    {
+                        "documentation": {},
+                        "id": "4",
+                        "name": "Engine",
+                        "properties": {
+                            "structurizr.dsl.identifier": "externalqueue.engine"
+                        },
+                        "relationships": [
+                            {
+                                "description": "populates/consumes",
+                                "destinationId": "3",
+                                "id": "11",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "9086b392-db32-4986-9e6e-3cc422e4a747"
+                                },
+                                "sourceId": "4",
+                                "tags": "Relationship,DataPull"
+                            },
+                            {
+                                "description": "populates/consumes",
+                                "destinationId": "2",
+                                "id": "12",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "6f53c95e-e342-4aab-ab00-d490c09f3b2c"
+                                },
+                                "sourceId": "4",
+                                "tags": "Relationship,DataPull"
+                            }
+                        ],
+                        "tags": "Element,Container,API",
+                        "technology": "Go"
+                    },
+                    {
+                        "documentation": {},
+                        "id": "5",
+                        "name": "API",
+                        "properties": {
+                            "structurizr.dsl.identifier": "externalqueue.api"
+                        },
+                        "relationships": [
+                            {
+                                "description": "populates/consumes",
+                                "destinationId": "2",
+                                "id": "13",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "dedc8f51-b792-4d55-bdae-320af9ca83fa"
+                                },
+                                "sourceId": "5",
+                                "tags": "Relationship,DataPull"
+                            }
+                        ],
+                        "tags": "Element,Container,API",
+                        "technology": "Go"
+                    },
+                    {
+                        "documentation": {},
+                        "id": "6",
+                        "name": "Frontend",
+                        "properties": {
+                            "structurizr.dsl.identifier": "externalqueue.fe"
+                        },
+                        "relationships": [
+                            {
+                                "description": "requests data from",
+                                "destinationId": "5",
+                                "id": "10",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "287d88f1-1d77-4f9e-9cea-144cc48f82b6"
+                                },
+                                "sourceId": "6",
+                                "tags": "Relationship,API"
+                            }
+                        ],
+                        "tags": "Element,Container,Browser",
+                        "technology": "React/Next"
+                    },
+                    {
+                        "documentation": {},
+                        "id": "7",
+                        "name": "Caddy",
+                        "properties": {
+                            "structurizr.dsl.identifier": "externalqueue.caddy"
+                        },
+                        "relationships": [
+                            {
+                                "description": "serves",
+                                "destinationId": "6",
+                                "id": "8",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "dfb27670-09f9-4177-8360-b950c62b3e36"
+                                },
+                                "sourceId": "7",
+                                "tags": "Relationship,Browser"
+                            },
+                            {
+                                "description": "serves",
+                                "destinationId": "5",
+                                "id": "9",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "ea5f3f24-5085-4c77-a53e-42701787b33f"
+                                },
+                                "sourceId": "7",
+                                "tags": "Relationship,API"
+                            }
+                        ],
+                        "tags": "Element,Container,=,API",
+                        "technology": "Caddy"
+                    }
+                ],
+                "documentation": {},
+                "group": "External Systems",
+                "id": "1",
+                "location": "Unspecified",
+                "name": "Hatchet",
+                "properties": {
+                    "structurizr.dsl.identifier": "externalqueue"
+                },
+                "tags": "Element,Software System,Database,External"
+            },
+            {
+                "documentation": {},
+                "group": "External Systems",
+                "id": "14",
+                "location": "Unspecified",
+                "name": "Overture Maps",
+                "properties": {
+                    "structurizr.dsl.identifier": "overture"
+                },
+                "tags": "Element,Software System,Database,External"
+            },
+            {
+                "containers": [
+                    {
+                        "documentation": {},
+                        "id": "16",
+                        "name": "Simulation Worker",
+                        "properties": {
+                            "structurizr.dsl.identifier": "workers.simworker"
+                        },
+                        "relationships": [
+                            {
+                                "description": "r/w from",
+                                "destinationId": "19",
+                                "id": "22",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "4ea15df1-80d1-47b4-9da1-58e288e89461"
+                                },
+                                "sourceId": "16",
+                                "tags": "Relationship,DataPull"
+                            },
+                            {
+                                "description": "r/w from",
+                                "destinationId": "18",
+                                "id": "23",
+                                "linkedRelationshipId": "22",
+                                "sourceId": "16"
+                            },
+                            {
+                                "description": "consumes",
+                                "destinationId": "1",
+                                "id": "27",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "863e8964-c801-4835-833e-6dec7771d1c2"
+                                },
+                                "sourceId": "16",
+                                "tags": "Relationship,DataPull"
+                            },
+                            {
+                                "description": "pulls jobs from",
+                                "destinationId": "4",
+                                "id": "30",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "6d79b9e7-634b-4cb3-bc58-f21fed868ce8"
+                                },
+                                "sourceId": "16",
+                                "tags": "Relationship,DataPull"
+                            }
+                        ],
+                        "tags": "Element,Container,Engine",
+                        "technology": "Python"
+                    },
+                    {
+                        "documentation": {},
+                        "id": "17",
+                        "name": "GIS Worker",
+                        "properties": {
+                            "structurizr.dsl.identifier": "workers.gisworker"
+                        },
+                        "relationships": [
+                            {
+                                "description": "r/w from",
+                                "destinationId": "19",
+                                "id": "25",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "1cbdd9c9-fd6b-4bd0-adda-3a37e320bab2"
+                                },
+                                "sourceId": "17",
+                                "tags": "Relationship,DataPull"
+                            },
+                            {
+                                "description": "r/w from",
+                                "destinationId": "18",
+                                "id": "26",
+                                "linkedRelationshipId": "25",
+                                "sourceId": "17"
+                            },
+                            {
+                                "description": "consumes",
+                                "destinationId": "1",
+                                "id": "29",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "f269e7a5-6a1c-41bc-b31a-a288053a3fcd"
+                                },
+                                "sourceId": "17",
+                                "tags": "Relationship,DataPull"
+                            },
+                            {
+                                "description": "pulls jobs from",
+                                "destinationId": "4",
+                                "id": "32",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "27057f14-5478-45cd-b532-272fbe1d4921"
+                                },
+                                "sourceId": "17",
+                                "tags": "Relationship,DataPull"
+                            },
+                            {
+                                "description": "requests GIS data from",
+                                "destinationId": "14",
+                                "id": "33",
+                                "properties": {
+                                    "structurizr.dsl.identifier": "ccd541c1-3a7f-44ca-b7bf-1922691d9352"
+                                },
+                                "sourceId": "17",
+                                "tags": "Relationship,DataPull"
+                            }
+                        ],
+                        "tags": "Element,Container,Engine",
+                        "technology": "Python"
+                    }
+                ],
+                "documentation": {},
+                "group": "AWS",
+                "id": "15",
+                "location": "Unspecified",
+                "name": "Worker Nodes",
+                "properties": {
+                    "structurizr.dsl.identifier": "workers"
+                },
+                "relationships": [
+                    {
+                        "description": "r/w from",
+                        "destinationId": "18",
+                        "id": "21",
+                        "properties": {
+                            "structurizr.dsl.identifier": "78f6b88d-8883-410e-b000-cb917f975daa"
+                        },
+                        "sourceId": "15",
+                        "tags": "Relationship,DataPull"
+                    },
+                    {
+                        "description": "r/w from",
+                        "destinationId": "19",
+                        "id": "24",
+                        "linkedRelationshipId": "22",
+                        "sourceId": "15"
+                    },
+                    {
+                        "description": "consumes",
+                        "destinationId": "1",
+                        "id": "28",
+                        "linkedRelationshipId": "27",
+                        "sourceId": "15"
+                    },
+                    {
+                        "description": "pulls jobs from",
+                        "destinationId": "4",
+                        "id": "31",
+                        "linkedRelationshipId": "30",
+                        "sourceId": "15"
+                    },
+                    {
+                        "description": "requests GIS data from",
+                        "destinationId": "14",
+                        "id": "34",
+                        "linkedRelationshipId": "33",
+                        "sourceId": "15"
+                    }
+                ],
+                "tags": "Element,Software System,Model"
+            },
+            {
+                "containers": [
+                    {
+                        "documentation": {},
+                        "id": "19",
+                        "name": "Bucket",
+                        "properties": {
+                            "structurizr.dsl.identifier": "data.bucket"
+                        },
+                        "tags": "Element,Container,Database",
+                        "technology": "S3"
+                    },
+                    {
+                        "documentation": {},
+                        "id": "20",
+                        "name": "Database",
+                        "properties": {
+                            "structurizr.dsl.identifier": "data.db"
+                        },
+                        "tags": "Element,Container,Database",
+                        "technology": "Supabase"
+                    }
+                ],
+                "documentation": {},
+                "group": "AWS",
+                "id": "18",
+                "location": "Unspecified",
+                "name": "Storage",
+                "properties": {
+                    "structurizr.dsl.identifier": "data"
+                },
+                "tags": "Element,Software System,Database"
+            }
+        ]
+    },
+    "name": "Name",
+    "properties": {
+        "structurizr.dsl": "d29ya3NwYWNlICJOYW1lIiAiRGVzY3JpcHRpb24iIHsKICAgICFpZGVudGlmaWVycyBoaWVyYXJjaGljYWwKICAgIG1vZGVsIHsKICAgICAgICBwcm9wZXJ0aWVzIHsKICAgICAgICAgICAgInN0cnVjdHVyaXpyLmdyb3VwU2VwYXJhdG9yIiAiLyIKICAgICAgICB9CgogICAgICAgIGV4dFN5c3RlbXMgPSBncm91cCAiRXh0ZXJuYWwgU3lzdGVtcyIgewogICAgICAgICAgICBleHRlcm5hbFF1ZXVlID0gc29mdHdhcmVTeXN0ZW0gIkhhdGNoZXQiIHsKICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIiwgIkV4dGVybmFsIgogICAgICAgICAgICAgICAgZGIgPSBjb250YWluZXIgIkRhdGFiYXNlIiB7CiAgICAgICAgICAgICAgICAgICAgdGVjaG5vbG9neSAiUG9zdGdyZXMiCiAgICAgICAgICAgICAgICAgICAgdGFncyAiRGF0YWJhc2UiCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICBxID0gY29udGFpbmVyICJRdWV1ZSIgewogICAgICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgIlJhYmJpdE1RIgogICAgICAgICAgICAgICAgICAgIHRhZ3MgIlF1ZXVlIgogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgZW5naW5lID0gY29udGFpbmVyICJFbmdpbmUiIHsKICAgICAgICAgICAgICAgICAgICB0ZWNobm9sb2d5ICJHbyIKICAgICAgICAgICAgICAgICAgICB0YWdzICJBUEkiCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICBhcGkgPSBjb250YWluZXIgIkFQSSIgewogICAgICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgIkdvIgogICAgICAgICAgICAgICAgICAgIHRhZ3MgIkFQSSIKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIGZlID0gY29udGFpbmVyICJGcm9udGVuZCIgewogICAgICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgIlJlYWN0L05leHQiCiAgICAgICAgICAgICAgICAgICAgdGFncyAiQnJvd3NlciIKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIGNhZGR5ID0gY29udGFpbmVyICJDYWRkeSIgewogICAgICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgIkNhZGR5IgogICAgICAgICAgICAgICAgICAgIHRhZ3MgPSAiQVBJIgogICAgICAgICAgICAgICAgfQoKICAgICAgICAgICAgICAgIGNhZGR5IC0+IGZlICJzZXJ2ZXMiIHsKICAgICAgICAgICAgICAgICAgICB0YWdzICJCcm93c2VyIgogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgY2FkZHkgLT4gYXBpICJzZXJ2ZXMiIHsKICAgICAgICAgICAgICAgICAgICB0YWdzICJBUEkiCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICBmZSAtPiBhcGkgInJlcXVlc3RzIGRhdGEgZnJvbSIgewogICAgICAgICAgICAgICAgICAgIHRhZ3MgIkFQSSIKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIGVuZ2luZSAtPiBxICJwb3B1bGF0ZXMvY29uc3VtZXMiIHsKICAgICAgICAgICAgICAgICAgICB0YWdzICJEYXRhUHVsbCIKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIGVuZ2luZSAtPiBkYiAicG9wdWxhdGVzL2NvbnN1bWVzIiB7CiAgICAgICAgICAgICAgICAgICAgdGFncyAiRGF0YVB1bGwiCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICBhcGkgLT4gZGIgInBvcHVsYXRlcy9jb25zdW1lcyIgewogICAgICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFQdWxsIgogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CgogICAgICAgICAgICBvdmVydHVyZSA9IHNvZnR3YXJlU3lzdGVtICJPdmVydHVyZSBNYXBzIiB7CiAgICAgICAgICAgICAgICB0YWdzICJEYXRhYmFzZSIsICJFeHRlcm5hbCIKICAgICAgICAgICAgfQogICAgICAgIH0KCiAgICAgICAgYXBwID0gZ3JvdXAgIkFXUyIgewogICAgICAgICAgICB3b3JrZXJzID0gc29mdHdhcmVTeXN0ZW0gIldvcmtlciBOb2RlcyIgewogICAgICAgICAgICAgICAgdGFncyAiTW9kZWwiCiAgICAgICAgICAgICAgICBzaW1Xb3JrZXIgPSBjb250YWluZXIgIlNpbXVsYXRpb24gV29ya2VyIiB7CiAgICAgICAgICAgICAgICAgICAgdGVjaG5vbG9neSAiUHl0aG9uIgogICAgICAgICAgICAgICAgICAgIHRhZ3MgIkVuZ2luZSIKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIGdpc1dvcmtlciA9IGNvbnRhaW5lciAiR0lTIFdvcmtlciIgewogICAgICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgIlB5dGhvbiIKICAgICAgICAgICAgICAgICAgICB0YWdzICJFbmdpbmUiCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KCgogICAgICAgICAgICBkYXRhID0gc29mdHdhcmVTeXN0ZW0gIlN0b3JhZ2UiIHsKICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIgogICAgICAgICAgICAgICAgYnVja2V0ID0gY29udGFpbmVyICJCdWNrZXQiIHsKICAgICAgICAgICAgICAgICAgICB0ZWNobm9sb2d5ICJTMyIKICAgICAgICAgICAgICAgICAgICB0YWdzICJEYXRhYmFzZSIKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIGRiID0gY29udGFpbmVyICJEYXRhYmFzZSIgewogICAgICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgIlN1cGFiYXNlIgogICAgICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIgogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CgogICAgICAgICAgICB3b3JrZXJzIC0+IGRhdGEgInIvdyBmcm9tIiB7CiAgICAgICAgICAgICAgICB0YWdzICJEYXRhUHVsbCIKICAgICAgICAgICAgfQoKICAgICAgICAgICAgd29ya2Vycy5zaW1Xb3JrZXIgLT4gZGF0YS5idWNrZXQgInIvdyBmcm9tIiB7CiAgICAgICAgICAgICAgICB0YWdzICJEYXRhUHVsbCIKICAgICAgICAgICAgfQoKICAgICAgICAgICAgd29ya2Vycy5naXNXb3JrZXIgLT4gZGF0YS5idWNrZXQgInIvdyBmcm9tIiB7CiAgICAgICAgICAgICAgICB0YWdzICJEYXRhUHVsbCIKICAgICAgICAgICAgfQogICAgICAgIH0KCiAgICAgICAgd29ya2Vycy5zaW1Xb3JrZXIgLT4gZXh0ZXJuYWxRdWV1ZSAiY29uc3VtZXMiIHsKICAgICAgICAgICAgdGFncyAiRGF0YVB1bGwiCiAgICAgICAgfQogICAgICAgIHdvcmtlcnMuZ2lzV29ya2VyIC0+IGV4dGVybmFsUXVldWUgImNvbnN1bWVzIiB7CiAgICAgICAgICAgIHRhZ3MgIkRhdGFQdWxsIgogICAgICAgIH0KICAgICAgICB3b3JrZXJzLnNpbVdvcmtlciAtPiBleHRlcm5hbFF1ZXVlLmVuZ2luZSAicHVsbHMgam9icyBmcm9tIiB7CiAgICAgICAgICAgIHRhZ3MgIkRhdGFQdWxsIgogICAgICAgIH0KICAgICAgICB3b3JrZXJzLmdpc1dvcmtlciAtPiBleHRlcm5hbFF1ZXVlLmVuZ2luZSAicHVsbHMgam9icyBmcm9tIiB7CiAgICAgICAgICAgIHRhZ3MgIkRhdGFQdWxsIgogICAgICAgIH0KICAgICAgICB3b3JrZXJzLmdpc1dvcmtlciAtPiBvdmVydHVyZSAicmVxdWVzdHMgR0lTIGRhdGEgZnJvbSIgewogICAgICAgICAgICB0YWdzICJEYXRhUHVsbCIKICAgICAgICB9CgogICAgICAgIHVzZXIgPSBQZXJzb24gIlVzZXIiIHsKICAgICAgICAgICAgdGFncyAiUmVzZWFyY2hlciIKICAgICAgICB9CgogICAgICAgIHVzZXIgLT4gZXh0ZXJuYWxRdWV1ZSAic2NoZWR1bGVzIGpvYnMiIHsKICAgICAgICAgICAgdGFncyAiRGF0YVB1bGwiCiAgICAgICAgfQogICAgICAgIHVzZXIgLT4gZXh0ZXJuYWxRdWV1ZS5jYWRkeSAic2NoZWR1bGVzIGpvYnMiIHsKICAgICAgICAgICAgdGFncyAiQnJvd3NlciIKICAgICAgICB9CiAgICB9CiAgICAKICAgIHZpZXdzIHsKCiAgICAgICAgc3lzdGVtTGFuZHNjYXBlIHN5cyB7CiAgICAgICAgICAgIGluY2x1ZGUgKgogICAgICAgIH0KICAgICAgICBzeXN0ZW1Db250ZXh0IHdvcmtlcnMgewogICAgICAgICAgICBpbmNsdWRlICoKICAgICAgICB9CgogICAgICAgIGNvbnRhaW5lciB3b3JrZXJzIHsKICAgICAgICAgICAgaW5jbHVkZSAqCiAgICAgICAgfQoKICAgICAgICBzeXN0ZW1Db250ZXh0IGV4dGVybmFsUXVldWUgewogICAgICAgICAgICBpbmNsdWRlICoKICAgICAgICB9CgogICAgICAgIGNvbnRhaW5lciBleHRlcm5hbFF1ZXVlIHsKICAgICAgICAgICAgaW5jbHVkZSAqCiAgICAgICAgfQoKICAgICAgICBzdHlsZXMgewogICAgICAgICAgICBlbGVtZW50IEVsZW1lbnQgewogICAgICAgICAgICAgICAgZm9udHNpemUgMzIKICAgICAgICAgICAgfQoKCiAgICAgICAgICAgIC8vIE9iamVjdCBzdHlsZXMKICAgICAgICAgICAgZWxlbWVudCAiR3JvdXAiIHsKICAgICAgICAgICAgICAgIHN0cm9rZVdpZHRoIDQKICAgICAgICAgICAgICAgIGZvbnRTaXplIDMyCiAgICAgICAgICAgICAgICBjb2xvciAjOTA5MDkwCiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxlbWVudCAiU29mdHdhcmUgU3lzdGVtIiB7CiAgICAgICAgICAgICAgICBjb2xvciAjNTA1MDUwCiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxlbWVudCAiQ29udGFpbmVyIiB7CiAgICAgICAgICAgICAgICBjb2xvciAjNTA1MDUwCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIC8vIFBlb3BsZSBTdHlsZXMKICAgICAgICAgICAgZWxlbWVudCAiVXNlciIgewogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjREVEQUY0CiAgICAgICAgICAgICAgICBjb2xvciAjMDAwMDAwCiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxlbWVudCAiU2NpZW50aXN0IiB7CiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICNENEUxREUKICAgICAgICAgICAgICAgIGNvbG9yICMwMDAwMDAKICAgICAgICAgICAgfQogICAgICAgICAgICBlbGVtZW50ICJMb2NhbCBFeHBlcnQiIHsKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgI0ZGRDZBNQogICAgICAgICAgICAgICAgY29sb3IgIzAwMDAwMAogICAgICAgICAgICB9CgoKICAgICAgICAgICAgLy8gVGFnIFN0eWxlcwogICAgICAgICAgICBlbGVtZW50ICJEYXRhYmFzZSIgewogICAgICAgICAgICAgICAgc2hhcGUgY3lsaW5kZXIKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzdlYzRDZgogICAgICAgICAgICB9CiAgICAgICAgICAgIGVsZW1lbnQgIlF1ZXVlIiB7CiAgICAgICAgICAgICAgICBzaGFwZSBjeWxpbmRlcgogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjYzQ3ZUNmCiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxlbWVudCAiQVBJIiB7CiAgICAgICAgICAgICAgICBzaGFwZSBwaXBlCiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICM5YWI3ZDMKICAgICAgICAgICAgfQogICAgICAgICAgICAKICAgICAgICAgICAgZWxlbWVudCAiTW9kZWwiIHsKICAgICAgICAgICAgICAgIHNoYXBlIHBpcGUKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgI2ZmYWRhZAogICAgICAgICAgICB9CiAgICAgICAgICAgIAogICAgICAgICAgICBlbGVtZW50ICJCcm93c2VyIiB7CiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICM5YWI3ZDMKICAgICAgICAgICAgICAgIHNoYXBlIFdlYkJyb3dzZXIKICAgICAgICAgICAgfQogICAgICAgICAgICBlbGVtZW50ICJFeHRlcm5hbCIgewogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjQUFBQUFBCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIC8vIFJlbGF0aW9uc2hpcCBTdHlsZXMKICAgICAgICAgICAgcmVsYXRpb25zaGlwIFJlbGF0aW9uc2hpcCB7CiAgICAgICAgICAgICAgICBkYXNoZWQgRmFsc2UKICAgICAgICAgICAgICAgIHJvdXRpbmcgQ3VydmVkCiAgICAgICAgICAgICAgICBzdHlsZSBkb3R0ZWQKICAgICAgICAgICAgICAgIGZvbnRTaXplIDI4CiAgICAgICAgICAgIH0KICAgICAgICAgICAgcmVsYXRpb25zaGlwICJjb250cmlidXRpb24iIHsKICAgICAgICAgICAgICAgIHN0eWxlIGRhc2hlZAoKICAgICAgICAgICAgfQogICAgICAgICAgICByZWxhdGlvbnNoaXAgIkRhdGFQdWxsIiB7CiAgICAgICAgICAgICAgICBzdHlsZSBkb3R0ZWQKICAgICAgICAgICAgfQogICAgICAgICAgICByZWxhdGlvbnNoaXAgIkVuZ2luZUNhbGwiIHsKICAgICAgICAgICAgICAgIHN0eWxlIHNvbGlkCiAgICAgICAgICAgIH0KCiAgICAgICAgfQoKICAgICAgICB0aGVtZSBkZWZhdWx0CiAgICB9Cgp9"
+    },
+    "views": {
+        "configuration": {
+            "branding": {},
+            "lastSavedView": "Container-001",
+            "metadataSymbols": "SquareBrackets",
+            "styles": {
+                "elements": [
+                    {
+                        "fontSize": 32,
+                        "tag": "Element"
+                    },
+                    {
+                        "color": "#909090",
+                        "fontSize": 32,
+                        "strokeWidth": 4,
+                        "tag": "Group"
+                    },
+                    {
+                        "color": "#505050",
+                        "tag": "Software System"
+                    },
+                    {
+                        "color": "#505050",
+                        "tag": "Container"
+                    },
+                    {
+                        "background": "#dedaf4",
+                        "color": "#000000",
+                        "tag": "User"
+                    },
+                    {
+                        "background": "#d4e1de",
+                        "color": "#000000",
+                        "tag": "Scientist"
+                    },
+                    {
+                        "background": "#ffd6a5",
+                        "color": "#000000",
+                        "tag": "Local Expert"
+                    },
+                    {
+                        "background": "#7ec4cf",
+                        "shape": "Cylinder",
+                        "tag": "Database"
+                    },
+                    {
+                        "background": "#c47ecf",
+                        "shape": "Cylinder",
+                        "tag": "Queue"
+                    },
+                    {
+                        "background": "#9ab7d3",
+                        "shape": "Pipe",
+                        "tag": "API"
+                    },
+                    {
+                        "background": "#ffadad",
+                        "shape": "Pipe",
+                        "tag": "Model"
+                    },
+                    {
+                        "background": "#9ab7d3",
+                        "shape": "WebBrowser",
+                        "tag": "Browser"
+                    },
+                    {
+                        "background": "#aaaaaa",
+                        "tag": "External"
+                    }
+                ],
+                "relationships": [
+                    {
+                        "dashed": false,
+                        "fontSize": 28,
+                        "routing": "Curved",
+                        "style": "Dotted",
+                        "tag": "Relationship"
+                    },
+                    {
+                        "style": "Dashed",
+                        "tag": "contribution"
+                    },
+                    {
+                        "style": "Dotted",
+                        "tag": "DataPull"
+                    },
+                    {
+                        "style": "Solid",
+                        "tag": "EngineCall"
+                    }
+                ]
+            },
+            "terminology": {},
+            "themes": [
+                "https://static.structurizr.com/themes/default/theme.json"
+            ]
+        },
+        "containerViews": [
+            {
+                "dimensions": {
+                    "height": 1748,
+                    "width": 2480
+                },
+                "elements": [
+                    {
+                        "id": "1",
+                        "x": 240,
+                        "y": 385
+                    },
+                    {
+                        "id": "14",
+                        "x": 195,
+                        "y": 825
+                    },
+                    {
+                        "id": "16",
+                        "x": 925,
+                        "y": 405
+                    },
+                    {
+                        "id": "17",
+                        "x": 945,
+                        "y": 790
+                    },
+                    {
+                        "id": "18",
+                        "x": 1745,
+                        "y": 580
+                    }
+                ],
+                "externalSoftwareSystemBoundariesVisible": false,
+                "generatedKey": true,
+                "key": "Container-001",
+                "order": 3,
+                "paperSize": "A5_Landscape",
+                "relationships": [
+                    {
+                        "id": "23"
+                    },
+                    {
+                        "id": "26"
+                    },
+                    {
+                        "id": "27"
+                    },
+                    {
+                        "id": "29"
+                    },
+                    {
+                        "id": "33"
+                    }
+                ],
+                "softwareSystemId": "15"
+            },
+            {
+                "dimensions": {
+                    "height": 2061,
+                    "width": 3810
+                },
+                "elements": [
+                    {
+                        "id": "2",
+                        "x": 1575,
+                        "y": 1450
+                    },
+                    {
+                        "id": "3",
+                        "x": 2230,
+                        "y": 1470
+                    },
+                    {
+                        "id": "4",
+                        "x": 2243,
+                        "y": 890
+                    },
+                    {
+                        "id": "5",
+                        "x": 1568,
+                        "y": 675
+                    },
+                    {
+                        "id": "6",
+                        "x": 1573,
+                        "y": 220
+                    },
+                    {
+                        "id": "7",
+                        "x": 960,
+                        "y": 400
+                    },
+                    {
+                        "id": "15",
+                        "x": 3160,
+                        "y": 899
+                    },
+                    {
+                        "id": "35",
+                        "x": 200,
+                        "y": 335
+                    }
+                ],
+                "externalSoftwareSystemBoundariesVisible": false,
+                "generatedKey": true,
+                "key": "Container-002",
+                "order": 5,
+                "relationships": [
+                    {
+                        "id": "10"
+                    },
+                    {
+                        "id": "11"
+                    },
+                    {
+                        "id": "12"
+                    },
+                    {
+                        "id": "13"
+                    },
+                    {
+                        "id": "31"
+                    },
+                    {
+                        "id": "37"
+                    },
+                    {
+                        "id": "8"
+                    },
+                    {
+                        "id": "9"
+                    }
+                ],
+                "softwareSystemId": "1"
+            }
+        ],
+        "systemContextViews": [
+            {
+                "dimensions": {
+                    "height": 1748,
+                    "width": 2480
+                },
+                "elements": [
+                    {
+                        "id": "1",
+                        "x": 1290,
+                        "y": 305
+                    },
+                    {
+                        "id": "14",
+                        "x": 1290,
+                        "y": 800
+                    },
+                    {
+                        "id": "15",
+                        "x": 250,
+                        "y": 305
+                    },
+                    {
+                        "id": "18",
+                        "x": 250,
+                        "y": 800
+                    }
+                ],
+                "enterpriseBoundaryVisible": true,
+                "generatedKey": true,
+                "key": "SystemContext-001",
+                "order": 2,
+                "paperSize": "A5_Landscape",
+                "relationships": [
+                    {
+                        "id": "21"
+                    },
+                    {
+                        "id": "28"
+                    },
+                    {
+                        "id": "34"
+                    }
+                ],
+                "softwareSystemId": "15"
+            },
+            {
+                "dimensions": {
+                    "height": 1748,
+                    "width": 2480
+                },
+                "elements": [
+                    {
+                        "id": "1",
+                        "x": 455,
+                        "y": 740
+                    },
+                    {
+                        "id": "15",
+                        "x": 1320,
+                        "y": 155
+                    },
+                    {
+                        "id": "35",
+                        "x": 0,
+                        "y": 0
+                    }
+                ],
+                "enterpriseBoundaryVisible": true,
+                "generatedKey": true,
+                "key": "SystemContext-002",
+                "order": 4,
+                "paperSize": "A5_Landscape",
+                "relationships": [
+                    {
+                        "id": "28"
+                    },
+                    {
+                        "id": "36"
+                    }
+                ],
+                "softwareSystemId": "1"
+            }
+        ],
+        "systemLandscapeViews": [
+            {
+                "dimensions": {
+                    "height": 1748,
+                    "width": 2480
+                },
+                "elements": [
+                    {
+                        "id": "1",
+                        "x": 745,
+                        "y": 660
+                    },
+                    {
+                        "id": "14",
+                        "x": 720,
+                        "y": 125
+                    },
+                    {
+                        "id": "15",
+                        "x": 1510,
+                        "y": 120
+                    },
+                    {
+                        "id": "18",
+                        "x": 1510,
+                        "y": 650
+                    },
+                    {
+                        "id": "35",
+                        "x": -5,
+                        "y": 610
+                    }
+                ],
+                "enterpriseBoundaryVisible": true,
+                "key": "sys",
+                "order": 1,
+                "paperSize": "A5_Landscape",
+                "relationships": [
+                    {
+                        "id": "21"
+                    },
+                    {
+                        "id": "28"
+                    },
+                    {
+                        "id": "34"
+                    },
+                    {
+                        "id": "36"
+                    }
+                ]
+            }
+        ]
+    }
+}
