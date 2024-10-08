@@ -68,7 +68,6 @@ if __name__ == "__main__":
         neighbor_polys=["POLYGON ((-10 0, -10 10, -5 10, -5 0, -10 0))"],
         neighbor_floors=[3],
         rotated_rectangle="POLYGON ((5 0, 5 10, 15 10, 15 0, 5 0))",
-        rotated_rectangle_area_ratio=1,
         long_edge=10,
         short_edge=10,
         long_edge_angle=0.23,

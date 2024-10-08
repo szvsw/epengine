@@ -45,9 +45,6 @@ class ShoeboxSimulationSpec(LeafSpec):
     short_edge: float = Field(
         ..., description="The length of the short edge of the building."
     )
-    rotated_rectangle_area_ratio: float = Field(
-        ..., description="The area ratio of the rotated rectangle."
-    )
 
     @cached_property
     def lib_path(self) -> Path:
@@ -83,6 +80,9 @@ class ShoeboxSimulationSpec(LeafSpec):
 
         # TODO: decide whether we should actually go up to core/perim or not
         use_core_perim = self.long_edge > 15 and self.short_edge > 15
+        has_basement = False
+        should_condition_basement = False
+        wwr = 0.15
         geometry = ShoeboxGeometry(
             x=0,
             y=0,
@@ -93,8 +93,8 @@ class ShoeboxSimulationSpec(LeafSpec):
             zoning="core/perim" if use_core_perim else "by_storey",
             perim_depth=3,
             roof_height=None,
-            basement_depth=None,
-            wwr=0.15,
+            basement=has_basement,
+            wwr=wwr,
         )
         if AnyUrl(self.epwzip_path).scheme == "D":
             parts = list(Path(self.epwzip_path).parts)
@@ -110,6 +110,7 @@ class ShoeboxSimulationSpec(LeafSpec):
             geometry=geometry,
             space_use_name=self.space_use_name,
             envelope_name=self.envelope_name,
+            conditioned_basement=should_condition_basement,
             lib=self.lib,
         )
         return model
@@ -130,9 +131,13 @@ class ShoeboxSimulationSpec(LeafSpec):
         Returns:
             res_size (Literal["multi-family", "single-family"]): The size of the building
         """
+        # TODO: decide on the threshold values
         if (
-            "multi" in self.typology.lower()
-            or "mf" in self.typology.lower()
+            (
+                ("multi" in self.typology.lower() or "mf" in self.typology.lower())
+                and "4 units" not in self.typology.lower()
+                and "3 units" not in self.typology.lower()
+            )
             or self.num_floors > 3
             or self.footprint_area > 1000
         ):
@@ -159,7 +164,7 @@ class ShoeboxSimulationSpec(LeafSpec):
         Returns:
             size_key (str): The size key of the building
         """
-        return "MFH" if self.res_size == "multi-family" else "SF"
+        return "MF" if self.res_size == "multi-family" else "SF"
 
     @property
     def space_use_name(self):
@@ -168,7 +173,7 @@ class ShoeboxSimulationSpec(LeafSpec):
         Returns:
             space_use_name (str): The space use name of the building
         """
-        space_use_name = f"Template_MA_{self.size_key}_{self.age_key}"
+        space_use_name = f"MA_{self.size_key}_{self.age_key}"
         return space_use_name
 
     @property
@@ -178,7 +183,7 @@ class ShoeboxSimulationSpec(LeafSpec):
         Returns:
             envelope_name (str): The envelope name of the building
         """
-        envelope_name = f"Template_MA_{self.size_key}_{self.age_key}"
+        envelope_name = f"MA_{self.size_key}_{self.age_key}"
         return envelope_name
 
     def update_windows_by_age(self, envelope_name: str):
@@ -249,13 +254,12 @@ if __name__ == "__main__":
         lib_uri=AnyUrl(
             "s3://ml-for-bem/tiles/massachusetts/2024_09_30/everett_lib.json"
         ),
-        typology="Residential, Multi-family",
-        year_built=2005,
+        typology="Residential",
+        year_built=1950,
         num_floors=2,
         neighbor_polys=["POLYGON ((-10 0, -10 10, -5 10, -5 0, -10 0))"],
         neighbor_floors=[3],
         rotated_rectangle="POLYGON ((5 0, 5 10, 15 10, 15 0, 5 0))",
-        rotated_rectangle_area_ratio=1,
         long_edge=10,
         short_edge=10,
         long_edge_angle=0.23,
