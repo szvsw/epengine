@@ -1,10 +1,12 @@
 """A module containing the scatter-gather workflow and related classes."""
 
 import asyncio
+import tempfile
 from collections.abc import Coroutine
 from typing import Any, Generic
 
 import boto3
+import pandas as pd
 from hatchet_sdk import Context
 from hatchet_sdk.workflow_run import WorkflowRunRef
 from pydantic import AnyUrl, BaseModel, Field
@@ -94,6 +96,10 @@ class ScatterGatherRecursiveSpec(
         """
         spec_list = self.specs
         path = self.recursion_map.path
+
+        if self.recursion_map.specs_already_selected:
+            return spec_list
+
         # if path is present, we need to trim down
         if path:
             # we are in a recursive call and so we
@@ -116,16 +122,38 @@ class ScatterGatherRecursiveSpec(
         tasks: list[WorkflowRunRef] = []
         task_specs: list[RecursionId] = []
         task_ids: list[str] = []
+        select_specs = True
         for i in range(self.recursion_map.factor):
+            payload = workflow_input.copy()
             new_path = self.recursion_map.path.copy() if self.recursion_map.path else []
             new_path.append(RecursionSpec(factor=self.recursion_map.factor, offset=i))
+            if select_specs:
+                specs_to_use = self.selected_specs[i :: self.recursion_map.factor]
+                specs_as_df = pd.DataFrame([
+                    spec.model_dump(mode="json") for spec in specs_to_use
+                ])
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    f = f"{tmpdir}/specs.parquet"
+                    specs_as_df.to_parquet(f)
+                    # TODO: fix naming here.
+                    run_id = self.hcontext.workflow_run_id()
+                    key = f"hatchet/{self.experiment_id}/specs/{run_id}/{run_id}_specs_{i:06d}.pq"
+                    uri = f"s3://{self.bucket}/{key}"
+                    s3.upload_file(f, self.bucket, key)
+                del specs_as_df
+                del specs_to_use
+                payload.update({
+                    "specs": uri,
+                })
             recurse = RecursionMap(
                 path=new_path,
                 factor=self.recursion_map.factor,
                 max_depth=self.recursion_map.max_depth,
+                specs_already_selected=select_specs,
             )
-            payload = workflow_input.copy()
-            payload.update({"recursion_map": recurse.model_dump(mode="json")})
+            payload.update({
+                "recursion_map": recurse.model_dump(mode="json"),
+            })
             recursion_id = RecursionId(index=i, level=len(new_path))
             # new_specs = ScatterGatherRecursiveSpec(**workflow_input)
             task_specs.append(recursion_id)
@@ -226,6 +254,7 @@ class ScatterGatherWorkflow:
     version="0.2",
     timeout="1200m",
     on_events=["simulations:recursive"],
+    schedule_timeout="240m",
 )
 class ScatterGatherRecursiveWorkflow:
     """A scatter-gather workflow that executes simulations in a recursive manner."""
@@ -304,7 +333,9 @@ async def execute_simulations(
 
     for i, spec in enumerate(specs.specs):
         if i % 1000 == 0:
-            specs.hcontext.log(f"Queing {i}th child workflow...")
+            specs.hcontext.log(
+                f"Queuing {i}th child workflow out of {len(specs.specs)}..."
+            )
         task = await specs.hcontext.aio.spawn_workflow(
             workflow_selection.workflow_name,
             spec.model_dump(mode="json"),

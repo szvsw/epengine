@@ -19,6 +19,9 @@ class SimWorkerSettings(BaseSettings):
     FLY_REGION: str | None = None
     AWS_BATCH_JOB_ARRAY_INDEX: int | None = None
     COPILOT_ENVIRONMENT_NAME: str | None = None
+    DOES_FAN: bool = True
+    DOES_LEAF: bool = True
+    MAX_RUNS: int | None = None
 
     @property
     def in_aws_batch(self) -> bool:
@@ -78,6 +81,8 @@ class SimWorkerSettings(BaseSettings):
     @property
     def max_runs(self) -> int:
         """Return the maximum number of runs."""
+        if self.MAX_RUNS is not None:
+            return self.MAX_RUNS
         cpu_ct = os.cpu_count() or 1
         if cpu_ct < 8:
             return cpu_ct
@@ -98,12 +103,13 @@ class SimWorkerSettings(BaseSettings):
             max_runs=self.max_runs,
         )
 
-        if self.FLY_REGION == "sea" or self.FLY_REGION is None:
+        if (self.FLY_REGION == "sea" or self.FLY_REGION is None) and self.DOES_FAN:
             worker.register_workflow(ScatterGatherWorkflow())
             worker.register_workflow(ScatterGatherRecursiveWorkflow())
 
-        worker.register_workflow(Simulate())
-        worker.register_workflow(SimulateShoebox())
+        if self.DOES_LEAF:
+            worker.register_workflow(Simulate())
+            worker.register_workflow(SimulateShoebox())
 
         return worker
 

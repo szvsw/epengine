@@ -81,7 +81,7 @@ class ShoeboxSimulationSpec(LeafSpec):
 
         # TODO: decide whether we should actually go up to core/perim or not
         use_core_perim = self.long_edge > 15 and self.short_edge > 15
-        has_basement = False
+        has_basement = True
         should_condition_basement = False
         wwr = 0.15
         geometry = ShoeboxGeometry(

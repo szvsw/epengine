@@ -44,6 +44,7 @@ class RecursionMap(BaseModel):
     max_depth: int = Field(
         default=10, description="The maximum depth of the recursion", ge=1, le=10
     )
+    specs_already_selected: bool = False
 
     @field_validator("path", mode="before")
     @classmethod
@@ -73,8 +74,8 @@ class BranchesSpec(BaseSpec, Generic[SpecListItem]):
 
     @model_validator(mode="before")
     @classmethod
-    def set_children_exp_id_and_sort_index(cls, values: dict):
-        """Set the experiment_id of each child spec to the experiment_id of the parent along with the sort_index."""
+    def deser_and_set_exp_id_idx(cls, values: dict):
+        """Deserializes the spec list if necessary and sets the experiment_id of each child spec to the experiment_id of the parent along with the sort_index."""
         experiment_id = values["experiment_id"]
         if values.get("specs") is not None:
             if isinstance(values["specs"], str):
