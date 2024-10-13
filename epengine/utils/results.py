@@ -19,10 +19,6 @@ else:
 logger = logging.getLogger(__name__)
 
 
-# TODO: should we use this client as a session?
-# TODO: should it be a parameter?
-
-
 def postprocess(
     sql: Sql,
     index_data: dict,

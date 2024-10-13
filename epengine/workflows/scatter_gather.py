@@ -139,7 +139,6 @@ class ScatterGatherRecursiveSpec(
                 with tempfile.TemporaryDirectory() as tmpdir:
                     f = f"{tmpdir}/specs.parquet"
                     specs_as_df.to_parquet(f)
-                    # TODO: fix naming here.
                     run_id = self.hcontext.workflow_run_id()
                     key = f"hatchet/{self.experiment_id}/specs/{run_id}/{run_id}_specs_{i:06d}.pq"
                     uri = f"s3://{self.bucket}/{key}"
@@ -208,7 +207,7 @@ class ScatterGatherRecursiveSpec(
             self.log("Error in recursive scatter-gather!")
 
         # TODO: some type safety here on the result objects so they conform to a spec would be
-        # nice
+        # nice, this would help with better selection of step results by step name
         step_results: list[dict[str, Any]] = [
             step
             for workflow_id, task_spec, result in safe_results
@@ -333,7 +332,6 @@ class ScatterGatherWorkflow:
         )
 
         _tasks, ids = await spawn_simulations(workflow_selection, specs)
-        # TODO: serialize to a file and upload to s3 and return a uri
         result = SpawnResult(children_ids=ids)
         return result.model_dump(mode="json")
 
@@ -370,6 +368,10 @@ class SpawnResult(BaseModel):
 
     children_ids: list[str]
     recurse_specs: list[RecursionId] | None = None
+
+    # TODO: serialize to a file and upload to s3 and return a uri
+    # consider adding this method so that we can have thin payloads
+    # tho approx. 100k uuids should fit in 4MB payload
 
 
 @hatchet.workflow(
@@ -521,7 +523,7 @@ async def collect_simulations(
     if specs.bucket:
         # save as hdfs
         workflow_run_id = specs.hcontext.workflow_run_id()
-        # TODO: hatchet prefix should come from task!
+        # TODO: should hatchet prefix should come from task? or from a global?
         output_key = f"hatchet/{specs.experiment_id}/results/{workflow_run_id}.h5"
         specs.log("Saving results...")
         uri = save_and_upload_results(
@@ -554,6 +556,5 @@ async def execute_simulations(
     Returns:
         dict: The results of the simulations.  This may be a dictionary of DataFrames or a URIResponse.
     """
-    # TODO: this should get its own in config
     tasks, ids = await spawn_simulations(workflow_selection, specs)
     return await collect_simulations(tasks, ids, specs)

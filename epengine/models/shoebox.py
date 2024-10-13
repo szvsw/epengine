@@ -102,8 +102,6 @@ class ShoeboxSimulationSpec(LeafSpec):
         #     pth = "/".join(parts[2:])
         #     self.epwzip_path = f"https://climate.onebuilding.org/{pth}"
 
-        # TODO: select space use and envelope based off of
-        # typology age and size
         self.update_windows_by_age(self.envelope_name)
 
         model = Model(
