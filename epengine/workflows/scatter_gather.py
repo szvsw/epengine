@@ -2,7 +2,6 @@
 
 import asyncio
 import tempfile
-from collections.abc import Coroutine
 from typing import Any, Generic
 
 import boto3
@@ -22,6 +21,7 @@ from epengine.models.branches import (
 from epengine.models.mixins import WithBucket, WithHContext, WithOptionalBucket
 from epengine.models.outputs import URIResponse
 from epengine.utils.results import (
+    ZipDataContent,
     collate_subdictionaries,
     combine_recurse_results,
     create_errored_and_missing_df,
@@ -108,7 +108,9 @@ class ScatterGatherRecursiveSpec(
                 spec_list = spec_list[recur.offset :: recur.factor]
         return spec_list
 
-    async def recurse(self, workflow_input: dict) -> URIResponse:
+    async def recurse(
+        self, workflow_input: dict
+    ) -> tuple[list[WorkflowRunRef], list[RecursionId], list[str]]:
         """Recursively executes the scatter-gather workflow.
 
         Note that this spawns new workflows from the current context.
@@ -117,7 +119,9 @@ class ScatterGatherRecursiveSpec(
             workflow_input (dict): The input data for the workflow.
 
         Returns:
-            URIResponse: The response containing the URI of the saved results.
+            tasks (list[WorkflowRunRef]): The tasks that were spawned.
+            task_specs (list[RecursionId]): The specs for the tasks.
+            task_ids (list[str]): The IDs of the tasks that were spawned.
         """
         tasks: list[WorkflowRunRef] = []
         task_specs: list[RecursionId] = []
@@ -171,7 +175,22 @@ class ScatterGatherRecursiveSpec(
             task_id = task.workflow_run_id
             task_ids.append(task_id)
             tasks.append(task)
+        return tasks, task_specs, task_ids
 
+    async def collect_tasks(
+        self, task_ids: list[str], task_specs: list[ZipDataContent], leafs: bool
+    ) -> URIResponse:
+        """Collects the results of the scatter-gather recursive workflow.
+
+        Args:
+            task_ids (list[str]): The IDs of the tasks to collect.
+            task_specs (list[ZipDataContent]): The specs for the tasks.
+            leafs (bool): Whether or not this is a terminal leaf collection.
+
+        Returns:
+            URIResponse: The response containing the URI of the saved results.
+        """
+        tasks = [self.hcontext.admin_client.get_workflow_run(id_) for id_ in task_ids]
         recurse_task_promises = [task.result() for task in tasks]
         self.log(f"Waiting for {len(recurse_task_promises)} children to complete...")
         results = await asyncio.gather(*recurse_task_promises, return_exceptions=True)
@@ -194,7 +213,8 @@ class ScatterGatherRecursiveSpec(
             step
             for workflow_id, task_spec, result in safe_results
             for (step_name, step) in result.items()
-            if step_name == "spawn_children"
+            if leafs
+            or (step_name == "collect_children")  # TODO: better selection of step name
         ]
         self.log("Combining results...")
         collected_dfs = combine_recurse_results(step_results)
@@ -212,6 +232,72 @@ class ScatterGatherRecursiveSpec(
         self.log("Results saved!")
 
         return URIResponse(uri=AnyUrl(uri))
+
+    async def collect(self):
+        """Collects the results of the scatter-gather recursive workflow.
+
+        Returns:
+            result (URIResponse): The response containing the URI of the saved results.
+        """
+        step_output = SpawnResult.model_validate(
+            self.hcontext.step_output("spawn_children")
+        )
+        if step_output.recurse_specs is not None:
+            result = await self.collect_tasks(
+                step_output.children_ids, step_output.recurse_specs, leafs=False
+            )
+        else:
+            specs_to_collect = self.selected_specs
+            result = await self.collect_tasks(
+                step_output.children_ids, specs_to_collect, leafs=True
+            )
+            # TODO: should we be using the regular collect specs here?
+
+        return result
+
+    async def spawn(self, workflow_selection: WorkflowSelector):
+        """Spawns the children workflows for the scatter-gather recursive workflow.
+
+        Args:
+            workflow_selection (WorkflowSelector): The workflow selection.
+
+        Returns:
+            children_ids (SpawnResult): The IDs of the children workflows as dict.
+        """
+        workflow_input = self.hcontext.workflow_input()
+        if len(self.recursion_map.path or []) > 10:
+            raise ValueError("RecusionDepthExceeded")
+
+        selected_specs = self.selected_specs
+
+        # Random error for testing purposes
+        # import numpy as np
+        # if manager.recursion_map.path and np.random.random() < 0.5:
+        #     raise ValueError("RandomError")
+
+        # Check to see if we have hit the base case
+        too_few_specs = len(selected_specs) <= self.recursion_map.factor
+        past_max_depth = (
+            (len(self.recursion_map.path) >= self.recursion_map.max_depth)
+            if self.recursion_map.path
+            else False
+        )
+        if too_few_specs or past_max_depth:
+            # we are at a base case which should be run
+            data = {**self.model_dump(), "specs": selected_specs}
+            new_specs = ScatterGatherSpecWithOptionalBucket[workflow_selection.Spec](
+                **data,
+                hcontext=self.hcontext,
+            )
+            # result = await execute_simulations(workflow_selection, new_specs)
+            # return result
+            tasks, ids = await spawn_simulations(workflow_selection, new_specs)
+            result = SpawnResult(children_ids=ids)
+            return result
+        else:
+            tasks, recurse_specs, ids = await self.recurse(workflow_input)
+            result = SpawnResult(children_ids=ids, recurse_specs=recurse_specs)
+            return result
 
 
 @hatchet.workflow(
@@ -246,7 +332,44 @@ class ScatterGatherWorkflow:
             hcontext=context,
         )
 
-        return await execute_simulations(workflow_selection, specs)
+        _tasks, ids = await spawn_simulations(workflow_selection, specs)
+        # TODO: serialize to a file and upload to s3 and return a uri
+        result = SpawnResult(children_ids=ids)
+        return result.model_dump(mode="json")
+
+    @hatchet.step(timeout="120m", parents=["spawn_children"])
+    async def collect_children(self, context: Context):
+        """Collects the results of the scatter-gather workflow.
+
+        Args:
+            context (Context): The context of the workflow.
+
+        Returns:
+            dict: The results of the simulations.  This may be a dictionary of DataFrames or a URIResponse.
+        """
+        workflow_input = context.workflow_input()
+        workflow_selection = WorkflowSelector.model_validate(workflow_input)
+        specs_without_context = workflow_selection.BranchesSpec.from_payload(
+            workflow_input
+        )
+        specs = ScatterGatherSpecWithOptionalBucket[workflow_selection.Spec](
+            **specs_without_context.model_dump(),
+            hcontext=context,
+        )
+        step_output = SpawnResult.model_validate(context.step_output("spawn_children"))
+        tasks = [
+            context.admin_client.get_workflow_run(id_)
+            for id_ in step_output.children_ids
+        ]
+        results = await collect_simulations(tasks, step_output.children_ids, specs)
+        return results
+
+
+class SpawnResult(BaseModel):
+    """A class representing the result of a spawn operation."""
+
+    children_ids: list[str]
+    recurse_specs: list[RecursionId] | None = None
 
 
 @hatchet.workflow(
@@ -267,7 +390,7 @@ class ScatterGatherRecursiveWorkflow:
             context (Context): The context of the workflow.
 
         Returns:
-            URIResponse: The response containing the URI of the saved results.
+            children_ids (SpawnResult): The IDs of the children workflows as dict.
         """
         workflow_input = context.workflow_input()
 
@@ -280,55 +403,51 @@ class ScatterGatherRecursiveWorkflow:
             hcontext=context,
             recursion_map=workflow_input["recursion_map"],
         )
-        if len(manager.recursion_map.path or []) > 10:
-            raise ValueError("RecusionDepthExceeded")
+        result = await manager.spawn(workflow_selection)
+        return result.model_dump(mode="json")
 
-        selected_specs = manager.selected_specs
+    @hatchet.step(timeout="120m", parents=["spawn_children"])
+    async def collect_children(self, context: Context):
+        """Collects the results of the scatter-gather recursive workflow.
 
-        # Random error for testing purposes
-        # import numpy as np
-        # if manager.recursion_map.path and np.random.random() < 0.5:
-        #     raise ValueError("RandomError")
+        Args:
+            context (Context): The context of the workflow.
 
-        # Check to see if we have hit the base case
-        too_few_specs = len(selected_specs) <= manager.recursion_map.factor
-        past_max_depth = (
-            (len(manager.recursion_map.path) >= manager.recursion_map.max_depth)
-            if manager.recursion_map.path
-            else False
+        Returns:
+            result (URIResponse): The response containing the URI of the saved results as dict
+        """
+        workflow_input = context.workflow_input()
+        workflow_selection = WorkflowSelector.model_validate(workflow_input)
+        specs_without_context = workflow_selection.BranchesSpec.from_payload(
+            workflow_input
         )
-        if too_few_specs or past_max_depth:
-            # we are at a base case which should be run
-            data = {**manager.model_dump(), "specs": selected_specs}
-            new_specs = ScatterGatherSpecWithOptionalBucket[workflow_selection.Spec](
-                **data,
-                hcontext=context,
-            )
-            result = await execute_simulations(workflow_selection, new_specs)
-            return result
-        else:
-            result = await manager.recurse(workflow_input)
-            return result.model_dump(mode="json")
+        manager = ScatterGatherRecursiveSpec[workflow_selection.Spec](
+            **specs_without_context.model_dump(exclude={"recursion_map"}),
+            hcontext=context,
+            recursion_map=workflow_input["recursion_map"],
+        )
+
+        result = await manager.collect()
+        return result.model_dump(mode="json")
 
 
-async def execute_simulations(
+async def spawn_simulations(
     workflow_selection: WorkflowSelector,
     specs: ScatterGatherSpecWithOptionalBucket[SpecListItem],
 ):
-    """Executes the simulations in the given specs.
+    """Spawns the simulations in the given specs.
 
     Note that this requires the use of the Hatchet context. All simulations will be spawned (non-recursive).
 
     Args:
         workflow_selection (WorkflowSelector): The workflow selection.
-        specs (ScatterGatherSpecWithOptionalBucket): The specs to execute.
+        specs (ScatterGatherSpecWithOptionalBucket): The specs to spawn.
 
     Returns:
-        dict: The results of the simulations.  This may be a dictionary of DataFrames or a URIResponse.
+        tasks (list[WorkflowRunRef]): The tasks that were spawned.
+        ids (list[str]): The IDs of the tasks that were spawned.
     """
-    # TODO: this should get its own in config
-
-    promises: list[Coroutine[Any, Any, dict[str, Any]]] = []
+    tasks: list[WorkflowRunRef] = []
     ids: list[str] = []
 
     for i, spec in enumerate(specs.specs):
@@ -345,11 +464,29 @@ async def execute_simulations(
                 },
             },
         )
-        # TODO: check error handling
-        promise = task.result()
-        promises.append(promise)
         ids.append(task.workflow_run_id)
+        tasks.append(task)
+    return tasks, ids
 
+
+async def collect_simulations(
+    tasks: list[WorkflowRunRef],
+    ids: list[str],
+    specs: ScatterGatherSpecWithOptionalBucket[SpecListItem],
+):
+    """Collects the simulations in the given specs.
+
+    Note that this requires the use of the Hatchet context. All simulations will be collected (non-recursive).
+
+    Args:
+        tasks (list[WorkflowRunRef]): The tasks to collect.
+        ids (list[str]): The IDs of the tasks to collect.
+        specs (ScatterGatherSpecWithOptionalBucket): The specs to collect.
+
+    Returns:
+        dict: The results of the simulations.  This may be a dictionary of DataFrames or a URIResponse.
+    """
+    promises = [task.result() for task in tasks]
     specs.log(f"Waiting for {len(promises)} children to complete...")
     results = await asyncio.gather(*promises, return_exceptions=True)
     specs.log("Children have completed!")
@@ -400,3 +537,23 @@ async def execute_simulations(
     else:
         dfs = serialize_df_dict(collated_dfs)
         return dfs
+
+
+async def execute_simulations(
+    workflow_selection: WorkflowSelector,
+    specs: ScatterGatherSpecWithOptionalBucket[SpecListItem],
+):
+    """Executes the simulations in the given specs.
+
+    Note that this requires the use of the Hatchet context. All simulations will be spawned (non-recursive).
+
+    Args:
+        workflow_selection (WorkflowSelector): The workflow selection.
+        specs (ScatterGatherSpecWithOptionalBucket): The specs to execute.
+
+    Returns:
+        dict: The results of the simulations.  This may be a dictionary of DataFrames or a URIResponse.
+    """
+    # TODO: this should get its own in config
+    tasks, ids = await spawn_simulations(workflow_selection, specs)
+    return await collect_simulations(tasks, ids, specs)
