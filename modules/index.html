@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.39">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.40">
     
     
       
@@ -613,9 +613,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#epengine.models.branches.BranchesSpec.set_children_exp_id_and_sort_index" class="md-nav__link">
+  <a href="#epengine.models.branches.BranchesSpec.deser_and_set_exp_id_idx" class="md-nav__link">
     <span class="md-ellipsis">
-      set_children_exp_id_and_sort_index
+      deser_and_set_exp_id_idx
     </span>
   </a>
   
@@ -1304,9 +1304,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#epengine.models.branches.BranchesSpec.set_children_exp_id_and_sort_index" class="md-nav__link">
+  <a href="#epengine.models.branches.BranchesSpec.deser_and_set_exp_id_idx" class="md-nav__link">
     <span class="md-ellipsis">
-      set_children_exp_id_and_sort_index
+      deser_and_set_exp_id_idx
     </span>
   </a>
   
@@ -1813,6 +1813,11 @@
 
 
 
+
+
+
+
+
   <div class="doc doc-children">
 
 
@@ -1835,13 +1840,18 @@
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+              Bases: <code>BaseModel</code></p>
 
 
         <p>A base spec for running a simulation.</p>
 <p>The main features are utilities to fetch files from uris
 and generate a locally scoped path for the files.
 according to the experiment_id.</p>
+
+
+
+
+
 
 
 
@@ -1882,9 +1892,11 @@ according to the experiment_id.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>uri</code></td>
             <td>
-                  <code><span title="pydantic.AnyUrl">AnyUrl</span></code>
+                <code>uri</code>
+            </td>
+            <td>
+                  <code>AnyUrl</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1896,7 +1908,9 @@ according to the experiment_id.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>use_cache</code></td>
+            <td>
+                <code>use_cache</code>
+            </td>
             <td>
                   <code>bool</code>
             </td>
@@ -1924,7 +1938,7 @@ according to the experiment_id.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>local_path</code></td>            <td>
-                  <code><span title="pathlib.Path">Path</span></code>
+                  <code>Path</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1971,7 +1985,9 @@ or validates it if it is already a spec dict.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>payload</code></td>
+            <td>
+                <code>payload</code>
+            </td>
             <td>
                   <code>dict</code>
             </td>
@@ -1999,7 +2015,7 @@ or validates it if it is already a spec dict.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>spec</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="epengine.models.base.BaseSpec" href="#epengine.models.base.BaseSpec">BaseSpec</a></code>
+                  <code>BaseSpec</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2044,9 +2060,11 @@ or validates it if it is already a spec dict.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>uri</code></td>
             <td>
-                  <code><span title="pydantic.AnyUrl">AnyUrl</span></code>
+                <code>uri</code>
+            </td>
+            <td>
+                  <code>AnyUrl</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2072,7 +2090,7 @@ or validates it if it is already a spec dict.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>spec</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="epengine.models.base.BaseSpec" href="#epengine.models.base.BaseSpec">BaseSpec</a></code>
+                  <code>BaseSpec</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2114,9 +2132,11 @@ or validates it if it is already a spec dict.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>pth</code></td>
             <td>
-                  <code><span title="pydantic.AnyUrl">AnyUrl</span></code>
+                <code>pth</code>
+            </td>
+            <td>
+                  <code>AnyUrl</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2142,7 +2162,7 @@ or validates it if it is already a spec dict.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>local_path</code></td>            <td>
-                  <code><span title="pathlib.Path">Path</span></code>
+                  <code>Path</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2183,7 +2203,9 @@ or validates it if it is already a spec dict.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>msg</code></td>
+            <td>
+                <code>msg</code>
+            </td>
             <td>
                   <code>str</code>
             </td>
@@ -2224,10 +2246,15 @@ or validates it if it is already a spec dict.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="epengine.models.base.BaseSpec" href="#epengine.models.base.BaseSpec">BaseSpec</a></code></p>
+              Bases: <code>BaseSpec</code></p>
 
 
         <p>A spec for running a leaf workflow.</p>
+
+
+
+
+
 
 
 
@@ -2270,6 +2297,11 @@ or validates it if it is already a spec dict.</p>
 
 
 
+
+
+
+
+
   <div class="doc doc-children">
 
 
@@ -2292,10 +2324,15 @@ or validates it if it is already a spec dict.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="epengine.models.base.LeafSpec" href="#epengine.models.base.LeafSpec">LeafSpec</a></code></p>
+              Bases: <code>LeafSpec</code></p>
 
 
         <p>A test spec for working with a simple leaf workflow.</p>
+
+
+
+
+
 
 
 
@@ -2331,10 +2368,15 @@ or validates it if it is already a spec dict.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="epengine.models.base.LeafSpec" href="#epengine.models.base.LeafSpec">LeafSpec</a></code></p>
+              Bases: <code>LeafSpec</code></p>
 
 
         <p>A spec for running an EnergyPlus simulation.</p>
+
+
+
+
+
 
 
 
@@ -2512,6 +2554,11 @@ or validates it if it is already a spec dict.</p>
 
 
 
+
+
+
+
+
   <div class="doc doc-children">
 
 
@@ -2534,13 +2581,18 @@ or validates it if it is already a spec dict.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="epengine.models.base.BaseSpec" href="#epengine.models.base.BaseSpec">BaseSpec</a></code>, <code><span title="typing.Generic">Generic</span>[<span title="epengine.models.branches.SpecListItem">SpecListItem</span>]</code></p>
+              Bases: <code>BaseSpec</code>, <code>Generic[SpecListItem]</code></p>
 
 
         <p>A spec for running multiple simulations.</p>
 <p>One key feature is that children simulations
 inherit the experiment_id of the parent simulations BaseSpec
 since they are both part of the same experiment.</p>
+
+
+
+
+
 
 
 
@@ -2558,19 +2610,19 @@ since they are both part of the same experiment.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="epengine.models.branches.BranchesSpec.set_children_exp_id_and_sort_index" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">set_children_exp_id_and_sort_index</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></code>
+<h3 id="epengine.models.branches.BranchesSpec.deser_and_set_exp_id_idx" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">deser_and_set_exp_id_idx</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
 
-<a href="#epengine.models.branches.BranchesSpec.set_children_exp_id_and_sort_index" class="headerlink" title="Permanent link">#</a></h3>
+<a href="#epengine.models.branches.BranchesSpec.deser_and_set_exp_id_idx" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
 
-        <p>Set the experiment_id of each child spec to the experiment_id of the parent along with the sort_index.</p>
+        <p>Deserializes the spec list if necessary and sets the experiment_id of each child spec to the experiment_id of the parent along with the sort_index.</p>
 
     </div>
 
@@ -2597,12 +2649,17 @@ since they are both part of the same experiment.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+              Bases: <code>BaseModel</code></p>
 
 
         <p>A map of recursion specs to use in recursive calls.</p>
 <p>This allows a recursion node to understand where
 it is in the recursion tree and how to behave.</p>
+
+
+
+
+
 
 
 
@@ -2659,10 +2716,15 @@ it is in the recursion tree and how to behave.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+              Bases: <code>BaseModel</code></p>
 
 
         <p>A spec for recursive calls.</p>
+
+
+
+
+
 
 
 
@@ -2719,10 +2781,15 @@ it is in the recursion tree and how to behave.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+              Bases: <code>BaseModel</code></p>
 
 
         <p>A class for generating a BranchSpec from a workflow name.</p>
+
+
+
+
+
 
 
 
@@ -2765,7 +2832,7 @@ it is in the recursion tree and how to behave.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>BranchesSpecClass</code></td>            <td>
-                  <code>type[<a class="autorefs autorefs-internal" title="epengine.models.branches.WorkflowSelector.BranchesSpec" href="#epengine.models.branches.WorkflowSelector.BranchesSpec">BranchesSpec</a>[<a class="autorefs autorefs-internal" title="epengine.models.base.LeafSpec" href="#epengine.models.base.LeafSpec">LeafSpec</a>]]</code>
+                  <code>type[BranchesSpec[LeafSpec]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2809,7 +2876,7 @@ it is in the recursion tree and how to behave.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>SpecClass</code></td>            <td>
-                  <code>type[<a class="autorefs autorefs-internal" title="epengine.models.base.LeafSpec" href="#epengine.models.base.LeafSpec">LeafSpec</a>]</code>
+                  <code>type[LeafSpec]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2853,6 +2920,11 @@ it is in the recursion tree and how to behave.</p>
 
 
 
+
+
+
+
+
   <div class="doc doc-children">
 
 
@@ -2875,10 +2947,15 @@ it is in the recursion tree and how to behave.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+              Bases: <code>BaseModel</code></p>
 
 
         <p>A response containing the uri of a file.</p>
+
+
+
+
+
 
 
 
@@ -2922,6 +2999,11 @@ it is in the recursion tree and how to behave.</p>
 
 
 
+
+
+
+
+
   <div class="doc doc-children">
 
 
@@ -2944,10 +3026,15 @@ it is in the recursion tree and how to behave.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+              Bases: <code>BaseModel</code></p>
 
 
         <p>A model with a bucket to store results.</p>
+
+
+
+
+
 
 
 
@@ -2983,10 +3070,15 @@ it is in the recursion tree and how to behave.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+              Bases: <code>BaseModel</code></p>
 
 
         <p>A model with a Hatchet context.</p>
+
+
+
+
+
 
 
 
@@ -3027,7 +3119,9 @@ it is in the recursion tree and how to behave.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>msg</code></td>
+            <td>
+                <code>msg</code>
+            </td>
             <td>
                   <code>str</code>
             </td>
@@ -3068,10 +3162,15 @@ it is in the recursion tree and how to behave.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+              Bases: <code>BaseModel</code></p>
 
 
         <p>A model with an optional bucket to store results.</p>
+
+
+
+
+
 
 
 
@@ -3115,6 +3214,11 @@ it is in the recursion tree and how to behave.</p>
 
 
 
+
+
+
+
+
   <div class="doc doc-children">
 
 
@@ -3137,10 +3241,15 @@ it is in the recursion tree and how to behave.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="enum.Enum">Enum</span></code></p>
+              Bases: <code>Enum</code></p>
 
 
         <p>An enumeration of the fields in a DDY file that can be injected into an IDF file.</p>
+
+
+
+
+
 
 
 
@@ -3184,6 +3293,11 @@ it is in the recursion tree and how to behave.</p>
 
 
 
+
+
+
+
+
   <div class="doc doc-children">
 
 
@@ -3220,9 +3334,11 @@ it is in the recursion tree and how to behave.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>field</code></td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="epengine.models.ddy_injector.DDYField" href="#epengine.models.ddy_injector.DDYField">DDYField</a></code>
+                <code>field</code>
+            </td>
+            <td>
+                  <code>DDYField</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3234,7 +3350,9 @@ it is in the recursion tree and how to behave.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>obj</code></td>
+            <td>
+                <code>obj</code>
+            </td>
             <td>
                   <code>str</code>
             </td>
@@ -3275,10 +3393,15 @@ it is in the recursion tree and how to behave.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="pydantic.BaseModel">BaseModel</span></code></p>
+              Bases: <code>BaseModel</code></p>
 
 
         <p>A class to define how to inject a DDY file into an IDF file.</p>
+
+
+
+
+
 
 
 
@@ -3319,9 +3442,11 @@ it is in the recursion tree and how to behave.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>idf</code></td>
             <td>
-                  <code><span title="archetypal.idfclass.IDF">IDF</span></code>
+                <code>idf</code>
+            </td>
+            <td>
+                  <code>IDF</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3333,9 +3458,11 @@ it is in the recursion tree and how to behave.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>ddy</code></td>
             <td>
-                  <code><span title="archetypal.idfclass.IDF">IDF</span></code>
+                <code>ddy</code>
+            </td>
+            <td>
+                  <code>IDF</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3379,9 +3506,11 @@ it is in the recursion tree and how to behave.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>idf</code></td>
             <td>
-                  <code><span title="archetypal.idfclass.IDF">IDF</span></code>
+                <code>idf</code>
+            </td>
+            <td>
+                  <code>IDF</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3393,9 +3522,11 @@ it is in the recursion tree and how to behave.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>ddy</code></td>
             <td>
-                  <code><span title="archetypal.idfclass.IDF">IDF</span></code>
+                <code>ddy</code>
+            </td>
+            <td>
+                  <code>IDF</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3439,9 +3570,11 @@ it is in the recursion tree and how to behave.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>idf</code></td>
             <td>
-                  <code><span title="archetypal.idfclass.IDF">IDF</span></code>
+                <code>idf</code>
+            </td>
+            <td>
+                  <code>IDF</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3453,9 +3586,11 @@ it is in the recursion tree and how to behave.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>ddy</code></td>
             <td>
-                  <code><span title="archetypal.idfclass.IDF">IDF</span></code>
+                <code>ddy</code>
+            </td>
+            <td>
+                  <code>IDF</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3508,9 +3643,11 @@ it is in the recursion tree and how to behave.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>idf</code></td>
             <td>
-                  <code><span title="archetypal.idfclass.IDF">IDF</span></code>
+                <code>idf</code>
+            </td>
+            <td>
+                  <code>IDF</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3522,9 +3659,11 @@ it is in the recursion tree and how to behave.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>ddy</code></td>
             <td>
-                  <code><span title="archetypal.idfclass.IDF">IDF</span></code>
+                <code>ddy</code>
+            </td>
+            <td>
+                  <code>IDF</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3569,9 +3708,11 @@ it is in the recursion tree and how to behave.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>idf</code></td>
             <td>
-                  <code><span title="archetypal.idfclass.IDF">IDF</span></code>
+                <code>idf</code>
+            </td>
+            <td>
+                  <code>IDF</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3583,9 +3724,11 @@ it is in the recursion tree and how to behave.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>ddy</code></td>
             <td>
-                  <code><span title="archetypal.idfclass.IDF">IDF</span></code>
+                <code>ddy</code>
+            </td>
+            <td>
+                  <code>IDF</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3597,9 +3740,11 @@ it is in the recursion tree and how to behave.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>field</code></td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="epengine.models.ddy_injector.DDYField" href="#epengine.models.ddy_injector.DDYField">DDYField</a></code>
+                <code>field</code>
+            </td>
+            <td>
+                  <code>DDYField</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3611,9 +3756,11 @@ it is in the recursion tree and how to behave.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>copy_names</code></td>
             <td>
-                  <code>set[<span title="epengine.models.ddy_injector.WeatherFileConditionType">WeatherFileConditionType</span>] | set[<span title="epengine.models.ddy_injector.DesignDayName">DesignDayName</span>]</code>
+                <code>copy_names</code>
+            </td>
+            <td>
+                  <code>set[WeatherFileConditionType] | set[DesignDayName]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3661,6 +3808,11 @@ it is in the recursion tree and how to behave.</p>
 
 
 
+
+
+
+
+
   <div class="doc doc-children">
 
 
@@ -3687,6 +3839,11 @@ it is in the recursion tree and how to behave.</p>
 
 
         <p>Raised when a result dictionary contains more than one key when it has a "uri" key.</p>
+
+
+
+
+
 
 
 
@@ -3755,7 +3912,9 @@ and that the index keys are the same across all dictionaries.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>results</code></td>
+            <td>
+                <code>results</code>
+            </td>
             <td>
                   <code>list[dict[str, dict]]</code>
             </td>
@@ -3783,7 +3942,7 @@ and that the index keys are the same across all dictionaries.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>dict[str, <span title="pandas.DataFrame">DataFrame</span>]</code>
+                  <code>dict[str, DataFrame]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3826,9 +3985,11 @@ of DataFrames.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>results</code></td>
             <td>
-                  <code>list[dict[str, <span title="typing.Any">Any</span>]]</code>
+                <code>results</code>
+            </td>
+            <td>
+                  <code>list[dict[str, Any]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3854,7 +4015,7 @@ of DataFrames.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>collected_dfs</code></td>            <td>
-                  <code>dict[str, <span title="pandas.DataFrame">DataFrame</span>]</code>
+                  <code>dict[str, DataFrame]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3877,7 +4038,7 @@ of DataFrames.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="epengine.utils.results.CombineRecurseResultsMultipleKeysError" href="#epengine.utils.results.CombineRecurseResultsMultipleKeysError">CombineRecurseResultsMultipleKeysError</a></code>
+                  <code>CombineRecurseResultsMultipleKeysError</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3918,9 +4079,11 @@ of DataFrames.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>errored_workflows</code></td>
             <td>
-                  <code>list[tuple[str, <span title="epengine.utils.results.ZipDataContent">ZipDataContent</span>, BaseException]]</code>
+                <code>errored_workflows</code>
+            </td>
+            <td>
+                  <code>list[tuple[str, ZipDataContent, BaseException]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3932,9 +4095,11 @@ of DataFrames.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>missing_results</code></td>
             <td>
-                  <code>list[tuple[str, <span title="epengine.utils.results.ZipDataContent">ZipDataContent</span>]]</code>
+                <code>missing_results</code>
+            </td>
+            <td>
+                  <code>list[tuple[str, ZipDataContent]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3960,7 +4125,7 @@ of DataFrames.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>errors</code></td>            <td>
-                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+                  <code>DataFrame</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4003,9 +4168,11 @@ not return a value.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>collected_dfs</code></td>
             <td>
-                  <code>dict[str, <span title="pandas.DataFrame">DataFrame</span>]</code>
+                <code>collected_dfs</code>
+            </td>
+            <td>
+                  <code>dict[str, DataFrame]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4017,7 +4184,9 @@ not return a value.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>result</code></td>
+            <td>
+                <code>result</code>
+            </td>
             <td>
                   <code>dict</code>
             </td>
@@ -4065,9 +4234,11 @@ not return a value.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>collected_dfs</code></td>
             <td>
-                  <code>dict[str, <span title="pandas.DataFrame">DataFrame</span>]</code>
+                <code>collected_dfs</code>
+            </td>
+            <td>
+                  <code>dict[str, DataFrame]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4079,7 +4250,9 @@ not return a value.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>uri</code></td>
+            <td>
+                <code>uri</code>
+            </td>
             <td>
                   <code>str</code>
             </td>
@@ -4128,9 +4301,11 @@ is configured as the MultiIndex of the dataframe.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>sql</code></td>
             <td>
-                  <code><span title="archetypal.idfclass.sql.Sql">Sql</span></code>
+                <code>sql</code>
+            </td>
+            <td>
+                  <code>Sql</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4142,7 +4317,9 @@ is configured as the MultiIndex of the dataframe.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>index_data</code></td>
+            <td>
+                <code>index_data</code>
+            </td>
             <td>
                   <code>dict</code>
             </td>
@@ -4156,7 +4333,9 @@ is configured as the MultiIndex of the dataframe.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>tabular_lookups</code></td>
+            <td>
+                <code>tabular_lookups</code>
+            </td>
             <td>
                   <code>list[tuple[str, str]]</code>
             </td>
@@ -4170,7 +4349,9 @@ is configured as the MultiIndex of the dataframe.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>columns</code></td>
+            <td>
+                <code>columns</code>
+            </td>
             <td>
                   <code>list[str]</code>
             </td>
@@ -4198,7 +4379,7 @@ is configured as the MultiIndex of the dataframe.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>dict[str, <span title="pandas.DataFrame">DataFrame</span>]</code>
+                  <code>dict[str, DataFrame]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4239,9 +4420,11 @@ is configured as the MultiIndex of the dataframe.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>collected_dfs</code></td>
             <td>
-                  <code>dict[str, <span title="pandas.DataFrame">DataFrame</span>]</code>
+                <code>collected_dfs</code>
+            </td>
+            <td>
+                  <code>dict[str, DataFrame]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4253,7 +4436,9 @@ is configured as the MultiIndex of the dataframe.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>bucket</code></td>
+            <td>
+                <code>bucket</code>
+            </td>
             <td>
                   <code>str</code>
             </td>
@@ -4267,7 +4452,9 @@ is configured as the MultiIndex of the dataframe.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>output_key</code></td>
+            <td>
+                <code>output_key</code>
+            </td>
             <td>
                   <code>str</code>
             </td>
@@ -4281,7 +4468,9 @@ is configured as the MultiIndex of the dataframe.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>save_errors</code></td>
+            <td>
+                <code>save_errors</code>
+            </td>
             <td>
                   <code>bool</code>
             </td>
@@ -4295,9 +4484,11 @@ is configured as the MultiIndex of the dataframe.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>s3</code></td>
             <td>
-                  <code><span title="mypy_boto3_s3.client.S3Client">S3Client</span></code>
+                <code>s3</code>
+            </td>
+            <td>
+                  <code>S3Client</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4364,7 +4555,9 @@ is configured as the MultiIndex of the dataframe.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>ids</code></td>
+            <td>
+                <code>ids</code>
+            </td>
             <td>
                   <code>list[str]</code>
             </td>
@@ -4378,9 +4571,11 @@ is configured as the MultiIndex of the dataframe.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>zip_data</code></td>
             <td>
-                  <code>list[<span title="epengine.utils.results.ZipDataContent">ZipDataContent</span>]</code>
+                <code>zip_data</code>
+            </td>
+            <td>
+                  <code>list[ZipDataContent]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4392,9 +4587,11 @@ is configured as the MultiIndex of the dataframe.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>results</code></td>
             <td>
-                  <code>list[<span title="epengine.utils.results.ResultDataContent">ResultDataContent</span> | BaseException]</code>
+                <code>results</code>
+            </td>
+            <td>
+                  <code>list[ResultDataContent | BaseException]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4430,7 +4627,7 @@ is configured as the MultiIndex of the dataframe.</p>
           </tr>
           <tr class="doc-section-item">
 <td><code>errored_results</code></td>            <td>
-                  <code>list[tuple[str, <span title="epengine.utils.results.ZipDataContent">ZipDataContent</span>, BaseException]]</code>
+                  <code>list[tuple[str, ZipDataContent, BaseException]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4471,9 +4668,11 @@ is configured as the MultiIndex of the dataframe.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>dfs</code></td>
             <td>
-                  <code>dict[str, <span title="pandas.DataFrame">DataFrame</span>]</code>
+                <code>dfs</code>
+            </td>
+            <td>
+                  <code>dict[str, DataFrame]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4542,9 +4741,11 @@ not return a value.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>collected_dfs</code></td>
             <td>
-                  <code>dict[str, <span title="pandas.DataFrame">DataFrame</span>]</code>
+                <code>collected_dfs</code>
+            </td>
+            <td>
+                  <code>dict[str, DataFrame]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4556,7 +4757,9 @@ not return a value.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>key</code></td>
+            <td>
+                <code>key</code>
+            </td>
             <td>
                   <code>str</code>
             </td>
@@ -4570,9 +4773,11 @@ not return a value.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>df</code></td>
             <td>
-                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+                <code>df</code>
+            </td>
+            <td>
+                  <code>DataFrame</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4607,6 +4812,11 @@ not return a value.</p>
     <div class="doc doc-contents first">
 
         <p>Filesystem utilities.</p>
+
+
+
+
+
 
 
 
@@ -4649,9 +4859,11 @@ to avoid downloading the same file multiple times.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>uri</code></td>
             <td>
-                  <code><span title="pydantic.AnyUrl">AnyUrl</span></code>
+                <code>uri</code>
+            </td>
+            <td>
+                  <code>AnyUrl</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4663,9 +4875,11 @@ to avoid downloading the same file multiple times.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>local_path</code></td>
             <td>
-                  <code><span title="pathlib.Path">Path</span></code>
+                <code>local_path</code>
+            </td>
+            <td>
+                  <code>Path</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4677,7 +4891,9 @@ to avoid downloading the same file multiple times.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>use_cache</code></td>
+            <td>
+                <code>use_cache</code>
+            </td>
             <td>
                   <code>bool</code>
             </td>
@@ -4691,9 +4907,11 @@ to avoid downloading the same file multiple times.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>logger_fn</code></td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span></code>
+                <code>logger_fn</code>
+            </td>
+            <td>
+                  <code>Callable</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4701,11 +4919,13 @@ to avoid downloading the same file multiple times.</p>
               </div>
             </td>
             <td>
-                  <code><span title="epengine.utils.filesys.logger.info">info</span></code>
+                  <code>info</code>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>s3</code></td>
+            <td>
+                <code>s3</code>
+            </td>
             <td>
                   <code>S3Client</code>
             </td>
@@ -4715,7 +4935,7 @@ to avoid downloading the same file multiple times.</p>
               </div>
             </td>
             <td>
-                  <code><span title="epengine.utils.filesys.s3">s3</span></code>
+                  <code>s3</code>
             </td>
           </tr>
       </tbody>
@@ -4733,7 +4953,7 @@ to avoid downloading the same file multiple times.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>local_path</code></td>            <td>
-                  <code><span title="pathlib.Path">Path</span></code>
+                  <code>Path</code>
             </td>
             <td>
               <div class="doc-md-description">
