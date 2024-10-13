@@ -177,7 +177,7 @@ class ScatterGatherRecursiveSpec(
             tasks.append(task)
         return tasks, task_specs, task_ids
 
-    async def collect(
+    async def collect_tasks(
         self, task_ids: list[str], task_specs: list[ZipDataContent], leafs: bool
     ) -> URIResponse:
         """Collects the results of the scatter-gather recursive workflow.
@@ -232,6 +232,72 @@ class ScatterGatherRecursiveSpec(
         self.log("Results saved!")
 
         return URIResponse(uri=AnyUrl(uri))
+
+    async def collect(self):
+        """Collects the results of the scatter-gather recursive workflow.
+
+        Returns:
+            result (URIResponse): The response containing the URI of the saved results.
+        """
+        step_output = SpawnResult.model_validate(
+            self.hcontext.step_output("spawn_children")
+        )
+        if step_output.recurse_specs is not None:
+            result = await self.collect_tasks(
+                step_output.children_ids, step_output.recurse_specs, leafs=False
+            )
+        else:
+            specs_to_collect = self.selected_specs
+            result = await self.collect_tasks(
+                step_output.children_ids, specs_to_collect, leafs=True
+            )
+            # TODO: should we be using the regular collect specs here?
+
+        return result
+
+    async def spawn(self, workflow_selection: WorkflowSelector):
+        """Spawns the children workflows for the scatter-gather recursive workflow.
+
+        Args:
+            workflow_selection (WorkflowSelector): The workflow selection.
+
+        Returns:
+            children_ids (SpawnResult): The IDs of the children workflows as dict.
+        """
+        workflow_input = self.hcontext.workflow_input()
+        if len(self.recursion_map.path or []) > 10:
+            raise ValueError("RecusionDepthExceeded")
+
+        selected_specs = self.selected_specs
+
+        # Random error for testing purposes
+        # import numpy as np
+        # if manager.recursion_map.path and np.random.random() < 0.5:
+        #     raise ValueError("RandomError")
+
+        # Check to see if we have hit the base case
+        too_few_specs = len(selected_specs) <= self.recursion_map.factor
+        past_max_depth = (
+            (len(self.recursion_map.path) >= self.recursion_map.max_depth)
+            if self.recursion_map.path
+            else False
+        )
+        if too_few_specs or past_max_depth:
+            # we are at a base case which should be run
+            data = {**self.model_dump(), "specs": selected_specs}
+            new_specs = ScatterGatherSpecWithOptionalBucket[workflow_selection.Spec](
+                **data,
+                hcontext=self.hcontext,
+            )
+            # result = await execute_simulations(workflow_selection, new_specs)
+            # return result
+            tasks, ids = await spawn_simulations(workflow_selection, new_specs)
+            result = SpawnResult(children_ids=ids)
+            return result
+        else:
+            tasks, recurse_specs, ids = await self.recurse(workflow_input)
+            result = SpawnResult(children_ids=ids, recurse_specs=recurse_specs)
+            return result
 
 
 @hatchet.workflow(
@@ -324,7 +390,7 @@ class ScatterGatherRecursiveWorkflow:
             context (Context): The context of the workflow.
 
         Returns:
-            URIResponse: The response containing the URI of the saved results.
+            children_ids (SpawnResult): The IDs of the children workflows as dict.
         """
         workflow_input = context.workflow_input()
 
@@ -337,39 +403,8 @@ class ScatterGatherRecursiveWorkflow:
             hcontext=context,
             recursion_map=workflow_input["recursion_map"],
         )
-        if len(manager.recursion_map.path or []) > 10:
-            raise ValueError("RecusionDepthExceeded")
-
-        selected_specs = manager.selected_specs
-
-        # Random error for testing purposes
-        # import numpy as np
-        # if manager.recursion_map.path and np.random.random() < 0.5:
-        #     raise ValueError("RandomError")
-
-        # Check to see if we have hit the base case
-        too_few_specs = len(selected_specs) <= manager.recursion_map.factor
-        past_max_depth = (
-            (len(manager.recursion_map.path) >= manager.recursion_map.max_depth)
-            if manager.recursion_map.path
-            else False
-        )
-        if too_few_specs or past_max_depth:
-            # we are at a base case which should be run
-            data = {**manager.model_dump(), "specs": selected_specs}
-            new_specs = ScatterGatherSpecWithOptionalBucket[workflow_selection.Spec](
-                **data,
-                hcontext=context,
-            )
-            # result = await execute_simulations(workflow_selection, new_specs)
-            # return result
-            tasks, ids = await spawn_simulations(workflow_selection, new_specs)
-            result = SpawnResult(children_ids=ids)
-            return result.model_dump(mode="json")
-        else:
-            tasks, recurse_specs, ids = await manager.recurse(workflow_input)
-            result = SpawnResult(children_ids=ids, recurse_specs=recurse_specs)
-            return result.model_dump(mode="json")
+        result = await manager.spawn(workflow_selection)
+        return result.model_dump(mode="json")
 
     @hatchet.step(timeout="120m", parents=["spawn_children"])
     async def collect_children(self, context: Context):
@@ -379,10 +414,9 @@ class ScatterGatherRecursiveWorkflow:
             context (Context): The context of the workflow.
 
         Returns:
-            result (URIResponse): The response containing the URI of the saved results.
+            result (URIResponse): The response containing the URI of the saved results as dict
         """
         workflow_input = context.workflow_input()
-        step_output = SpawnResult.model_validate(context.step_output("spawn_children"))
         workflow_selection = WorkflowSelector.model_validate(workflow_input)
         specs_without_context = workflow_selection.BranchesSpec.from_payload(
             workflow_input
@@ -393,17 +427,7 @@ class ScatterGatherRecursiveWorkflow:
             recursion_map=workflow_input["recursion_map"],
         )
 
-        if step_output.recurse_specs is not None:
-            result = await manager.collect(
-                step_output.children_ids, step_output.recurse_specs, leafs=False
-            )
-        else:
-            specs_to_collect = manager.selected_specs
-            result = await manager.collect(
-                step_output.children_ids, specs_to_collect, leafs=True
-            )
-            # TODO: should we be using the regular collect specs here?
-
+        result = await manager.collect()
         return result.model_dump(mode="json")
 
 
