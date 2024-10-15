@@ -7,12 +7,14 @@ from pathlib import Path
 from typing import Literal
 
 import pandas as pd
+import yaml
 from archetypal.idfclass import IDF
+from epinterface.actions import ActionLibrary, ActionSequence
 from epinterface.climate_studio.builder import Model
 from epinterface.climate_studio.interface import ClimateStudioLibraryV2
 from epinterface.geometry import ShoeboxGeometry, match_idf_to_building_and_neighbors
 from epinterface.weather import WeatherUrl
-from pydantic import AnyUrl, Field
+from pydantic import AnyUrl, Field, field_serializer, model_validator
 
 from epengine.models.base import LeafSpec
 
@@ -21,6 +23,13 @@ class ShoeboxSimulationSpec(LeafSpec):
     """A spec for running a shoebox simulation."""
 
     lib_uri: AnyUrl = Field(..., description="The uri of the library file to fetch.")
+    retrofit_lib_uri: AnyUrl = Field(
+        default=None, description="The uri of the library file to upgrade."
+    )
+    retrofit: str | None = Field(
+        default=None,
+        description="The selection of the retrofit to apply.  Must be present in the provided lib.",
+    )
     typology: str = Field(..., description="The typology of the building to simulate.")
     year_built: int = Field(..., description="The year the building was built.")
     num_floors: float = Field(..., description="The number of floors in the building.")
@@ -47,6 +56,18 @@ class ShoeboxSimulationSpec(LeafSpec):
         ..., description="The length of the short edge of the building."
     )
 
+    @field_serializer("retrofit")
+    def convert_None_to_baseline_string(self, v):
+        """Convert None to an empty string for the retrofit field."""
+        return v if v is not None else "Baseline"
+
+    @model_validator(mode="after")
+    def check_retrofit_uri_is_not_none_when_retrofit_is_not_none(self):
+        """Check that retrofit_uri is not None when retrofit is not None."""
+        if self.retrofit and not self.retrofit_lib_uri:
+            raise ValueError("RETROFIT_URI_REQUIRED")
+        return self
+
     @cached_property
     def lib_path(self) -> Path:
         """Fetch the library file and return the local path.
@@ -55,6 +76,15 @@ class ShoeboxSimulationSpec(LeafSpec):
             local_path (Path): The local path of the fetched library file
         """
         return self.fetch_uri(self.lib_uri)
+
+    @cached_property
+    def retrofit_lib_path(self) -> Path | None:
+        """Fetch the retrofit library file and return the local path.
+
+        Returns:
+            local_path (Path): The local path of the fetched retrofit library file
+        """
+        return self.fetch_uri(self.retrofit_lib_uri) if self.retrofit_lib_uri else None
 
     @cached_property
     def lib(self) -> ClimateStudioLibraryV2:
@@ -66,6 +96,39 @@ class ShoeboxSimulationSpec(LeafSpec):
         with open(self.lib_path) as f:
             lib_data = json.load(f)
             return ClimateStudioLibraryV2.model_validate(lib_data)
+
+    @cached_property
+    def retrofit_lib(self) -> ActionLibrary | None:
+        """Fetch the retrofit library file and return the library.
+
+        Returns:
+            lib (ClimateStudioLibraryV2): The fetched retrofit library
+        """
+        if self.retrofit_lib_path:
+            with open(self.retrofit_lib_path) as f:
+                lib_data = yaml.safe_load(f)
+                return ActionLibrary.model_validate(lib_data)
+        return None
+
+    def select_retrofit(self) -> ActionSequence | None:
+        """Select the retrofit from the retrofit library.
+
+        Returns:
+            retrofit (ActionSequence | None): The selected retrofit
+        """
+        if (
+            self.retrofit is None
+            or self.retrofit_lib is None
+            or self.retrofit.lower()
+            == "baseline"  # TODO: remove once NaN/None serialization is fixed.
+        ):
+            return None
+        retrofit_suffix = (
+            f" {self.size_key}" if self.retrofit.lower().startswith("deep") else ""
+        )
+        retrofit_name = f"{self.retrofit}{retrofit_suffix}"
+        retrofit = self.retrofit_lib.get(retrofit_name)
+        return retrofit
 
     def configure(self, f2f_height: float = 3.5) -> Model:
         """Configure the model and return it.
@@ -97,10 +160,6 @@ class ShoeboxSimulationSpec(LeafSpec):
             basement=has_basement,
             wwr=wwr,
         )
-        # if AnyUrl(self.epwzip_path).scheme in ["D", "d"]:
-        #     parts = list(Path(self.epwzip_path).parts)
-        #     pth = "/".join(parts[2:])
-        #     self.epwzip_path = f"https://climate.onebuilding.org/{pth}"
 
         self.update_windows_by_age(self.envelope_name)
 
@@ -112,6 +171,8 @@ class ShoeboxSimulationSpec(LeafSpec):
             conditioned_basement=should_condition_basement,
             lib=self.lib,
         )
+        if retrofit := self.select_retrofit():
+            retrofit.run(model)
         return model
 
     @property
@@ -252,6 +313,10 @@ if __name__ == "__main__":
         sort_index=0,
         lib_uri=AnyUrl(
             "s3://ml-for-bem/tiles/massachusetts/2024_09_30/everett_lib.json"
+        ),
+        retrofit=None,
+        retrofit_lib_uri=AnyUrl(
+            "s3://ml-for-bem/tiles/massachusetts/2024_09_30/everett_retrofits.yaml"
         ),
         typology="Residential",
         year_built=1950,
