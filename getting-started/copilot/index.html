@@ -18,7 +18,7 @@
         <link rel="prev" href="../local/">
       
       
-        <link rel="next" href="../../modules/">
+        <link rel="next" href="../hatchet-deploy/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -291,6 +291,8 @@
       
         
       
+        
+      
     
     
       
@@ -476,6 +478,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hatchet-deploy/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AWS/Copilot+Hatchet
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -608,6 +631,7 @@
 
 
 <h1 id="copilot-deployment">Copilot Deployment<a class="headerlink" href="#copilot-deployment" title="Permanent link">#</a></h1>
+<p>WARNING: THESE DOCS ARE SLIGHTLY OUT OF DATE. STAY TUNED FOR AN UPDATE!</p>
 <h2 id="first-time-setup">First Time Setup<a class="headerlink" href="#first-time-setup" title="Permanent link">#</a></h2>
 <p>Copilot is an official AWS tool used to quickly stand-up infrastructure in the cloud. For this project, it is responsible for setting up a backend service for running simulations (so no inbound internet-access, only outbound) and an S3 bucket. In the future, it will also include the distributed queuing system and the API which is used to submit tasks, however, for now those are expected to be running with managed hosting (for the queue) and locally (for the API, if needed).</p>
 <p>Once the prereqs are installed, you can either run a single command macro to stand up the whole stack at once, or you can stand-up pieces incrementally.</p>

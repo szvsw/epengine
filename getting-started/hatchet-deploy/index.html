@@ -12,13 +12,13 @@
         <meta name="author" content="Sam Wolk">
       
       
-        <link rel="canonical" href="https://szvsw.github.io/epengine/getting-started/local/">
+        <link rel="canonical" href="https://szvsw.github.io/epengine/getting-started/hatchet-deploy/">
       
       
-        <link rel="prev" href="../">
+        <link rel="prev" href="../copilot/">
       
       
-        <link rel="next" href="../copilot/">
+        <link rel="next" href="../../modules/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -26,7 +26,7 @@
     
     
       
-        <title>Local/Dev - EPEngine-Hatchet</title>
+        <title>AWS/Copilot+Hatchet - EPEngine-Hatchet</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#local-development" class="md-skip">
+        <a href="#sequence" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Local/Dev
+              AWS/Copilot+Hatchet
             
           </span>
         </div>
@@ -340,30 +340,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Local/Dev
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../local/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -372,53 +352,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Installation
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Configuration
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#running-the-system" class="md-nav__link">
-    <span class="md-ellipsis">
-      Running the System
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -449,10 +382,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../hatchet-deploy/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -461,6 +403,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -513,41 +456,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Installation
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Configuration
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#running-the-system" class="md-nav__link">
-    <span class="md-ellipsis">
-      Running the System
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -564,24 +472,29 @@
   
 
 
-<h1 id="local-development">Local Development<a class="headerlink" href="#local-development" title="Permanent link">#</a></h1>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">#</a></h2>
-<ul>
-<li>Docker</li>
-<li>poetry</li>
-</ul>
-<pre><code class="language-bash">make install
-</code></pre>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">#</a></h2>
-<pre><code class="language-bash">cp .env.example .env
-cp .env.example .env.dev
-</code></pre>
-<p>You will then want to enter your AWS credentials into <code>.env</code> and your Hatchet credentials into both.</p>
-<h2 id="running-the-system">Running the System<a class="headerlink" href="#running-the-system" title="Permanent link">#</a></h2>
-<pre><code class="language-bash">make dev
-</code></pre>
-<pre><code class="language-bash">make prod
-</code></pre>
+<h1 id="sequence">sequence<a class="headerlink" href="#sequence" title="Permanent link">#</a></h1>
+<ol>
+<li>copilot env init --name prod</li>
+<li>consider turning on rabbit mq console public accessibilty, setting instance sizes for rabbit mq</li>
+<li>copilot env deploy --name prod</li>
+<li>copilot svc init --name hatchet-engine</li>
+<li>copilot svc deploy --name hatchet-engine --env prod</li>
+<li>update the the volume mount fs-id and fsap-id</li>
+<li>update the alias and import the certificate arn</li>
+<li>copilot svc init --name hatchet-api</li>
+<li>copilot svc deploy --name hatchet-api --env prod</li>
+<li>update your cname record to point at the load balancer</li>
+<li>log in</li>
+<li>make a tenant</li>
+<li>or login with <code>admin@example.com</code> / <code>Admin123!!</code></li>
+<li>make an api token</li>
+<li>(these steps can potentially be automated with a task run)</li>
+<li>copilot secret init --name HATCHET_CLIENT_TOKEN --overwrite</li>
+<li>disable/enable TLS</li>
+<li>copilot svc init --name hatchet-worker</li>
+<li>make docker-login</li>
+<li>copilot svc deploy --name hatchet-worker --env prod</li>
+</ol>
 
 
 
