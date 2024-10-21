@@ -167,6 +167,7 @@ cython_debug/
 #.idea/
 
 .env.dev
+.env.copilot
 data/cache
 data/test**
 data/taube**

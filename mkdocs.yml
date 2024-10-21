@@ -13,6 +13,7 @@ nav:
       - getting-started/index.md
       - Local/Dev: getting-started/local.md
       - AWS/Copilot: getting-started/copilot.md
+      - AWS/Copilot+Hatchet: getting-started/hatchet-deploy.md
   - Modules: modules.md
 plugins:
   - search

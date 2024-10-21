@@ -12,6 +12,10 @@ type: Environment
 #     id:
 
 # Configure the load balancers in your environment, once created.
+http:
+  public:
+    certificates: [${CERTIFICATE_ARN}]
+
 # http:
 #   public:
 #   private:

@@ -1,0 +1,111 @@
+# The manifest for the "hatchet-engine" service.
+# Read the full specification for the "Backend Service" type at:
+#  https://aws.github.io/copilot-cli/docs/manifest/backend-service/
+
+# Your service name will be used in naming your resources like log groups, ECS services, etc.
+name: hatchet-engine
+type: Backend Service
+
+# Your service does not allow any traffic.
+
+# Configuration for your containers and service.
+image:
+  location: ghcr.io/hatchet-dev/hatchet/hatchet-engine:latest
+  depends_on:
+    setup: complete
+  port: 7070
+command:  /hatchet/hatchet-engine --config /hatchet-appdata/config
+
+
+
+cpu: 1024 # Number of CPU units for the task.
+memory: 2048 # Amount of memory in MiB used by the task.
+count: 1       # Number of tasks that should be running in your service.
+exec: true     # Enable running commands in your container.
+
+network:
+  vpc:
+    security_groups:
+      - from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbSecurityGroup # service must be able to connect to the database.
+      - from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetbrokerSecurityGroup # service must be able to connect to the broker.
+  connect: true # service must be discoverable by other services in the same environment.
+
+variables:
+  SERVER_GRPC_BIND_ADDRESS: 0.0.0.0
+  SERVER_GRPC_INSECURE: t
+  SERVER_AUTH_SET_EMAIL_VERIFIED: t
+
+secrets:
+  DATABASE_URL:
+    from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbConnectionStringSecret
+
+storage:
+  volumes:
+    hatchetCertsAndConfig:
+      efs: true
+      read_only: true
+      path: /hatchet-appdata
+    # hatchetCerts:
+    #   efs: true
+    #   read_only: true
+    #   path: /hatchet/certs
+    # hatchetConfig:
+    #   efs: true
+    #   read_only: true
+    #   path: /hatchet/config
+
+sidecars:
+  migrate:
+    essential: false
+    image:
+      location: ghcr.io/hatchet-dev/hatchet/hatchet-migrate:latest
+    secrets:
+      DATABASE_URL: 
+        from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbConnectionStringSecret
+  setup:
+    essential: false
+    image: 
+      location: ghcr.io/hatchet-dev/hatchet/hatchet-admin:latest
+      depends_on:
+        migrate: complete
+    command: /hatchet/hatchet-admin quickstart --skip certs --cert-dir /hatchet-appdata/certs --generated-config-dir /hatchet-appdata/config --overwrite=false
+    variables:
+      DATABASE_POSTGRES_HOST:
+        from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbHost
+      DATABASE_POSTGRES_PORT:
+        from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbPort
+      DATABASE_POSTGRES_USERNAME:
+        from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbUsername
+      DATABASE_POSTGRES_DB_NAME:
+        from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbDBName
+      SERVER_AUTH_COOKIE_DOMAIN: ${API_DOMAIN} # TODO: replace me (route53?)
+      SERVER_AUTH_COOKIE_INSECURE: t
+      SERVER_GRPC_BIND_ADDRESS: 0.0.0.0
+      SERVER_GRPC_INSECURE: t
+      SERVER_AUTH_SET_EMAIL_VERIFIED: t
+      SERVER_GRPC_BROADCAST_ADDRESS: hatchet-engine:7070
+      # TODO: connection/other config (including postgres max connections)
+    secrets:
+      DATABASE_URL: 
+        from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbConnectionStringSecret
+      SERVER_TASKQUEUE_RABBITMQ_URL:
+        from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetbrokerConnectionStringSecret
+      DATABASE_POSTGRES_PASSWORD:
+        from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbPassword
+    mount_points:
+      - source_volume: hatchetCertsAndConfig
+        path: /hatchet-appdata
+        read_only: false
+      # - source_volume: hatchetCerts
+      #   container_path: /hatchet/certs
+      #   read_only: false
+      # - source_volume: hatchetConfig
+      #   container_path: /hatchet/config
+      #   read_only: false
+
+# You can override any of the values defined above by environment.
+#environments:
+#  test:
+#    count: 2               # Number of tasks to run for the "test" environment.
+#    deployment:            # The deployment strategy for the "test" environment.
+#       rolling: 'recreate' # Stops existing tasks before new ones are started for faster deployments.

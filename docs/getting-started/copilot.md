@@ -1,5 +1,7 @@
 # Copilot Deployment
 
+WARNING: THESE DOCS ARE SLIGHTLY OUT OF DATE. STAY TUNED FOR AN UPDATE!
+
 ## First Time Setup
 
 Copilot is an official AWS tool used to quickly stand-up infrastructure in the cloud. For this project, it is responsible for setting up a backend service for running simulations (so no inbound internet-access, only outbound) and an S3 bucket. In the future, it will also include the distributed queuing system and the API which is used to submit tasks, however, for now those are expected to be running with managed hosting (for the queue) and locally (for the API, if needed).

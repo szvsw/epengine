@@ -1,9 +1,9 @@
-# The manifest for the "epengine-worker" service.
+# The manifest for the "hatchet-worker" service.
 # Read the full specification for the "Backend Service" type at:
 #  https://aws.github.io/copilot-cli/docs/manifest/backend-service/
 
 # Your service name will be used in naming your resources like log groups, ECS services, etc.
-name: worker
+name: hatchet-worker
 type: Backend Service
 
 # Your service does not allow any traffic.
@@ -15,11 +15,11 @@ image:
     dockerfile: epengine/worker/Dockerfile
     context: .
 
-cpu: 4096       # Number of CPU units for the task.
-memory: 16384 # Amount of memory in MiB used by the task.
+cpu: 1024 # Number of CPU units for the task.
+memory: 2048 # Amount of memory in MiB used by the task.
 count:        # Number of tasks that should be running in your service.
   range:
-    min: 1
+    min: 2
     max: 20
     spot_from: 2
   cpu_percentage:
@@ -27,6 +27,9 @@ count:        # Number of tasks that should be running in your service.
     cooldown:
       in: 5s
       out: 60s
+
+network:
+  connect: true
 
 exec: true     # Enable running commands in your container.
 
@@ -38,6 +41,7 @@ exec: true     # Enable running commands in your container.
 variables:                    # Pass environment variables as key value pairs.
   BUCKET_NAME:
       from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-mitsdlepengineBucketName
+  HATCHET_CLIENT_TLS_STRATEGY: none # TODO: comment this line out when connecting to maanged hatchet instances.
 
 # You can override any of the values defined above by environment.
 environments:
@@ -49,9 +53,10 @@ environments:
    count: 0               # Number of tasks to run for the "test" environment.
    deployment:
       rolling: 'recreate' # Starts new tasks before stopping existing tasks for zero downtime deployments.
- prod:
-   deployment:
-      rolling: 'recreate' # Starts new tasks before stopping existing tasks for zero downtime deployments.
+#  prod:
+#    count: 0
+  #  deployment:
+  #     rolling: 'recreate' # Starts new tasks before stopping existing tasks for zero downtime deployments.
 
 
 secrets:                      # Pass secrets from AWS Systems Manager (SSM) Parameter Store.
