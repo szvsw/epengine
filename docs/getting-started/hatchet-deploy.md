@@ -2,7 +2,7 @@
 
 ## First Time Setup
 
-Copilot is an official AWS tool used to quickly stand-up infrastructure in the cloud. For this project, it is responsible for setting up a backend service for running simulations (so no inbound internet-access, only outbound) an S3 bucket, and the distributed queuing system. In the future it may also include an API for generating jobs etc, but for now, it will be expected that such work is hosted locally. Note that it is also possible (and easier) to run with a managed version of the distributed queuing system hosted by [Hatchet](cloud.onhatchet.run), which substantially simplifies the setup. Separate docs for that can be found below.
+Copilot is an official AWS tool used to quickly stand-up infrastructure in the cloud. For this project, it is responsible for setting up a backend service for running simulations (so no inbound internet-access, only outbound) an S3 bucket, and the distributed queuing system. In the future it may also include an API for generating jobs etc, but for now, it will be expected that such work is hosted locally. Note that it is also possible (and easier) to run with a managed version of the distributed queuing system hosted by [Hatchet](https://cloud.onhatchet.run), which substantially simplifies the setup. Separate docs for that can be found below.
 
 <!-- Once the prereqs are installed, you can either run a single command macro to stand up the whole stack at once, or you can stand-up pieces incrementally. -->
 
