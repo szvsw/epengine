@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sequence" class="md-skip">
+        <a href="#deploying-the-full-stack" class="md-skip">
           Skip to content
         </a>
       
@@ -394,6 +394,17 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    AWS/Copilot+Hatchet
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -403,6 +414,76 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#first-time-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      First Time Setup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="First Time Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prereqs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prereqs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#standing-up-the-environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Standing up the environment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scaling-workers-up-and-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scaling workers up and down
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cleanup
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -456,6 +537,65 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#first-time-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      First Time Setup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="First Time Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prereqs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prereqs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#standing-up-the-environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Standing up the environment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scaling-workers-up-and-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scaling workers up and down
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cleanup
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -472,28 +612,63 @@
   
 
 
-<h1 id="sequence">sequence<a class="headerlink" href="#sequence" title="Permanent link">#</a></h1>
+<h1 id="deploying-the-full-stack">Deploying the Full Stack<a class="headerlink" href="#deploying-the-full-stack" title="Permanent link">#</a></h1>
+<h2 id="first-time-setup">First Time Setup<a class="headerlink" href="#first-time-setup" title="Permanent link">#</a></h2>
+<p>Copilot is an official AWS tool used to quickly stand-up infrastructure in the cloud. For this project, it is responsible for setting up a backend service for running simulations (so no inbound internet-access, only outbound) an S3 bucket, and the distributed queuing system. In the future it may also include an API for generating jobs etc, but for now, it will be expected that such work is hosted locally. Note that it is also possible (and easier) to run with a managed version of the distributed queuing system hosted by <a href="cloud.onhatchet.run">Hatchet</a>, which substantially simplifies the setup. Separate docs for that can be found below.</p>
+<!-- Once the prereqs are installed, you can either run a single command macro to stand up the whole stack at once, or you can stand-up pieces incrementally. -->
+
+<h3 id="prereqs">Prereqs<a class="headerlink" href="#prereqs" title="Permanent link">#</a></h3>
 <ol>
-<li>copilot env init --name prod</li>
-<li>consider turning on rabbit mq console public accessibilty, setting instance sizes for rabbit mq</li>
-<li>copilot env deploy --name prod</li>
-<li>copilot svc init --name hatchet-engine</li>
-<li>copilot svc deploy --name hatchet-engine --env prod</li>
-<li>update the the volume mount fs-id and fsap-id</li>
-<li>update the alias and import the certificate arn</li>
-<li>copilot svc init --name hatchet-api</li>
-<li>copilot svc deploy --name hatchet-api --env prod</li>
-<li>update your cname record to point at the load balancer</li>
-<li>log in</li>
-<li>make a tenant</li>
-<li>or login with <code>admin@example.com</code> / <code>Admin123!!</code></li>
-<li>make an api token</li>
-<li>(these steps can potentially be automated with a task run)</li>
-<li>copilot secret init --name HATCHET_CLIENT_TOKEN --overwrite</li>
-<li>disable/enable TLS</li>
-<li>copilot svc init --name hatchet-worker</li>
-<li>make docker-login</li>
-<li>copilot svc deploy --name hatchet-worker --env prod</li>
+<li>Install <a href="https://docs.docker.com/get-started/get-docker/">Docker</a>.</li>
+<li>Install <a href="https://aws.amazon.com/cli/">AWS CLI</a> &amp; <a href="https://aws.github.io/copilot-cli/docs/getting-started/install/">AWS Copilot</a>.
+   <!-- 1. Create a [Hatchet account](https://cloud.onhatchet.run/auth/register). --></li>
+</ol>
+<!-- 1. Generate a [Hatchet API token](https://cloud.onhatchet.run/tenant-settings/api-tokens). _nb: in the future, Hatchet will be deployable as part of the Copilot specification._ -->
+<ol>
+<li>Configure an AWS CLI profile if you have not done so already: <code>aws configure --profile &lt;your-profile-name&gt;</code></li>
+<li>You will need a domain in order to access your hosted queue which you can configure CNAME records for. Some Route53 specific instructions may be added in the future, but for now it is assumed that you will manually configure the CNAME records at the indicated point in the process.</li>
+<li>Clone the repository: <code>git clone https://github.com/szvsw/epengine</code>.</li>
+<li>Move into the repository: <code>cd epengine</code></li>
+</ol>
+<h3 id="standing-up-the-environment">Standing up the environment<a class="headerlink" href="#standing-up-the-environment" title="Permanent link">#</a></h3>
+<ol>
+<li><code>copilot app init</code></li>
+<li>see <a href="https://aws.github.io/copilot-cli/docs/commands/app-init/"><code>app init</code> help</a> for more details like <code>--permissions-boundary</code> if needed</li>
+<li><code>copilot env init --name prod</code></li>
+<li>(see <a href="https://aws.github.io/copilot-cli/docs/commands/env-init/"><code>see init</code> help</a> for more details, as well as <a href="https://aws.github.io/copilot-cli/docs/manifest/environment/"><code>init</code> manifest help</a> for specs for VPCs etc.)</li>
+<li><em>TODO: instructions about <code>CERTIFICATE_ARN</code> env var interpolation.</em></li>
+<li>The next command will deploy an Aurora Serverless PostgresSql database, S3 bucket, and RabbitMQ broker.</li>
+<li>You may wish to turn on RabbitMQ console public accessibilty (<em>ADD HOW</em>)</li>
+<li>You may wish to set the instance sizes for RabbitMQ.</li>
+<li>You may wish to update the scaling capacities for Aurora Serverless.</li>
+<li><code>copilot env deploy --name prod</code></li>
+<li><code>copilot svc init --name hatchet-engine</code></li>
+<li><em>TODO: instructions about <code>API_DOMAIN</code> env var interpolation.</em></li>
+<li><code>copilot svc deploy --name hatchet-engine --env prod</code></li>
+<li><em>TODO: instructions about the <code>FS_ID</code> and <code>FSAP_ID</code> env var interpolation.</em></li>
+<li><code>copilot svc init --name hatchet-api</code></li>
+<li><code>copilot svc deploy --name hatchet-api --env prod</code></li>
+<li>Create a <code>CNAME</code> record to point at the load balancer (<em>TODO: how to find the load balancer address</em>).</li>
+<li>Visit your domain and either login with a new account &amp; make a tenant, or login with the default creds: <code>admin@example.com</code> / <code>Admin123!!</code></li>
+<li>Make an api token (General Settings &gt; API Tokens). <em>TODO: (automate token creation steps with a task run)</em></li>
+<li><code>copilot secret init --name HATCHET_CLIENT_TOKEN --overwrite</code> then paste in your secret.</li>
+</ol>
+<!-- 1. disable/enable TLS -->
+<ol>
+<li><code>copilot svc init --name hatchet-worker</code></li>
+<li>Authenticate to AWS ECR (<em>TODO: add instructions</em>).</li>
+</ol>
+<!-- 1. `make docker-login` -->
+<ol>
+<li><code>copilot svc deploy --name hatchet-worker --env prod</code></li>
+</ol>
+<h2 id="scaling-workers-up-and-down">Scaling workers up and down<a class="headerlink" href="#scaling-workers-up-and-down" title="Permanent link">#</a></h2>
+<p>In <code>copilot/hatchet-worker/manifest.yml</code>, you can edit the worker count configuration to determine how many workers you would like, if scaling should be done based off of CPU utilization, etc.</p>
+<p>After making changes, run <code>copilot svc deploy --name hatchet-worker --env prod</code>.</p>
+<h2 id="cleanup">Cleanup<a class="headerlink" href="#cleanup" title="Permanent link">#</a></h2>
+<ol>
+<li>Empty your buckets if they have files in them.</li>
+<li><code>copilot app delete</code></li>
 </ol>
 
 
