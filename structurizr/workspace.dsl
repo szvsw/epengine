@@ -123,6 +123,71 @@ workspace "Name" "Description" {
         user -> externalQueue.caddy "schedules jobs" {
             tags "Browser"
         }
+
+        prod = deploymentEnvironment "Production" {
+            deploymentNode "AWS" {
+                s3 = infrastructureNode "Bucket" {
+                    technology "S3"
+                    tags "Amazon Web Services - Simple Storage Service"
+                }
+                vpc = deploymentNode "VPC" {
+                    tags "Amazon Web Services - Virtual Private Cloud"
+                    pub = deploymentNode "Public Subnets" {
+                        ecs = deploymentNode "Cluster" {
+                            technology "ECS"
+                            tags "Amazon Web Services - Elastic Container Service"
+                            hatchetEngine = deploymentNode "Hatchet Engine" "The distributed queueing engine." "Fargate" {
+                                tags "Amazon Web Services - Fargate"
+                                engine = containerInstance externalQueue.engine
+                            }
+                            hatchetApp = deploymentNode "Hatchet Admin" {
+                                technology "Fargate"
+                                tags "Amazon Web Services - Fargate"
+                                apiInstance = containerInstance externalQueue.api
+                                feInstance = containerInstance externalQueue.fe
+                            }
+                            workerNode = deploymentNode "Worker Nodes"{
+                                technology "Fargate"
+                                tags "Amazon Web Services - Fargate"
+                                worker = containerInstance workers.simWorker
+                                instances 8
+                            }
+                            efs = infrastructureNode "EFS" {
+                                technology "EFS"
+                                tags "Amazon Web Services - EFS"
+                            }
+                            hatchetApp.apiInstance -> efs "reads config from" {}
+                            hatchetEngine.engine -> efs "reads config from" {}
+
+                        }
+
+                        lb = infrastructureNode "Load Balancer" {
+                            tags "Amazon Web Services - Elastic Load Balancing"
+                            technology "ALB"
+                        }
+                        lb -> ecs.hatchetApp.apiInstance "routes to" {
+                            tags "API"
+                        }
+                        lb -> ecs.hatchetApp.feInstance "routes to" {
+                            tags "Browser"
+                        }
+                    }
+                    deploymentNode "Private Subnets" {
+                        deploymentNode "Aurora Serverless" "The Queue database" "RDS" {
+                            tags "Amazon Web Services - RDS"
+                            containerInstance externalQueue.db
+                        }
+                        deploymentNode "RabbitMQ" "The Queue" "AmazonMQ" {
+                            tags "Amazon Web Services - MQ"
+                            containerInstance externalQueue.q
+                        }
+                    }
+                }
+                vpc.pub.ecs.workerNode.worker -> s3 "reads/writes from" {
+                    tags "DataPull"
+                }
+            }
+        }
     }
 
     views {
@@ -144,6 +209,11 @@ workspace "Name" "Description" {
 
         container externalQueue {
             include *
+        }
+
+        deployment * prod {
+            include *
+            // autolayout
         }
 
         styles {
@@ -227,7 +297,8 @@ workspace "Name" "Description" {
 
         }
 
-        theme default
+        theme https://static.structurizr.com/themes/amazon-web-services-2023.01.31/theme.json
+        //icons here: https://github.com/structurizr/themes/blob/master/amazon-web-services-2023.01.31/icons.json
     }
 
 }
