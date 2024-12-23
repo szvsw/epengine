@@ -262,6 +262,10 @@ async def simulate_artifacts(  # noqa: C901
     }
 
     if recursion_factor is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="Error! Currently sending a recursion with a fully serailized spec file in the 'uri' will fail; must use 'specs' key with 'pq' file instead.  See simple.py for an example.",
+        )
         workflow_payload["recursion_map"] = {
             "factor": recursion_factor,
             "max_depth": max_depth,

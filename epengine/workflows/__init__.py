@@ -2,11 +2,13 @@
 
 from .scatter_gather import ScatterGatherRecursiveWorkflow, ScatterGatherWorkflow
 from .shoebox import SimulateShoebox
+from .simple import SimpleTest
 from .simulate import Simulate
 
 __all__ = [
-    "Simulate",
-    "ScatterGatherWorkflow",
     "ScatterGatherRecursiveWorkflow",
+    "ScatterGatherWorkflow",
+    "SimpleTest",
+    "Simulate",
     "SimulateShoebox",
 ]

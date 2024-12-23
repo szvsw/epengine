@@ -8,6 +8,7 @@ from epengine.hatchet import hatchet
 from epengine.workflows import (
     ScatterGatherRecursiveWorkflow,
     ScatterGatherWorkflow,
+    SimpleTest,
     Simulate,
     SimulateShoebox,
 )
@@ -110,6 +111,7 @@ class SimWorkerSettings(BaseSettings):
         if self.DOES_LEAF:
             worker.register_workflow(Simulate())
             worker.register_workflow(SimulateShoebox())
+        worker.register_workflow(SimpleTest())
 
         return worker
 
