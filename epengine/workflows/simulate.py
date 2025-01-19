@@ -60,6 +60,7 @@ class Simulate:
                 epw=spec.epw_path,
                 output_directory=tmpdir,
             )  # pyright: ignore [reportArgumentType]
+
             if spec.ddy_path:
                 # add_sizing_design_day(idf, spec.ddy_path)
                 ddy = IDF(
@@ -77,46 +78,87 @@ class Simulate:
                     ]
                 )
                 ddy_spec.inject_ddy(idf, ddy)
+
             spec.log(f"Simulating {spec.idf_path}...")
-            idf.simulate()
 
-            time.sleep(1)
-            sql = Sql(idf.sql_file)
-            index_data = spec.model_dump(mode="json", exclude_none=True)
-            workflow_run_id = spec.hcontext.workflow_run_id()
-            # TODO: pull in spawn index
-            index_data["workflow_run_id"] = workflow_run_id
-            dfs = postprocess(
-                sql,
-                index_data=index_data,
-                tabular_lookups=[
-                    ("AnnualBuildingUtilityPerformanceSummary", "End Uses")
-                ],
-                columns=["Electricity", "Natural Gas", "Fuel Oil No 2"],
-            )
+            try:
+                idf.simulate()
 
-            # TODO: move these into a separate function
-            end_file = idf.simulation_dir / "eplusout.end"
-            err_str = end_file.read_text()
-            severe_reg = r".*\s(\d+)\sSevere Errors.*"
-            warning_reg = r".*\s(\d+)\sWarning.*"
-            severe_matcher = re.match(severe_reg, err_str)
-            warning_matcher = re.match(warning_reg, err_str)
-            severe_ct = int(severe_matcher.groups()[0]) if severe_matcher else 0
-            warning_ct = int(warning_matcher.groups()[0]) if warning_matcher else 0
+            except Exception as e:
+                spec.log(f"Error simulating {spec.idf_path}:\n{e}")
+                # TODO: Use a flag to determine if we should actually store this data,
+                # as when we have a very large run, the failure logs can get very large
+                dfs = {}
+                index_data = _generate_index_data(spec)
+                err_index = pd.MultiIndex.from_tuples(
+                    [tuple(index_data.values())],
+                    names=list(index_data.keys()),
+                )
 
-            err_index = pd.MultiIndex.from_tuples(
-                [tuple(index_data.values())],
-                names=list(index_data.keys()),
-            )
-            err_df = pd.DataFrame(
-                {"warnings": [warning_ct], "severe": [severe_ct]}, index=err_index
-            )
-            dfs["energyplus_message_counts"] = err_df
+                err_df = pd.DataFrame({"msg": [str(e)]}, index=err_index)
+                dfs["err"] = err_df
+
+            else:
+                time.sleep(1)
+                sql = Sql(idf.sql_file)
+                index_data = _generate_index_data(spec)
+                err_df = _generate_error_warning_counts_df(idf, index_data)
+                dfs = postprocess(
+                    sql,
+                    index_data=index_data,
+                    tabular_lookups=[
+                        ("AnnualBuildingUtilityPerformanceSummary", "End Uses")
+                    ],
+                    columns=["Electricity", "Natural Gas", "Fuel Oil No 2"],
+                )
+                dfs["energyplus_message_counts"] = err_df
 
         dfs = serialize_df_dict(dfs)
 
         return dfs
+
+
+def _generate_index_data(spec: SimulationSpecWithContext):
+    """Generate index data from a spec for use in error and results DataFrames.
+
+    Args:
+        spec (BaseSpec): The spec to generate index data from. Must have hcontext.
+
+    Returns:
+        index_data (dict): The index data with workflow_run_id added
+    """
+    index_data = spec.model_dump(mode="json", exclude_none=True)
+    workflow_run_id = spec.hcontext.workflow_run_id()
+    index_data["workflow_run_id"] = workflow_run_id
+    return index_data
+
+
+def _generate_error_warning_counts_df(idf: IDF, index_data: dict) -> pd.DataFrame:
+    """Generate error and warning counts DataFrame from IDF end file and index data.
+
+    Args:
+        idf (IDF): The IDF object that has been simulated
+        index_data (dict): The index data to use for the DataFrame index
+
+    Returns:
+        err_df (pd.DataFrame): DataFrame containing warning and severe error counts
+    """
+    end_file = idf.simulation_dir / "eplusout.end"
+    err_str = end_file.read_text()
+    severe_reg = r".*\s(\d+)\sSevere Errors.*"
+    warning_reg = r".*\s(\d+)\sWarning.*"
+    severe_matcher = re.match(severe_reg, err_str)
+    warning_matcher = re.match(warning_reg, err_str)
+    severe_ct = int(severe_matcher.groups()[0]) if severe_matcher else 0
+    warning_ct = int(warning_matcher.groups()[0]) if warning_matcher else 0
+
+    err_index = pd.MultiIndex.from_tuples(
+        [tuple(index_data.values())],
+        names=list(index_data.keys()),
+    )
+    return pd.DataFrame(
+        {"warnings": [warning_ct], "severe": [severe_ct]}, index=err_index
+    )
 
 
 def add_sizing_design_day(idf: IDF, ddy_file: Path | str):
