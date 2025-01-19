@@ -1,8 +1,6 @@
 """Tests for the BaseSpec and LeafSpec classes."""
 
-import json
 import logging
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -91,63 +89,6 @@ def test_basespec_fetch_uri_no_cache():
         result = spec.fetch_uri(uri, use_cache=False)
         assert result == local_path
         mock_fetch_uri.assert_called_once_with(uri, local_path, False, spec.log)
-
-
-def test_basespec_from_uri():
-    """Test the from_uri class method of BaseSpec."""
-    uri_str = "http://example.com/spec.json"
-    uri = AnyUrl(url=uri_str)
-    spec_data = {"experiment_id": "test_experiment"}
-    with (
-        patch("epengine.models.base.fetch_uri") as mock_fetch_uri,
-        tempfile.TemporaryDirectory() as tempdir,
-    ):
-        local_path = Path(tempdir) / "spec.json"
-        with open(local_path, "w") as f:
-            json.dump(spec_data, f)
-        mock_fetch_uri.return_value = local_path
-        spec = BaseSpec.from_uri(uri)
-        assert spec.experiment_id == "test_experiment"
-        # get the first argument of the first call to fetch_uri
-        assert mock_fetch_uri.call_count == 1
-        assert mock_fetch_uri.call_args[0][0] == uri
-        assert Path(mock_fetch_uri.call_args[0][1]).stem == local_path.stem
-
-
-def test_basespec_from_uri_invalid_suffix():
-    """Test that from_uri raises an error if uri does not end with .json."""
-    uri_str = "http://example.com/spec.txt"
-    uri = AnyUrl(url=uri_str)
-    with pytest.raises(NotImplementedError, match="URI:SUFFIX:JSON_ONLY"):
-        BaseSpec.from_uri(uri)
-
-
-def test_basespec_from_payload():
-    """Test the from_payload class method of BaseSpec."""
-    payload = {"experiment_id": "test_experiment"}
-    spec = BaseSpec.from_payload(payload)
-    assert spec.experiment_id == "test_experiment"
-
-
-def test_basespec_from_payload_with_uri():
-    """Test from_payload when payload contains 'uri'."""
-    uri_str = "http://example.com/spec.json"
-    uri = AnyUrl(url=uri_str)
-    payload = {"uri": uri_str}
-    spec_data = {"experiment_id": "test_experiment"}
-    with (
-        patch("epengine.models.base.fetch_uri") as mock_fetch_uri,
-        tempfile.TemporaryDirectory() as tempdir,
-    ):
-        local_path = Path(tempdir) / "spec.json"
-        with open(local_path, "w") as f:
-            json.dump(spec_data, f)
-        mock_fetch_uri.return_value = local_path
-        spec = BaseSpec.from_payload(payload)
-        assert spec.experiment_id == "test_experiment"
-        assert mock_fetch_uri.call_count == 1
-        assert mock_fetch_uri.call_args[0][0] == uri
-        assert Path(mock_fetch_uri.call_args[0][1]).stem == local_path.stem
 
 
 def test_basespec_extra_fields():

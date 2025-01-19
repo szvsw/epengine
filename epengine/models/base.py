@@ -1,8 +1,6 @@
 """Models for Simulation Specifications."""
 
-import json
 import logging
-import tempfile
 from pathlib import Path
 
 from pydantic import AnyUrl, BaseModel, Field
@@ -63,47 +61,6 @@ class BaseSpec(BaseModel, extra="allow", arbitrary_types_allowed=True):
         """
         local_path = self.local_path(uri)
         return fetch_uri(uri, local_path, use_cache, self.log)
-
-    @classmethod
-    def from_uri(cls, uri: AnyUrl | str):
-        """Fetch a spec from a uri and return the spec.
-
-        Args:
-            uri (AnyUrl): The uri to fetch
-
-        Returns:
-            spec (BaseSpec): The fetched spec
-        """
-        if isinstance(uri, str):
-            uri = AnyUrl(uri)
-
-        if Path(str(uri)).suffix != ".json":
-            raise NotImplementedError("URI:SUFFIX:JSON_ONLY")
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            local_path = Path(tempdir) / Path(str(uri)).name
-            local_path = fetch_uri(uri, local_path, use_cache=False)
-            with open(local_path) as f:
-                spec_data = json.load(f)
-                return cls(**spec_data)
-
-    @classmethod
-    def from_payload(cls, payload: dict):
-        """Create a simulation spec from a payload.
-
-        Fetches a spec from a payload and return the spec,
-        or validates it if it is already a spec dict.
-
-        Args:
-            payload (dict): The payload to fetch
-
-        Returns:
-            spec (BaseSpec): The fetched spec
-        """
-        if "uri" in payload:
-            return cls.from_uri(payload["uri"])
-        else:
-            return cls(**payload)
 
 
 class LeafSpec(BaseSpec):

@@ -323,9 +323,7 @@ class ScatterGatherWorkflow:
         """
         workflow_input = context.workflow_input()
         workflow_selection = WorkflowSelector.model_validate(workflow_input)
-        specs_without_context = workflow_selection.BranchesSpec.from_payload(
-            workflow_input
-        )
+        specs_without_context = workflow_selection.BranchesSpec(**workflow_input)
         specs = ScatterGatherSpecWithOptionalBucket[workflow_selection.Spec](
             **specs_without_context.model_dump(),
             hcontext=context,
@@ -347,9 +345,7 @@ class ScatterGatherWorkflow:
         """
         workflow_input = context.workflow_input()
         workflow_selection = WorkflowSelector.model_validate(workflow_input)
-        specs_without_context = workflow_selection.BranchesSpec.from_payload(
-            workflow_input
-        )
+        specs_without_context = workflow_selection.BranchesSpec(**workflow_input)
         specs = ScatterGatherSpecWithOptionalBucket[workflow_selection.Spec](
             **specs_without_context.model_dump(),
             hcontext=context,
@@ -397,9 +393,7 @@ class ScatterGatherRecursiveWorkflow:
         workflow_input = context.workflow_input()
 
         workflow_selection = WorkflowSelector.model_validate(workflow_input)
-        specs_without_context = workflow_selection.BranchesSpec.from_payload(
-            workflow_input
-        )
+        specs_without_context = workflow_selection.BranchesSpec(**workflow_input)
         manager = ScatterGatherRecursiveSpec[workflow_selection.Spec](
             **specs_without_context.model_dump(exclude={"recursion_map"}),
             hcontext=context,
@@ -420,9 +414,7 @@ class ScatterGatherRecursiveWorkflow:
         """
         workflow_input = context.workflow_input()
         workflow_selection = WorkflowSelector.model_validate(workflow_input)
-        specs_without_context = workflow_selection.BranchesSpec.from_payload(
-            workflow_input
-        )
+        specs_without_context = workflow_selection.BranchesSpec(**workflow_input)
         manager = ScatterGatherRecursiveSpec[workflow_selection.Spec](
             **specs_without_context.model_dump(exclude={"recursion_map"}),
             hcontext=context,

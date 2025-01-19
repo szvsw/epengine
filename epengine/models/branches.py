@@ -66,10 +66,18 @@ class BranchesSpec(BaseSpec, Generic[SpecListItem]):
     One key feature is that children simulations
     inherit the experiment_id of the parent simulations BaseSpec
     since they are both part of the same experiment.
+
+    This is the only place in the codebase where URI-based loading
+    is supported, specifically for the 'specs' field. This is because
+    the specs list can potentially be very large, so we want to support
+    loading it from a file rather than passing it directly in the payload.
+    All other fields in all other models must be provided directly in
+    the payload.
     """
 
     specs: list[SpecListItem] = Field(
-        ..., description="The list of simulation specs to run"
+        ...,
+        description="The list of simulation specs to run. Can be provided directly or as a URI to a parquet file.",
     )
 
     @model_validator(mode="before")
@@ -91,6 +99,8 @@ class BranchesSpec(BaseSpec, Generic[SpecListItem]):
                     specs = pd.read_parquet(local_path)
                     values["specs"] = specs.to_dict(orient="records")
                     del specs
+                else:
+                    raise ValueError(f"SPEC:URI:EXT:{local_path.suffix.lower()}")
 
             for i, spec in enumerate(values["specs"]):
                 if isinstance(spec, dict):

@@ -6,7 +6,7 @@ import shutil
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 import boto3
 import pandas as pd
@@ -41,7 +41,7 @@ async def simulate_artifacts(  # noqa: C901
     epws: UploadFile = File(...),  # noqa: B008
     idfs: UploadFile = File(...),  # noqa: B008
     specs: UploadFile = File(...),  # noqa: B008
-    ddys: UploadFile = File(...),  # noqa: B008
+    ddys: UploadFile | None = File(default=None),  # noqa: B008
     bucket: str = "ml-for-bem",
     bucket_prefix: str = "hatchet",
     existing_artifacts: Literal["overwrite", "forbid"] = "forbid",
@@ -71,11 +71,11 @@ async def simulate_artifacts(  # noqa: C901
     """
     remote_root = f"{bucket_prefix}/{experiment_id}"
 
-    def format_path(folder, key):
+    def format_s3_key(folder, key):
         return f"{remote_root}/{folder}/{key}"
 
-    def format_s3_path(folder, key):
-        return f"s3://{bucket}/{format_path(folder, key)}"
+    def format_s3_uri(folder, key):
+        return f"s3://{bucket}/{format_s3_key(folder, key)}"
 
     # check if experiment_id already exists
     if (
@@ -120,6 +120,12 @@ async def simulate_artifacts(  # noqa: C901
     uploads_idfs = "idf_path" in df.columns
     upload_ddys = "ddy_path" in df.columns
 
+    if upload_ddys and ddys is None:
+        raise HTTPException(
+            status_code=400,
+            detail="ddy_path column present in specs dataframe, but no ddy file provided.",
+        )
+
     def upload_to_s3(destination_key: str, source_path: str):
         s3.upload_file(
             Filename=source_path,
@@ -143,14 +149,14 @@ async def simulate_artifacts(  # noqa: C901
                     detail="Not all epws listed in config dataframe are present in epws.zip.",
                 )
             df["epw_uri"] = df.epw_path.apply(
-                lambda x: format_s3_path("epw", Path(x).name)
+                lambda x: format_s3_uri("epw", Path(x).name)
             )
             df.pop("epw_path")
             epw_paths_to_upload = [
                 (Path(tempdir) / path).as_posix() for path in epw_paths_to_upload
             ]
             epw_path_destinations = [
-                format_path("epw", Path(path).name) for path in epw_paths_to_upload
+                format_s3_key("epw", Path(path).name) for path in epw_paths_to_upload
             ]
             logger.info("Uploading epws to s3...")
             with ThreadPoolExecutor(max_workers=10) as executor:
@@ -180,14 +186,14 @@ async def simulate_artifacts(  # noqa: C901
                     detail="Not all idfs listed in specs dataframe are present in idfs.zip.",
                 )
             df["idf_uri"] = df.idf_path.apply(
-                lambda x: format_s3_path("idf", Path(x).name)
+                lambda x: format_s3_uri("idf", Path(x).name)
             )
             df.pop("idf_path")
             idf_paths_to_upload = [
                 (Path(tempdir) / path).as_posix() for path in idf_paths_to_upload
             ]
             idf_path_destinations = [
-                format_path("idf", Path(path).name) for path in idf_paths_to_upload
+                format_s3_key("idf", Path(path).name) for path in idf_paths_to_upload
             ]
             with ThreadPoolExecutor(max_workers=10) as executor:
                 list(
@@ -200,7 +206,7 @@ async def simulate_artifacts(  # noqa: C901
                     )
                 )
 
-    if upload_ddys:
+    if upload_ddys and ddys is not None:
         with tempfile.TemporaryDirectory() as tempdir:
             ddy_local_path = Path(tempdir) / (ddys.filename or "ddy.zip")
             with open(ddy_local_path, "wb") as f:
@@ -216,14 +222,14 @@ async def simulate_artifacts(  # noqa: C901
                     detail="Not all ddys listed in specs dataframe are present in ddys.zip.",
                 )
             df["ddy_uri"] = df.ddy_path.apply(
-                lambda x: format_s3_path("ddy", Path(x).name)
+                lambda x: format_s3_uri("ddy", Path(x).name)
             )
             df.pop("ddy_path")
             ddy_paths_to_upload = [
                 (Path(tempdir) / path).as_posix() for path in ddy_paths_to_upload
             ]
             ddy_path_destinations = [
-                format_path("ddy", Path(path).name) for path in ddy_paths_to_upload
+                format_s3_key("ddy", Path(path).name) for path in ddy_paths_to_upload
             ]
             with ThreadPoolExecutor(max_workers=10) as executor:
                 list(
@@ -237,35 +243,24 @@ async def simulate_artifacts(  # noqa: C901
                 )
 
     df["sort_index"] = list(range(len(df)))
-    specs_dict = df.to_dict(orient="records")
-
-    specs_uri = format_s3_path("specs", "specs.json")
-
-    payload = {
-        "specs": specs_dict,
+    workflow_payload = {
         "experiment_id": experiment_id,
         "bucket": bucket,
+        "specs": df.to_dict(orient="records"),
     }
-
     # validate the payload
-    BranchesSpec(**payload.copy())
+    BranchesSpec(**workflow_payload.copy())
 
-    # upload the specs to s3
-    with tempfile.TemporaryDirectory() as tempdir:
-        with open(Path(tempdir) / "specs.json", "w") as f:
-            json.dump(payload, f)
-        specs_path = Path(tempdir) / "specs.json"
-        upload_to_s3(format_path("specs", "specs.json"), specs_path.as_posix())
-
-    workflow_payload: dict[str, Any] = {
-        "uri": specs_uri,
-    }
+    if len(df) > 1000:
+        # convert the df to a parquet file and upload it to s3
+        with tempfile.TemporaryDirectory() as tempdir:
+            fname = "specs.pq"
+            parquet_path = Path(tempdir) / fname
+            df.to_parquet(parquet_path)
+            upload_to_s3(format_s3_key("specs", fname), parquet_path.as_posix())
+        workflow_payload["specs"] = format_s3_uri("specs", fname)
 
     if recursion_factor is not None:
-        raise HTTPException(
-            status_code=400,
-            detail="Error! Currently sending a recursion with a fully serailized spec file in the 'uri' will fail; must use 'specs' key with 'pq' file instead.  See simple.py for an example.",
-        )
         workflow_payload["recursion_map"] = {
             "factor": recursion_factor,
             "max_depth": max_depth,
@@ -280,7 +275,7 @@ async def simulate_artifacts(  # noqa: C901
         else "scatter_gather_recursive",
         input=workflow_payload,
     )
-    return {"workflow_run_id": workflowRef.workflow_run_id, "n_jobs": len(specs_dict)}
+    return {"workflow_run_id": workflowRef.workflow_run_id, "n_jobs": len(df)}
 
 
 @api.get("/workflows/{workflow_run_id}")

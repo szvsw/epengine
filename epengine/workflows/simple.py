@@ -76,10 +76,10 @@ if __name__ == "__main__":
 
     specs = [
         SimpleSpec(experiment_id="test", sort_index=i, param_a=i).model_dump()
-        for i in range(20)
+        for i in range(100)
     ]
     specs = pd.DataFrame(specs)
-    experiment_id = "DELETE-simple-test"
+    experiment_id = "DELETE-simple-test-2025-jan"
 
     s3 = boto3.client("s3")
     bucket = "ml-for-bem"
@@ -100,8 +100,8 @@ if __name__ == "__main__":
         "specs": s3_uri,
         "workflow_name": "simple",
         "recursion_map": {"factor": 3, "max_depth": 2},
-        "experiment_id": "DELETE-simple-test",
-        "bucket": "ml-for-bem",
+        "experiment_id": experiment_id,
+        "bucket": bucket,
     }
 
     client.admin.run_workflow("scatter_gather_recursive", workflow_payload)
