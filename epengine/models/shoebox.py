@@ -23,7 +23,7 @@ class ShoeboxSimulationSpec(LeafSpec):
     """A spec for running a shoebox simulation."""
 
     lib_uri: AnyUrl = Field(..., description="The uri of the library file to fetch.")
-    retrofit_lib_uri: AnyUrl = Field(
+    retrofit_lib_uri: AnyUrl | None = Field(
         default=None, description="The uri of the library file to upgrade."
     )
     retrofit: str | None = Field(

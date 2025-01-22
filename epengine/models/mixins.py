@@ -25,7 +25,7 @@ class WithHContext(BaseModel, extra="allow", arbitrary_types_allowed=True):
 class WithBucket(BaseModel):
     """A model with a bucket to store results."""
 
-    bucket: str = Field(default=None, description="The bucket to store the results")
+    bucket: str = Field(..., description="The bucket to store the results")
 
 
 class WithOptionalBucket(BaseModel):
