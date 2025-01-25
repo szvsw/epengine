@@ -291,8 +291,8 @@ async def get_workflow(workflow_run_id: str, bg_tasks: BackgroundTasks) -> FileR
     """
     workflow = client.admin.get_workflow_run(workflow_run_id)
     res = await workflow.result()
-    if "spawn_children" in res:
-        data = res["spawn_children"]
+    if "collect_children" in res:
+        data = res["collect_children"]
         # TODO: why are we doing it this way with a bg task
         # for removing the tmpdir?  why not use a context
         # manager?
