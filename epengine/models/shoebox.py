@@ -64,7 +64,7 @@ class ShoeboxSimulationSpec(LeafSpec):
     @model_validator(mode="after")
     def check_retrofit_uri_is_not_none_when_retrofit_is_not_none(self):
         """Check that retrofit_uri is not None when retrofit is not None."""
-        if self.retrofit and not self.retrofit_lib_uri:
+        if self.retrofit and self.retrofit != "Baseline" and not self.retrofit_lib_uri:
             raise ValueError("RETROFIT_URI_REQUIRED")
         return self
 
@@ -308,16 +308,18 @@ class ShoeboxSimulationSpec(LeafSpec):
 
 
 if __name__ == "__main__":
+    import time
+
     spec = ShoeboxSimulationSpec(
         experiment_id="test-2",
         sort_index=0,
         lib_uri=AnyUrl(
             "s3://ml-for-bem/tiles/massachusetts/2024_09_30/everett_lib.json"
         ),
-        retrofit=None,
-        retrofit_lib_uri=AnyUrl(
-            "s3://ml-for-bem/tiles/massachusetts/2024_09_30/everett_retrofits.yaml"
-        ),
+        # retrofit=None,
+        # retrofit_lib_uri=AnyUrl(
+        #     "s3://ml-for-bem/tiles/massachusetts/2024_09_30/everett_retrofits.yaml"
+        # ),
         typology="Residential",
         year_built=1950,
         num_floors=2,
@@ -331,5 +333,8 @@ if __name__ == "__main__":
         epwzip_path="https://climate.onebuilding.org/WMO_Region_4_North_and_Central_America/USA_United_States_of_America/MA_Massachusetts/USA_MA_Boston-Logan.Intl.AP.725090_TMYx.2009-2023.zip",
     )
 
+    s = time.time()
     idf, results, warnings = spec.run()
+    e = time.time()
     print(results.reset_index(drop=True))
+    print(f"Execution time: {e - s:.2f} seconds")
