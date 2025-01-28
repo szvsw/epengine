@@ -62,6 +62,10 @@ if __name__ == "__main__":
         lib_uri=AnyUrl(
             "s3://ml-for-bem/tiles/massachusetts/2024_09_30/everett_lib.json"
         ),
+        retrofit="Baseline",
+        retrofit_lib_uri=AnyUrl(
+            "s3://ml-for-bem/tiles/massachusetts/2024_09_30/everett_retrofits.yaml"
+        ),
         typology="Residential",
         year_built=1972,
         num_floors=2,
@@ -77,4 +81,5 @@ if __name__ == "__main__":
     spec_2 = spec.model_copy(deep=True)
 
     client = new_client()
-    client.admin.run_workflow("simulate_ubem_shoebox", spec.model_dump(mode="json"))
+    for _i in range(10):
+        client.admin.run_workflow("simulate_ubem_shoebox", spec.model_dump(mode="json"))
