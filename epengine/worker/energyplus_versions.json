@@ -1,0 +1,44 @@
+{
+    "9.3.0": {
+        "version": "9.3.0",
+        "sha": "baff08990c",
+        "tag": "v9.3.0",
+        "install_version": "9-3-0"
+    },
+    "9.5.0": {
+        "version": "9.5.0",
+        "sha": "de239b2e5f",
+        "tag": "v9.5.0",
+        "install_version": "9-5-0"
+    },
+    "22.1.0": {
+        "version": "22.1.0",
+        "sha": "ed759b17ee",
+        "tag": "v22.1.0",
+        "install_version": "22-1-0"
+    },
+    "22.2.0": {
+        "version": "22.2.0",
+        "sha": "c249759bad",
+        "tag": "v22.2.0",
+        "install_version": "22-2-0"
+    },
+    "23.1.0": {
+        "version": "23.1.0",
+        "sha": "87ed9199d4",
+        "tag": "v23.1.0",
+        "install_version": "23-1-0"
+    },
+    "23.2.0": {
+        "version": "23.2.0",
+        "sha": "7636e6b3e9",
+        "tag": "v23.2.0",
+        "install_version": "23-2-0"
+    },
+    "24.1.0": {
+        "version": "24.1.0",
+        "sha": "9d7789a3ac",
+        "tag": "v24.1.0",
+        "install_version": "24-1-0"
+    }
+}

@@ -1,9 +1,11 @@
 services:
   worker:
-    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/hatchet/epengine:latest
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/hatchet/epengine:${ENERGYPLUS_VERSION:-22.2.0}
     build:
       context: .
       dockerfile: epengine/worker/Dockerfile
+      args:
+        - ENERGYPLUS_VERSION=${ENERGYPLUS_VERSION:-22.2.0}
     env_file:
       - .env
     deploy:

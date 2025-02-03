@@ -7,38 +7,27 @@ ENV POETRY_VERSION=1.8 \
 
 ENV TRAVIS_OS_NAME=linux
 
-# ENV ENERGYPLUS_VERSION=9.3.0
-# ENV ENERGYPLUS_SHA=baff08990c
-# ENV ENERGPYPLUS_TAG=v9.3.0
-# ENV ENERGYPLUS_INSTALL_VERSION=9-3-0
+# Build argument for EnergyPlus version
+ARG ENERGYPLUS_VERSION=22.2.0
 
-# ENV ENERGYPLUS_VERSION=9.5.0
-# ENV ENERGYPLUS_SHA=de239b2e5f
-# ENV ENERGPYPLUS_TAG=v9.5.0
-# ENV ENERGYPLUS_INSTALL_VERSION=9-5-0
+# Copy the versions file first
+COPY epengine/worker/energyplus_versions.json /tmp/energyplus_versions.json
 
-ENV ENERGYPLUS_VERSION=22.2.0
-ENV ENERGYPLUS_SHA=c249759bad
-ENV ENERGPYPLUS_TAG=v22.2.0
-ENV ENERGYPLUS_INSTALL_VERSION=22-2-0
-
-
-
+# Set EnergyPlus environment variables using jq
 RUN apt-get update \
+    && apt-get install -y --no-install-recommends jq \
+    && export ENERGYPLUS_VERSION=$(jq -r ".[\"$ENERGYPLUS_VERSION\"].version" /tmp/energyplus_versions.json) \
+    && export ENERGYPLUS_SHA=$(jq -r ".[\"$ENERGYPLUS_VERSION\"].sha" /tmp/energyplus_versions.json) \
+    && export ENERGPYPLUS_TAG=$(jq -r ".[\"$ENERGYPLUS_VERSION\"].tag" /tmp/energyplus_versions.json) \
+    && export ENERGYPLUS_INSTALL_VERSION=$(jq -r ".[\"$ENERGYPLUS_VERSION\"].install_version" /tmp/energyplus_versions.json) \
     && apt-get install -y --no-install-recommends wget bzip2 ca-certificates curl git libxml2-dev sudo tk python3-tk libgomp1 gfortran \
     && git clone https://github.com/samuelduchesne/archetypal.git \
     && cd /archetypal \
-    && sudo chmod +x install_energyplus.sh  \
+    && sudo chmod +x install_energyplus.sh \
     && ./install_energyplus.sh \
-    # update the energyplus env vars and install another version
-    # && export ENERGYPLUS_VERSION=9.3.0 \
-    # && export ENERGYPLUS_SHA=baff08990c \
-    # && export ENERGPYPLUS_TAG=v9.3.0 \
-    # && export ENERGYPLUS_INSTALL_VERSION=9-3-0 \
-    # && ./install_energyplus.sh \
-    # && cp /usr/local/EnergyPlus-9-3-0/PreProcess/GrndTempCalc/Basement /usr/local/EnergyPlus-9-5-0/PreProcess/GrndTempCalc/ \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm /tmp/energyplus_versions.json
 
 # Install poetry
 RUN pip install "poetry==$POETRY_VERSION"
