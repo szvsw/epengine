@@ -5,6 +5,7 @@
 [![codecov](https://codecov.io/gh/szvsw/epengine/branch/main/graph/badge.svg)](https://codecov.io/gh/szvsw/epengine)
 [![Commit activity](https://img.shields.io/github/commit-activity/m/szvsw/epengine)](https://img.shields.io/github/commit-activity/m/szvsw/epengine)
 [![License](https://img.shields.io/github/license/szvsw/epengine)](https://img.shields.io/github/license/szvsw/epengine)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14814542.svg)](https://doi.org/10.5281/zenodo.14814542)
 
 This is a repository for managing distributed queues of simulations with Hatchet.
 
