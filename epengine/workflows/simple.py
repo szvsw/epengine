@@ -4,7 +4,7 @@ import logging
 
 import numpy as np
 import pandas as pd
-from hatchet_sdk.context import Context
+from hatchet_sdk import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.leafs import SimpleSpec
@@ -45,8 +45,7 @@ class SimpleTest:
             dict: A dictionary of dataframes with results.
         """
         data = context.workflow_input()
-        data["hcontext"] = context
-        spec = SimpleSpecWithContext(**data)
+        spec = SimpleSpecWithContext(**data, hcontext=context)
         res = spec.run()
         results = pd.DataFrame(
             {"data": [res]}, index=pd.Index([spec.param_a], name="param_a")

@@ -2,7 +2,7 @@
 
 import logging
 
-from hatchet_sdk.context import Context
+from hatchet_sdk import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.mixins import WithHContext
@@ -40,8 +40,7 @@ class SimulateShoebox:
             dict: A dictionary of dataframes with results.
         """
         data = context.workflow_input()
-        data["hcontext"] = context
-        spec = ShoeboxSimulationSpecWithContext(**data)
+        spec = ShoeboxSimulationSpecWithContext(**data, hcontext=context)
         # _idf, results, err_text = await spec.run()
         _idf, results, err_text = spec.run()
         context.log(err_text)

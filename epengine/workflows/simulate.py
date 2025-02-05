@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 from archetypal import IDF
 from archetypal.idfclass.sql import Sql
-from hatchet_sdk.context import Context
+from hatchet_sdk import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.ddy_injector import DDYSizingSpec
@@ -50,8 +50,7 @@ class Simulate:
             dict: A dictionary of dataframes with results.
         """
         data = context.workflow_input()
-        data["hcontext"] = context
-        spec = SimulationSpecWithContext(**data)
+        spec = SimulationSpecWithContext(**data, hcontext=context)
         with tempfile.TemporaryDirectory() as tmpdir:
             local_pth = Path(tmpdir) / "model.idf"
             shutil.copy(spec.idf_path, local_pth)
