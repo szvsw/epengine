@@ -12,6 +12,7 @@ from epengine.workflows import (
     Simulate,
     SimulateShoebox,
 )
+from epengine.workflows.archive import ArchiveFile, ArchiveFolder
 
 
 class SimWorkerSettings(BaseSettings):
@@ -112,6 +113,8 @@ class SimWorkerSettings(BaseSettings):
             worker.register_workflow(Simulate())
             worker.register_workflow(SimulateShoebox())
         worker.register_workflow(SimpleTest())
+        worker.register_workflow(ArchiveFolder())
+        worker.register_workflow(ArchiveFile())
 
         return worker
 
