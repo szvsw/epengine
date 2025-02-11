@@ -28,13 +28,11 @@ optional = true
 [tool.poetry.group.docs]
 optional = true
 
-[tool.poetry.group.worker]
-optional = true
-
 [tool.poetry.group.api]
 optional = true
 
-[tool.poetry.group.worker.dependencies]
+[tool.poetry.group.ml]
+optional = true
 
 [tool.poetry.group.api.dependencies]
 fastapi = "^0.111.1"
@@ -62,6 +60,22 @@ mkdocstrings-python = "^1.11.1"
 [tool.poetry.group.coiled.dependencies]
 coiled = "^1.36.0"
 dask = {extras = ["complete"], version = "^2024.7.1"}
+
+
+[tool.poetry.group.ml.dependencies]
+xgboost = "^2.1.4"
+torch = {version = "^2.5.0", source = "torch-cuda121"}
+
+[[tool.poetry.source]]
+name = "torch-cuda121"
+url = "https://download.pytorch.org/whl/cu121"
+priority = "explicit"
+
+[[tool.poetry.source]]
+name = "torch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+
 
 [tool.poetry.scripts]
 worker = "epengine.worker.main:run"
