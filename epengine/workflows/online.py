@@ -17,6 +17,20 @@ from hatchet_sdk import Context
 
 from epengine.hatchet import hatchet
 
+"""
+TODO/Notes
+
+1. Use a seed to compress the train/test ix splits
+2. Use recovered train/test ix splits to selectively read from columnar parquets (which is transposed so that the building ix is the column).
+4. Knowledge of the stratifier(s) must be maintained (e.g. `epwzip_path` will be used for equally weighhted sampling)
+5. Convergence criterion checked for all strata; these can actually be run in parallel.
+
+Min samples per stratum
+Max simulations or generation
+Adding sims where not converged vs adding sims equally
+
+"""
+
 
 @hatchet.workflow(
     name="init_engine",
