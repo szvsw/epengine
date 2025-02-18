@@ -25,10 +25,11 @@ exec: true     # Enable running commands in your container.
 
 network:
   vpc:
+    placement: private
     security_groups:
       - from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbSecurityGroup # service must be able to connect to the database.
       - from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetbrokerSecurityGroup # service must be able to connect to the broker.
-  connect: true # service must be discoverable by other services in the same environment.
+  connect: false # service must be discoverable by other services in the same environment.
 
 variables:
   SERVER_GRPC_BIND_ADDRESS: 0.0.0.0
@@ -68,7 +69,7 @@ sidecars:
       location: ghcr.io/hatchet-dev/hatchet/hatchet-admin:latest
       depends_on:
         migrate: complete
-    command: /hatchet/hatchet-admin quickstart --skip certs --cert-dir /hatchet-appdata/certs --generated-config-dir /hatchet-appdata/config --overwrite=false
+    command: /hatchet/hatchet-admin quickstart --skip certs --generated-config-dir /hatchet-appdata/config --overwrite=true
     variables:
       DATABASE_POSTGRES_HOST:
         from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbHost
@@ -78,12 +79,12 @@ sidecars:
         from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbUsername
       DATABASE_POSTGRES_DB_NAME:
         from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbDBName
-      SERVER_AUTH_COOKIE_DOMAIN: ${API_DOMAIN} # TODO: replace me (route53?)
+      SERVER_AUTH_COOKIE_DOMAIN: hatchet-api.prod.epengine.local:8080 # TODO: replace me (route53?), service discovery endpoints
       SERVER_AUTH_COOKIE_INSECURE: t
       SERVER_GRPC_BIND_ADDRESS: 0.0.0.0
       SERVER_GRPC_INSECURE: t
       SERVER_AUTH_SET_EMAIL_VERIFIED: t
-      SERVER_GRPC_BROADCAST_ADDRESS: hatchet-engine:7070
+      SERVER_GRPC_BROADCAST_ADDRESS: hatchet-engine.prod.epengine.local:7070
       # TODO: connection/other config (including postgres max connections)
     secrets:
       DATABASE_URL: 

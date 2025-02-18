@@ -101,7 +101,7 @@ Resources:
       BrokerName: !Sub '${App}-${Env}-RMQBroker'
       DeploymentMode: SINGLE_INSTANCE
       EngineType: RabbitMQ
-      EngineVersion: "3.11.20"
+      EngineVersion: "3.11.28" # changed EngineVersion to latest
       HostInstanceType: !FindInMap
         - BrokerHostInstanceTypeMap
         - !Ref Env

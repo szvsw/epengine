@@ -29,7 +29,9 @@ count:        # Number of tasks that should be running in your service.
       out: 60s
 
 network:
-  connect: true
+  connect: false # Enable Service Connect for intra-environment traffic between services.
+  vpc:
+    placement: private
 
 exec: true     # Enable running commands in your container.
 
@@ -42,22 +44,22 @@ variables:                    # Pass environment variables as key value pairs.
   BUCKET_NAME:
       from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-mitsdlepengineBucketName
   HATCHET_CLIENT_TLS_STRATEGY: none # TODO: comment this line out when connecting to maanged hatchet instances.
+  HATCHET_CLIENT_TOKEN: # masked HATCHET_CLIENT_TOKEN, DID NOT PUT IN SSM
 
 # You can override any of the values defined above by environment.
-environments:
- dev:
-   count: 0               # Number of tasks to run for the "test" environment.
-   deployment:            # The deployment strategy for the "test" environment.
-      rolling: 'recreate' # Stops existing tasks before new ones are started for faster deployments.
- test:
-   count: 0               # Number of tasks to run for the "test" environment.
-   deployment:
-      rolling: 'recreate' # Starts new tasks before stopping existing tasks for zero downtime deployments.
-#  prod:
-#    count: 0
-  #  deployment:
-  #     rolling: 'recreate' # Starts new tasks before stopping existing tasks for zero downtime deployments.
+# environments:
+#  dev:
+#    count: 0               # Number of tasks to run for the "test" environment.
+#    deployment:            # The deployment strategy for the "test" environment.
+#       rolling: 'recreate' # Stops existing tasks before new ones are started for faster deployments.
+#  test:
+#    count: 0               # Number of tasks to run for the "test" environment.
+#    deployment:
+#       rolling: 'recreate' # Starts new tasks before stopping existing tasks for zero downtime deployments.
+# prod:
+  #   count: 3               # Number of tasks to run for the "prod" environment. 
+  # deployment:
+    # rolling: 'recreate' # Starts new tasks before stopping existing tasks for zero downtime deployments.
 
-
-secrets:                      # Pass secrets from AWS Systems Manager (SSM) Parameter Store.
-    HATCHET_CLIENT_TOKEN: /copilot/${COPILOT_APPLICATION_NAME}/${COPILOT_ENVIRONMENT_NAME}/secrets/HATCHET_CLIENT_TOKEN
+# secrets:                      # Pass secrets from AWS Systems Manager (SSM) Parameter Store.
+    # HATCHET_CLIENT_TOKEN: /copilot/${COPILOT_APPLICATION_NAME}/${COPILOT_ENVIRONMENT_NAME}/secrets/HATCHET_CLIENT_TOKEN
