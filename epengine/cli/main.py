@@ -233,11 +233,13 @@ def status():
     "--workflow-run-id",
     help="The id of the workflow run.",
     prompt="Workflow run id",
+    type=click.UUID,
 )
 @click.option(
     "--output-path",
     help="The path to the output file.",
     prompt="Output path",
+    type=click.Path(exists=False),
 )
 def get(workflow_run_id: str, output_path: Path):
     """Get the results of a workflow run."""
@@ -246,8 +248,6 @@ def get(workflow_run_id: str, output_path: Path):
     from hatchet_sdk.client import new_client
 
     from epengine.utils.filesys import fetch_uri
-
-    # TODO: add type for workflow_run_id
 
     if output_path.exists():
         click.echo(f"Output file already exists at {output_path}")
