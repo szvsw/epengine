@@ -216,6 +216,16 @@ def submit_gis_job(  # noqa: C901
         for field in semantic_fields.Fields:
             if field.Name[:10] in gdf.columns:
                 gdf = gdf.rename(columns={field.Name[:10]: field.Name})
+    for col_name in [
+        semantic_fields.Height_col,
+        semantic_fields.Num_Floors_col,
+        semantic_fields.WWR_col,
+        semantic_fields.GFA_col,
+    ]:
+        if col_name is None:
+            continue
+        if col_name[:10] in gdf.columns:
+            gdf = gdf.rename(columns={col_name[:10]: col_name})
 
     for field in semantic_fields.Fields:
         if field.Name not in gdf.columns:

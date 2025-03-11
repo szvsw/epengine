@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Literal
 
 import click
+import pandas as pd
 from pydantic import BaseModel
 
 from epengine.gis.submit import GisJobArgs
@@ -222,7 +223,45 @@ def idf():
     click.echo("IDF job submission placeholder")
 
 
-@cli.command()
+@cli.group()
 def status():
+    """Commands for job status."""
+
+
+@status.command()
+@click.option(
+    "--workflow-run-id",
+    help="The id of the workflow run.",
+    prompt="Workflow run id",
+)
+@click.option(
+    "--output-path",
+    help="The path to the output file.",
+    prompt="Output path",
+)
+async def check(workflow_run_id: str, output_path: Path):
     """Check the status of jobs."""
-    click.echo("Job status placeholder")
+    from hatchet_sdk.client import new_client
+
+    from epengine.utils.filesys import fetch_uri
+
+    if output_path.exists():
+        click.echo(f"Output file already exists at {output_path}")
+        return
+
+    client = new_client()
+
+    workflow = client.admin.get_workflow_run(workflow_run_id)
+    res = await workflow.result()
+    if "collect_children" in res:
+        data = res["collect_children"]
+        if "uri" in data:
+            fetch_uri(data["uri"], output_path, use_cache=False)
+        else:
+            for key, df_dict in data.items():
+                df = pd.DataFrame.from_dict(df_dict, orient="tight")
+                df.to_hdf(output_path, key=key, mode="a")
+        click.echo(f"Results saved to {output_path}")
+    else:
+        # TODO: check what happens if workflow does not exist.
+        click.echo(f"Workflow run {workflow_run_id} has not completed yet.")
