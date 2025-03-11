@@ -51,6 +51,7 @@ def manifest(path: Path):
 
     config = Manifest.model_validate(manifest)
     gis_jobs = [job for job in config.Jobs if isinstance(job, GisJobArgs)]
+    click.echo(f"Submitting {len(gis_jobs)} GIS jobs.")
     for job in gis_jobs:
         submit_gis_job(config=job, log_fn=click.echo)
 

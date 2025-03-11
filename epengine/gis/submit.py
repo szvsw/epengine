@@ -1,14 +1,17 @@
 """Submit a GIS job to a Hatchet workflow."""
 
 import logging
+import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Literal, cast
 
 import boto3
 import geopandas as gpd
+import pandas as pd
 import yaml
 from epinterface.sbem.fields.spec import SemanticModelFields
+from hatchet_sdk import new_client
 from pydantic import BaseModel, Field
 
 from epengine.gis.data.epw_metadata import closest_epw
@@ -20,6 +23,7 @@ from epengine.gis.geometry import (
 from epengine.models.leafs import AvailableWorkflowSpecs, WorkflowName
 
 logger = logging.getLogger(__name__)
+client = new_client()
 
 
 class GisJobAssumptions(BaseModel):
@@ -207,11 +211,27 @@ def submit_gis_job(  # noqa: C901
     gdf["epwzip_path"] = epw_meta["path"].apply(
         lambda x: Path(x).as_posix().split("onebuilding/")[-1]
     )
-    for _ix, row in gdf.iterrows():
-        for key, val in row.items():
-            log(f"{key}: {val}")
+
+    for field in semantic_fields.Fields:
+        if field.Name not in gdf.columns:
+            msg = f"Field '{field}' not found in gdf."
+            raise ValueError(msg)
+        # TODO:  check that every cell value is one of the expected values.
 
     _workflow = AvailableWorkflowSpecs[leaf_workflow]
+
+    # TODO: construct correct payloads
+    # TODO: consider validating
+    all_data = []
+    for _ix, row in gdf.iterrows():
+        data = {
+            "param_a": ":".join([row[field.Name] for field in semantic_fields.Fields])  # pyright: ignore [reportCallIssue, reportArgumentType]
+        }
+        all_data.append(data)
+
+    model_specs_df = pd.DataFrame(all_data)
+    model_specs_df["experiment_id"] = experiment_id
+    model_specs_df["sort_index"] = list(range(len(model_specs_df)))
 
     s3 = boto3.client("s3")
     remote_root = f"{bucket_prefix}/{experiment_id}"
@@ -222,23 +242,57 @@ def submit_gis_job(  # noqa: C901
     def format_s3_uri(folder, key):
         return f"s3://{bucket}/{format_s3_key(folder, key)}"
 
-    if False:
-        # check if experiment_id already exists
-        if (
-            s3.list_objects_v2(Bucket=bucket, Prefix=remote_root).get("KeyCount", 0) > 0
-            and existing_artifacts == "forbid"
-        ):
-            msg = f"Experiment '{experiment_id}' already exists. Set 'existing_artifacts' to 'overwrite' to confirm."
-            raise ValueError(msg)
+    # check if experiment_id already exists
+    if (
+        s3.list_objects_v2(Bucket=bucket, Prefix=remote_root).get("KeyCount", 0) > 0
+        and existing_artifacts == "forbid"
+    ):
+        msg = f"Experiment '{experiment_id}' already exists. Set 'existing_artifacts' to 'overwrite' to confirm."
+        raise ValueError(msg)
 
-        # upload gis file
-        gis_key = format_s3_key("artifacts", gis_file.name)
-        s3.upload_file(gis_file.as_posix(), bucket, gis_key)
+    log("Uploading artifacts to s3.")
+    # upload gis file
+    gis_key = format_s3_key("artifacts", gis_file.name)
+    s3.upload_file(gis_file.as_posix(), bucket, gis_key)
 
-        # upload db file
-        db_key = format_s3_key("artifacts", db_file.name)
-        s3.upload_file(db_file.as_posix(), bucket, db_key)
+    # upload db file
+    db_key = format_s3_key("artifacts", db_file.name)
+    s3.upload_file(db_file.as_posix(), bucket, db_key)
 
-        # upload component map
-        component_map_key = format_s3_key("artifacts", component_map.name)
-        s3.upload_file(component_map.as_posix(), bucket, component_map_key)
+    # upload component map
+    component_map_key = format_s3_key("artifacts", component_map.name)
+    s3.upload_file(component_map.as_posix(), bucket, component_map_key)
+
+    # upload semantic fields
+    semantic_fields_key = format_s3_key("artifacts", _semantic_fields.name)
+    s3.upload_file(_semantic_fields.as_posix(), bucket, semantic_fields_key)
+
+    # TODO: upload full manifest
+
+    # upload model specs df
+    with tempfile.NamedTemporaryFile(delete=True) as f:
+        model_specs_key = format_s3_key("artifacts", f.name)
+        model_specs_uri = format_s3_uri("artifacts", f.name)
+        model_specs_df.to_parquet(f.name)
+        s3.upload_file(f.name, bucket, model_specs_key)
+
+    log("Submitting job to hatchet.")
+    job_payload = {
+        "experiment_id": experiment_id,
+        "specs": model_specs_uri,
+        "bucket": bucket,
+        "recursion_map": {
+            "factor": _recursion_factor,
+            "max_depth": _max_depth,
+        },
+        "workflow_name": leaf_workflow,
+    }
+    workflowRef = client.admin.run_workflow(
+        workflow_name="scatter_gather_recursive",
+        input=job_payload,
+    )
+    log(f"Submitted job to hatchet.  Workflow run id: {workflowRef.workflow_run_id}")
+    return {
+        "workflow_run_id": workflowRef.workflow_run_id,
+        "n_jobs": len(model_specs_df),
+    }
