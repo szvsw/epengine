@@ -7,6 +7,12 @@ ENV POETRY_VERSION=1.8 \
 
 ENV TRAVIS_OS_NAME=linux
 
+# Build argument for HTTP proxy
+ARG HTTP_PROXY=""
+# Set the proxy if provided
+ENV http_proxy=${HTTP_PROXY}
+ENV https_proxy=${HTTP_PROXY}
+
 # Build argument for EnergyPlus version
 ARG ENERGYPLUS_VERSION=22.2.0
 
@@ -38,7 +44,11 @@ COPY poetry.lock pyproject.toml /code/
 
 # Project initialization:
 RUN poetry install --no-interaction --no-ansi --no-root --with worker --with coiled
+RUN epinterface prisma generate
 
+# Unset the proxy after build steps that need it
+ENV http_proxy=
+ENV https_proxy=
 # Copy Python code to the Docker image
 COPY epengine /code/epengine/
 # COPY data/idfs /code/data/idfs
