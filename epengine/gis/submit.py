@@ -278,7 +278,7 @@ def submit_gis_job(  # noqa: C901
     with tempfile.TemporaryDirectory() as temp_dir:
         local_path = Path(temp_dir) / "specs.pq"
         model_specs_key = format_s3_key("artifacts", local_path.name)
-        model_specs_uri = format_s3_uri("artifacts", model_specs_key)
+        model_specs_uri = format_s3_uri("artifacts", local_path.name)
         model_specs_df.to_parquet(local_path)
         s3.upload_file(local_path.as_posix(), bucket, model_specs_key)
 
