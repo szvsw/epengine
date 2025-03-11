@@ -38,6 +38,7 @@ COPY poetry.lock pyproject.toml /code/
 
 # Project initialization:
 RUN poetry install --no-interaction --no-ansi --no-root --with worker --with coiled
+RUN epinterface generate
 
 # Copy Python code to the Docker image
 COPY epengine /code/epengine/

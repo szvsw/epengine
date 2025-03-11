@@ -1922,22 +1922,25 @@ name = "epinterface"
 version = "1.0.0"
 description = "This is a repository for dynamically generating energy models within Python, relying on Archetypal and Eppy for most of its functionality."
 optional = false
-python-versions = ">=3.10,<3.12"
+python-versions = ">=3.10,<3.13"
 files = []
 develop = false
 
 [package.dependencies]
-archetypal = {git = "https://github.com/samuelduchesne/archetypal", branch = "main"}
+archetypal = "^2.18.4"
+click = "8.1.7"
 geopandas = "^1.0.1"
 httpx = "^0.27.2"
+openpyxl = "^3.1.5"
 pandas = "^2.2.3"
+prisma = "^0.15.0"
 pydantic = "^2.9.2"
 
 [package.source]
 type = "git"
 url = "https://github.com/szvsw/epinterface"
-reference = "main"
-resolved_reference = "09bc1635792bd28b149df8c7e566ed30ab21fab2"
+reference = "feature/sbem_library"
+resolved_reference = "e207834391bd28dd29ce512423d45c8d5db46a95"
 
 [[package]]
 name = "eppy"
@@ -1972,6 +1975,17 @@ optional = false
 python-versions = "*"
 files = [
     {file = "esoreader-1.2.3.tar.gz", hash = "sha256:6b7a554cde36c90f8eea45273df5cec3a27072d433c9ce56c72a55e13b69407d"},
+]
+
+[[package]]
+name = "et-xmlfile"
+version = "2.0.0"
+description = "An implementation of lxml.xmlfile for the standard library"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "et_xmlfile-2.0.0-py3-none-any.whl", hash = "sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa"},
+    {file = "et_xmlfile-2.0.0.tar.gz", hash = "sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54"},
 ]
 
 [[package]]
@@ -4940,6 +4954,20 @@ files = [
 ]
 
 [[package]]
+name = "openpyxl"
+version = "3.1.5"
+description = "A Python library to read/write Excel 2010 xlsx/xlsm files"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "openpyxl-3.1.5-py2.py3-none-any.whl", hash = "sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2"},
+    {file = "openpyxl-3.1.5.tar.gz", hash = "sha256:cf0e3cf56142039133628b5acffe8ef0c12bc902d2aadd3e0fe5878dc08d1050"},
+]
+
+[package.dependencies]
+et-xmlfile = "*"
+
+[[package]]
 name = "opentelemetry-api"
 version = "1.30.0"
 description = "OpenTelemetry Python API"
@@ -5562,6 +5590,32 @@ identify = ">=1.0.0"
 nodeenv = ">=0.11.1"
 pyyaml = ">=5.1"
 virtualenv = ">=20.10.0"
+
+[[package]]
+name = "prisma"
+version = "0.15.0"
+description = "Prisma Client Python is an auto-generated and fully type-safe database client"
+optional = false
+python-versions = ">=3.8.0"
+files = [
+    {file = "prisma-0.15.0-py3-none-any.whl", hash = "sha256:de949cc94d3d91243615f22ff64490aa6e2d7cb81aabffce53d92bd3977c09a4"},
+    {file = "prisma-0.15.0.tar.gz", hash = "sha256:5cd6402aa8322625db3fc1152040404e7fc471fe7f8fa3a314fa8a99529ca107"},
+]
+
+[package.dependencies]
+click = ">=7.1.2"
+httpx = ">=0.19.0"
+jinja2 = ">=2.11.2"
+nodeenv = "*"
+pydantic = ">=1.10.0,<3"
+python-dotenv = ">=0.12.0"
+StrEnum = {version = "*", markers = "python_version < \"3.11\""}
+tomlkit = "*"
+typing-extensions = ">=4.5.0"
+
+[package.extras]
+all = ["nodejs-bin"]
+node = ["nodejs-bin"]
 
 [[package]]
 name = "prometheus-client"
@@ -7309,6 +7363,22 @@ anyio = ">=3.4.0,<5"
 full = ["httpx (>=0.22.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.7)", "pyyaml"]
 
 [[package]]
+name = "strenum"
+version = "0.4.15"
+description = "An Enum that inherits from str."
+optional = false
+python-versions = "*"
+files = [
+    {file = "StrEnum-0.4.15-py3-none-any.whl", hash = "sha256:a30cda4af7cc6b5bf52c8055bc4bf4b2b6b14a93b574626da33df53cf7740659"},
+    {file = "StrEnum-0.4.15.tar.gz", hash = "sha256:878fb5ab705442070e4dd1929bb5e2249511c0bcf2b0eeacf3bcd80875c82eff"},
+]
+
+[package.extras]
+docs = ["myst-parser[linkify]", "sphinx", "sphinx-rtd-theme"]
+release = ["twine"]
+test = ["pylint", "pytest", "pytest-black", "pytest-cov", "pytest-pylint"]
+
+[[package]]
 name = "tables"
 version = "3.10.1"
 description = "Hierarchical datasets for Python"
@@ -7498,6 +7568,17 @@ files = [
     {file = "tomli-2.2.1-cp313-cp313-win_amd64.whl", hash = "sha256:a38aa0308e754b0e3c67e344754dff64999ff9b513e691d0e786265c93583c69"},
     {file = "tomli-2.2.1-py3-none-any.whl", hash = "sha256:cb55c73c5f4408779d0cf3eef9f762b9c9f147a77de7b258bef0a5628adc85cc"},
     {file = "tomli-2.2.1.tar.gz", hash = "sha256:cd45e1dc79c835ce60f7404ec8119f2eb06d38b1deba146f07ced3bbc44505ff"},
+]
+
+[[package]]
+name = "tomlkit"
+version = "0.13.2"
+description = "Style preserving TOML library"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "tomlkit-0.13.2-py3-none-any.whl", hash = "sha256:7a974427f6e119197f670fbbbeae7bef749a6c14e793db934baefc1b5f03efde"},
+    {file = "tomlkit-0.13.2.tar.gz", hash = "sha256:fff5fe59a87295b278abd31bec92c15d9bc4a06885ab12bcea52c71119392e79"},
 ]
 
 [[package]]
@@ -8368,4 +8449,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "098645e6465c85dd0ed106b6dc706f564af9c93d3a3c9dcd22c279137909bf86"
+content-hash = "ef9a3cd9a1f444ab9c41cd21930b7428cb3d38422c48c0d8837515303a58b776"
