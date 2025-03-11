@@ -7,6 +7,8 @@ from typing import Literal, cast
 
 import boto3
 import geopandas as gpd
+import yaml
+from epinterface.sbem.fields.spec import SemanticModelFields
 from pydantic import BaseModel, Field
 
 from epengine.gis.data.epw_metadata import closest_epw
@@ -136,18 +138,30 @@ def submit_gis_job(  # noqa: C901
         log("Projecting gis file to EPSG:4326.")
         gdf = cast(gpd.GeoDataFrame, gdf.to_crs("EPSG:4326"))
 
+    # load the semantic fields
+    with open(_semantic_fields) as f:
+        semantic_fields = SemanticModelFields.model_validate(yaml.safe_load(f))
+
     # project gis file to cartesian crs
     # and inject rotated rectangles and neighbor indices
+
     gdf, injected_geo_cols = inject_rotated_rectangles(gdf, cart_crs)
     gdf, injected_ix_cols = inject_neighbor_ixs(gdf)
+    has_floor_col = semantic_fields.Num_Floors_col is not None
+    neighbor_floors_out_col = "neighbor_floors" if has_floor_col else "neighbor_heights"
+    num_floors_col = (
+        semantic_fields.Num_Floors_col if has_floor_col else semantic_fields.Height_col
+    )
+    fill_na_val = 2 if has_floor_col else 8
+
     gdf, injected_neighbor_cols = convert_neighbors(
         gdf,
         neighbor_col="neighbor_ixs",
         geometry_col="rotated_rectangle",
         neighbor_geo_out_col="neighbor_polys",
-        num_floors_col="height",
-        neighbor_floors_out_col="neighbor_heights",
-        fill_na_val=8,
+        num_floors_col=num_floors_col,  # pyright: ignore [reportArgumentType]
+        neighbor_floors_out_col=neighbor_floors_out_col,
+        fill_na_val=fill_na_val,
     )
 
     # create model specs df
