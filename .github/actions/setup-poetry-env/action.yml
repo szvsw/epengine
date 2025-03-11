@@ -40,3 +40,8 @@ runs:
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --no-interaction --all-extras --with dev --with worker --with api --with docs
       shell: bash
+
+    - name: Generate prisma client
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: epinterface prisma generate
+      shell: bash
