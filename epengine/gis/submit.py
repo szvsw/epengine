@@ -19,7 +19,7 @@ from epengine.models.leafs import AvailableWorkflowSpecs, WorkflowName
 logger = logging.getLogger(__name__)
 
 
-def submit_gis_job(
+def submit_gis_job(  # noqa: C901
     gis_file: Path,
     db_file: Path,
     component_map: Path,
@@ -101,7 +101,12 @@ def submit_gis_job(
     if not gdf.crs:
         msg = "GIS file has no crs.  Please set the CRS before running this script."
         raise ValueError(msg)
+
+    if gdf.crs == "EPSG:3857":
+        gdf = cast(gpd.GeoDataFrame, gdf.to_crs("EPSG:4326"))
     current_crs = gdf.crs
+
+    log(f"GIS file has crs {current_crs}")
     if current_crs not in ["EPSG:4326", cart_crs]:
         msg = f"GIS file has crs {current_crs}.  Please set the CRS to 'EPSG:4326' or '{cart_crs}' before running this script."
         raise ValueError(msg)
@@ -135,6 +140,9 @@ def submit_gis_job(
     gdf["epwzip_path"] = epw_meta["path"].apply(
         lambda x: Path(x).as_posix().split("onebuilding/")[-1]
     )
+    for _ix, row in gdf.iterrows():
+        for key, val in row.items():
+            log(f"{key}: {val}")
 
     _workflow = AvailableWorkflowSpecs[leaf_workflow]
 
