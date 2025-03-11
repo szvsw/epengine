@@ -243,8 +243,6 @@ def status():
 )
 def get(workflow_run_id: str, output_path: Path | str):
     """Get the results of a workflow run."""
-    import asyncio
-
     from hatchet_sdk.client import new_client
 
     from epengine.utils.filesys import fetch_uri
@@ -256,8 +254,9 @@ def get(workflow_run_id: str, output_path: Path | str):
 
     client = new_client()
 
-    workflow = client.admin.get_workflow_run(workflow_run_id)
-    res = asyncio.run(workflow.result())
+    click.echo(f"Getting results for workflow run {workflow_run_id}...")
+    workflow = client.admin.get_workflow_run(str(workflow_run_id))
+    res = workflow.sync_result()
     if "collect_children" in res:
         data = res["collect_children"]
         if "uri" in data:
