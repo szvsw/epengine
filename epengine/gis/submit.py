@@ -29,10 +29,10 @@ def submit_gis_job(
     bucket: str = "ml-for-bem",
     bucket_prefix: str = "hatchet",
     existing_artifacts: Literal["overwrite", "forbid"] = "forbid",
-    log_fn: Callable | None = None,
     epw_query: str | None = "source in ['tmyx']",
     recursion_factor: int = 10,
     max_depth: int = 2,
+    log_fn: Callable | None = None,
 ):
     """Convert a GIS file to simulation specifications.
 
@@ -83,10 +83,10 @@ def submit_gis_job(
         bucket (str): The bucket to use.
         bucket_prefix (str): The prefix of the bucket.
         existing_artifacts (Literal["overwrite", "forbid"]): Whether to overwrite existing artifacts.
-        log_fn (Callable | None): The function to use for logging.
         epw_query (str | None): The pandas df query to use for the epw (e.g. to only return tmyx)
         recursion_factor (int): The recursion factor for scatter/gather subdivision
         max_depth (int): The max depth for scatter/gather subdivision.
+        log_fn (Callable | None): The function to use for logging.
 
     """
     log = log_fn or logger.info
