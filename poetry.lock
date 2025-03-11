@@ -1940,7 +1940,7 @@ pydantic = "^2.9.2"
 type = "git"
 url = "https://github.com/szvsw/epinterface"
 reference = "feature/sbem_library"
-resolved_reference = "e207834391bd28dd29ce512423d45c8d5db46a95"
+resolved_reference = "9942f12d0f4ce141947de63b10b50b77b2e579e2"
 
 [[package]]
 name = "eppy"
