@@ -211,10 +211,15 @@ def submit_gis_job(  # noqa: C901
     gdf["epwzip_path"] = epw_meta["path"].apply(
         lambda x: Path(x).as_posix().split("onebuilding/")[-1]
     )
+    if gis_file.suffix.lower() in [".zip", ".shp", ".shx"]:
+        # Deal with truncated titles
+        for field in semantic_fields.Fields:
+            if field.Name[:10] in gdf.columns:
+                gdf = gdf.rename(columns={field.Name[:10]: field.Name})
 
     for field in semantic_fields.Fields:
         if field.Name not in gdf.columns:
-            msg = f"Field '{field}' not found in gdf."
+            msg = f"Field '{field}' not found in gdf. Available columns: {gdf.columns.tolist()}"
             raise ValueError(msg)
         # TODO:  check that every cell value is one of the expected values.
 
