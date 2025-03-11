@@ -241,7 +241,7 @@ def status():
     prompt="Output path",
     type=click.Path(exists=False),
 )
-def get(workflow_run_id: str, output_path: Path):
+def get(workflow_run_id: str, output_path: Path | str):
     """Get the results of a workflow run."""
     import asyncio
 
@@ -249,6 +249,7 @@ def get(workflow_run_id: str, output_path: Path):
 
     from epengine.utils.filesys import fetch_uri
 
+    output_path = Path(output_path)
     if output_path.exists():
         click.echo(f"Output file already exists at {output_path}")
         return
