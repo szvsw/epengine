@@ -43,6 +43,12 @@ def submit():
     prompt="Component map file path (.yaml)",
 )
 @click.option(
+    "--semantic-fields",
+    type=click.Path(exists=True),
+    help="The path to the semantic fields file which will be used to assign semantic fields to models according to GIS records.",
+    prompt="Semantic fields file path (.yaml)",
+)
+@click.option(
     "--leaf-workflow",
     help="The workflow to use.",
     prompt=f"Enter the workflow to use. [{'/'.join(AvailableWorkflowSpecs.keys())}]",
@@ -89,6 +95,7 @@ def gis(
     cart_crs: str,
     db: Path,
     component_map: Path,
+    semantic_fields: Path,
     leaf_workflow: WorkflowName,
     experiment_id: str,
     bucket: str,
@@ -104,6 +111,7 @@ def gis(
         cart_crs (str): The crs of the cartesian coordinate system to project to.
         db (Path): The path to the db file.
         component_map (Path): The path to the component map file.
+        semantic_fields (Path): The path to the semantic fields file.
         leaf_workflow (WorkflowName): The workflow to use.
         experiment_id (str): The id of the experiment.
         bucket (str): The bucket to use.
@@ -119,6 +127,7 @@ def gis(
         gis_file=gis,
         db_file=db,
         component_map=component_map,
+        semantic_fields=semantic_fields,
         experiment_id=experiment_id,
         cart_crs=cart_crs,
         leaf_workflow=leaf_workflow,

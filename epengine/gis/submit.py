@@ -23,6 +23,7 @@ def submit_gis_job(
     gis_file: Path,
     db_file: Path,
     component_map: Path,
+    semantic_fields: Path,
     experiment_id: str,
     cart_crs: str,
     leaf_workflow: WorkflowName,
@@ -77,6 +78,7 @@ def submit_gis_job(
         gis_file (Path): The path to the GIS file.
         db_file (Path): The path to the db file.
         component_map (Path): The path to the component map.
+        semantic_fields (Path): The path to the semantic fields.
         experiment_id (str): The id of the experiment.
         cart_crs (str): The crs of the cartesian coordinate system to project to.
         leaf_workflow (WorkflowName): The workflow to use.
