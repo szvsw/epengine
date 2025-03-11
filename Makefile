@@ -51,7 +51,7 @@ docs-deploy: ## Build and serve the documentation
 
 .PHONY: down
 down: ## Stop the docker-compose services
-	@docker compose down
+	@docker compose down --remove-orphans
 
 .PHONY: prod
 prod: ## Start the docker compose services with the api and worker
@@ -64,7 +64,7 @@ hatchet-token: ## Start the hatchet service and generate a token
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.hatchet.yml up -d hatchet-lite
 	@echo ----
 	@echo Append the following lines to your .env.dev file:
-	@echo HATCHET_CLIENT_TOKEN=${shell docker compose -f docker-compose.hatchet.yml exec hatchet-lite /hatchet-admin token create --config /config --tenant-id 707d0855-80ab-4e1f-a156-f1c4546cbf52}
+	@echo HATCHET_CLIENT_TOKEN=${shell docker compose -f docker-compose.yml -f docker-compose.hatchet.yml exec hatchet-lite /hatchet-admin token create --config /config --tenant-id 707d0855-80ab-4e1f-a156-f1c4546cbf52}
 	@echo HATCHET_CLIENT_TLS_STRATEGY=none
 	@echo ----
 	@echo Your login info for the Hatchet web UI is:
