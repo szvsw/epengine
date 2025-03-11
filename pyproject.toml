@@ -19,6 +19,7 @@ pandas = "^2.2.2"
 numpy = "<2.3"
 tqdm = "^4.66.4"
 tables = "^3.9.2"
+scipy = "1.14.1"
 archetypal = {git = "https://github.com/samuelduchesne/archetypal", branch = "main"}
 epinterface = {git = "https://github.com/szvsw/epinterface", branch = "feature/sbem_library"}
 
@@ -64,6 +65,7 @@ coiled = "^1.36.0"
 dask = {extras = ["complete"], version = "^2024.7.1"}
 
 [tool.poetry.scripts]
+epengine = "epengine.cli.main:cli"
 worker = "epengine.worker.main:run"
 
 [build-system]
