@@ -22,6 +22,20 @@ from epengine.models.leafs import AvailableWorkflowSpecs, WorkflowName
 logger = logging.getLogger(__name__)
 
 
+class GisJobAssumptions(BaseModel):
+    """The assumptions for a GIS job to handle missing data."""
+
+    wwr_ratio: float = Field(
+        default=0.5, description="The window-to-wall ratio for the building."
+    )
+    num_floors: int = Field(
+        default=2, description="The number of floors for the building."
+    )
+    f2f_height: float = Field(
+        default=3.5, description="The height of the floor-to-floor height."
+    )
+
+
 class GisJobArgs(BaseModel):
     """The configuration for a GIS job."""
 
@@ -50,6 +64,10 @@ class GisJobArgs(BaseModel):
     )
     max_depth: int = Field(
         default=2, description="The max depth for scatter/gather subdivision."
+    )
+    assumptions: GisJobAssumptions = Field(
+        default_factory=GisJobAssumptions,
+        description="The assumptions for the GIS job.",
     )
 
 
@@ -147,21 +165,35 @@ def submit_gis_job(  # noqa: C901
 
     gdf, injected_geo_cols = inject_rotated_rectangles(gdf, cart_crs)
     gdf, injected_ix_cols = inject_neighbor_ixs(gdf)
+
     has_floor_col = semantic_fields.Num_Floors_col is not None
-    neighbor_floors_out_col = "neighbor_floors" if has_floor_col else "neighbor_heights"
-    num_floors_col = (
-        semantic_fields.Num_Floors_col if has_floor_col else semantic_fields.Height_col
-    )
-    fill_na_val = 2 if has_floor_col else 8
+    has_height_col = semantic_fields.Height_col is not None
+    if not semantic_fields.Num_Floors_col and not semantic_fields.Height_col:
+        msg = "No floor or height column found in semantic fields."
+        raise ValueError(msg)
+    if has_floor_col and not has_height_col:
+        semantic_fields.Height_col = "IMPUTED_HEIGHT"
+        gdf[semantic_fields.Height_col] = (
+            config.assumptions.f2f_height * gdf[semantic_fields.Num_Floors_col]
+        )
+    elif not has_floor_col and has_height_col:
+        semantic_fields.Num_Floors_col = "IMPUTED_NUM_FLOORS"
+        gdf[semantic_fields.Num_Floors_col] = (
+            (gdf[semantic_fields.Height_col] // config.assumptions.f2f_height)
+            .clip(1, None)
+            .astype(int)
+        )
+
+    # TODO: add checks for crazy data
 
     gdf, injected_neighbor_cols = convert_neighbors(
         gdf,
         neighbor_col="neighbor_ixs",
         geometry_col="rotated_rectangle",
         neighbor_geo_out_col="neighbor_polys",
-        num_floors_col=num_floors_col,  # pyright: ignore [reportArgumentType]
-        neighbor_floors_out_col=neighbor_floors_out_col,
-        fill_na_val=fill_na_val,
+        num_floors_col=semantic_fields.Num_Floors_col,  # pyright: ignore [reportArgumentType]
+        neighbor_floors_out_col="neighbor_floors",
+        fill_na_val=config.assumptions.num_floors,
     )
 
     # create model specs df
