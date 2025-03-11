@@ -239,11 +239,15 @@ def status():
     help="The path to the output file.",
     prompt="Output path",
 )
-async def check(workflow_run_id: str, output_path: Path):
-    """Check the status of jobs."""
+def get(workflow_run_id: str, output_path: Path):
+    """Get the results of a workflow run."""
+    import asyncio
+
     from hatchet_sdk.client import new_client
 
     from epengine.utils.filesys import fetch_uri
+
+    # TODO: add type for workflow_run_id
 
     if output_path.exists():
         click.echo(f"Output file already exists at {output_path}")
@@ -252,7 +256,7 @@ async def check(workflow_run_id: str, output_path: Path):
     client = new_client()
 
     workflow = client.admin.get_workflow_run(workflow_run_id)
-    res = await workflow.result()
+    res = asyncio.run(workflow.result())
     if "collect_children" in res:
         data = res["collect_children"]
         if "uri" in data:
