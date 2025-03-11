@@ -7,6 +7,7 @@ from typing import Literal, cast
 
 import boto3
 import geopandas as gpd
+from pydantic import BaseModel, Field
 
 from epengine.gis.data.epw_metadata import closest_epw
 from epengine.gis.geometry import (
@@ -19,20 +20,39 @@ from epengine.models.leafs import AvailableWorkflowSpecs, WorkflowName
 logger = logging.getLogger(__name__)
 
 
+class GisJobArgs(BaseModel):
+    """The configuration for a GIS job."""
+
+    gis_file: str = Field(..., description="The path to the GIS file.")
+    db_file: str = Field(..., description="The path to the db file.")
+    component_map: str = Field(..., description="The path to the component map.")
+    semantic_fields: str = Field(..., description="The path to the semantic fields.")
+    experiment_id: str = Field(..., description="The id of the experiment.")
+    cart_crs: str = Field(
+        ..., description="The crs of the cartesian coordinate system to project to."
+    )
+    leaf_workflow: WorkflowName = Field(..., description="The workflow to use.")
+    bucket: str = Field(default="ml-for-bem", description="The bucket to use.")
+    bucket_prefix: str = Field(
+        default="hatchet", description="The prefix of the bucket."
+    )
+    existing_artifacts: Literal["overwrite", "forbid"] = Field(
+        default="forbid", description="Whether to overwrite existing artifacts."
+    )
+    epw_query: str | None = Field(
+        default="source in ['tmyx']",
+        description="The pandas df query to use for the epw (e.g. to only return tmyx)",
+    )
+    recursion_factor: int = Field(
+        default=10, description="The recursion factor for scatter/gather subdivision"
+    )
+    max_depth: int = Field(
+        default=2, description="The max depth for scatter/gather subdivision."
+    )
+
+
 def submit_gis_job(  # noqa: C901
-    gis_file: Path,
-    db_file: Path,
-    component_map: Path,
-    semantic_fields: Path,
-    experiment_id: str,
-    cart_crs: str,
-    leaf_workflow: WorkflowName,
-    bucket: str = "ml-for-bem",
-    bucket_prefix: str = "hatchet",
-    existing_artifacts: Literal["overwrite", "forbid"] = "forbid",
-    epw_query: str | None = "source in ['tmyx']",
-    recursion_factor: int = 10,
-    max_depth: int = 2,
+    config: GisJobArgs,
     log_fn: Callable | None = None,
 ):
     """Convert a GIS file to simulation specifications.
@@ -75,23 +95,24 @@ def submit_gis_job(  # noqa: C901
         ]
 
     Args:
-        gis_file (Path): The path to the GIS file.
-        db_file (Path): The path to the db file.
-        component_map (Path): The path to the component map.
-        semantic_fields (Path): The path to the semantic fields.
-        experiment_id (str): The id of the experiment.
-        cart_crs (str): The crs of the cartesian coordinate system to project to.
-        leaf_workflow (WorkflowName): The workflow to use.
-        bucket (str): The bucket to use.
-        bucket_prefix (str): The prefix of the bucket.
-        existing_artifacts (Literal["overwrite", "forbid"]): Whether to overwrite existing artifacts.
-        epw_query (str | None): The pandas df query to use for the epw (e.g. to only return tmyx)
-        recursion_factor (int): The recursion factor for scatter/gather subdivision
-        max_depth (int): The max depth for scatter/gather subdivision.
+        config (GisJobArgs): The configuration for the job.
         log_fn (Callable | None): The function to use for logging.
 
     """
     log = log_fn or logger.info
+    gis_file = Path(config.gis_file)
+    db_file = Path(config.db_file)
+    component_map = Path(config.component_map)
+    _semantic_fields = Path(config.semantic_fields)
+    experiment_id = config.experiment_id
+    cart_crs = config.cart_crs
+    leaf_workflow = config.leaf_workflow
+    bucket = config.bucket
+    bucket_prefix = config.bucket_prefix
+    existing_artifacts = config.existing_artifacts
+    epw_query = config.epw_query
+    _recursion_factor = config.recursion_factor
+    _max_depth = config.max_depth
 
     # TODO: trigger hatchet job for gis processing
 

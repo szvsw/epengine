@@ -4,8 +4,18 @@ from pathlib import Path
 from typing import Literal
 
 import click
+from pydantic import BaseModel
 
+from epengine.gis.submit import GisJobArgs
 from epengine.models.leafs import AvailableWorkflowSpecs, WorkflowName
+
+
+# TODO: move this
+class Manifest(BaseModel):
+    """A manifest for a sequence of jobs."""
+
+    Name: str
+    Jobs: list[GisJobArgs]
 
 
 @click.group()
@@ -18,7 +28,68 @@ def submit():
     """Commands for job submission."""
 
 
-@submit.command()
+@submit.group()
+def gis():
+    """Commands for GIS job submission."""
+
+
+@gis.command()
+@click.option(
+    "--path",
+    type=click.Path(exists=True),
+    help="The path to the manifest file which will be used to schedule simulations.",
+    prompt="Manifest file path (.yml)",
+)
+def manifest(path: Path):
+    """Submit a GIS job."""
+    import yaml
+
+    from epengine.gis.submit import submit_gis_job
+
+    with open(path) as f:
+        manifest = yaml.safe_load(f)
+
+    config = Manifest.model_validate(manifest)
+    gis_jobs = [job for job in config.Jobs if isinstance(job, GisJobArgs)]
+    for job in gis_jobs:
+        submit_gis_job(config=job, log_fn=click.echo)
+
+
+@gis.command()
+@click.option(
+    "--path",
+    type=click.Path(exists=False),
+    help="The path to the manifest file which will be used to schedule simulations.",
+    prompt="Manifest file path (.yml)",
+    default="manifest.yml",
+)
+@click.option(
+    "--name",
+    help="The name of the manifest.",
+    prompt="Manifest name",
+    default="GIS Job Submission",
+)
+def make(path: Path, name: str):
+    """Make a manifest file."""
+    import yaml
+
+    job = GisJobArgs(
+        gis_file="your-gis-data.geojson",
+        db_file="your-db.db",
+        component_map="your-component-map.yml",
+        semantic_fields="your-semantic-fields.yml",
+        experiment_id="your-experiment-id",
+        cart_crs="EPSG:2285",
+        leaf_workflow="simple",
+    )
+    manifest = Manifest(Name=name, Jobs=[job])
+    with open(path, "w") as f:
+        yaml.dump(manifest.model_dump(), f)
+    click.echo(yaml.safe_dump(manifest.model_dump(), indent=2))
+    click.echo(f"Manifest file created at {path}")
+
+
+@gis.command()
 @click.option(
     "--gis",
     type=click.Path(exists=True),
@@ -90,7 +161,7 @@ def submit():
     prompt="Enter the max depth for scatter/gather subdivision.  Recursive subdivision will continue until either the number of tasks per worker is fewer than the subdivision level or the max depth is achieved.",
     default=2,
 )
-def gis(
+def artifacts(
     gis: Path,
     cart_crs: str,
     db: Path,
@@ -120,14 +191,13 @@ def gis(
         recursion_factor (int): The recursion factor for scatter/gather subdivision.
         max_depth (int): The max depth for scatter/gather subdivision.
     """
-    from epengine.gis.submit import submit_gis_job
+    from epengine.gis.submit import GisJobArgs, submit_gis_job
 
-    click.echo("Submitting GIS job...")
-    _result = submit_gis_job(
-        gis_file=gis,
-        db_file=db,
-        component_map=component_map,
-        semantic_fields=semantic_fields,
+    config = GisJobArgs(
+        gis_file=str(gis),
+        db_file=str(db),
+        component_map=str(component_map),
+        semantic_fields=str(semantic_fields),
         experiment_id=experiment_id,
         cart_crs=cart_crs,
         leaf_workflow=leaf_workflow,
@@ -136,6 +206,11 @@ def gis(
         existing_artifacts=existing_artifacts,
         recursion_factor=recursion_factor,
         max_depth=max_depth,
+    )
+
+    click.echo("Submitting GIS job...")
+    _result = submit_gis_job(
+        config=config,
         log_fn=click.echo,
     )
 
