@@ -275,11 +275,12 @@ def submit_gis_job(  # noqa: C901
     # TODO: upload full manifest
 
     # upload model specs df
-    with tempfile.NamedTemporaryFile(delete=True) as f:
-        model_specs_key = format_s3_key("artifacts", f.name)
-        model_specs_uri = format_s3_uri("artifacts", f.name)
-        model_specs_df.to_parquet(f.name)
-        s3.upload_file(f.name, bucket, model_specs_key)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        local_path = Path(temp_dir) / "specs.pq"
+        model_specs_key = format_s3_key("artifacts", local_path.name)
+        model_specs_uri = format_s3_uri("artifacts", model_specs_key)
+        model_specs_df.to_parquet(local_path)
+        s3.upload_file(local_path.as_posix(), bucket, model_specs_key)
 
     log("Submitting job to hatchet.")
     job_payload = {
