@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import AnyUrl, Field
 
 from epengine.models.base import LeafSpec
+from epengine.models.mappedsim import SBEMSimulationSpec
 from epengine.models.shoebox import ShoeboxSimulationSpec
 
 
@@ -58,10 +59,13 @@ class SimpleSpec(LeafSpec):
     param_a: int = Field(..., description="A simple parameter A")
 
 
-WorkflowName = Literal["simulate_epw_idf", "simple", "simulate_ubem_shoebox"]
+WorkflowName = Literal[
+    "simulate_epw_idf", "simple", "simulate_ubem_shoebox", "simulate_sbem_mapped"
+]
 
 AvailableWorkflowSpecs: dict[WorkflowName, type[LeafSpec]] = {
     "simulate_epw_idf": SimulationSpec,
     "simple": SimpleSpec,
     "simulate_ubem_shoebox": ShoeboxSimulationSpec,
+    "simulate_sbem_mapped": SBEMSimulationSpec,
 }

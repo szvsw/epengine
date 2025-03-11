@@ -237,17 +237,6 @@ def submit_gis_job(  # noqa: C901
 
     # TODO: construct correct payloads
     # TODO: consider validating
-    all_data = []
-    for _ix, row in gdf.iterrows():
-        data = {
-            # "param_a": ":".join([row[field.Name] for field in semantic_fields.Fields])  # pyright: ignore [reportCallIssue, reportArgumentType]
-            "param_a": row[semantic_fields.Height_col]
-        }
-        all_data.append(data)
-
-    model_specs_df = pd.DataFrame(all_data)
-    model_specs_df["experiment_id"] = experiment_id
-    model_specs_df["sort_index"] = list(range(len(model_specs_df)))
 
     s3 = boto3.client("s3")
     remote_root = f"{bucket_prefix}/{experiment_id}"
@@ -269,21 +258,45 @@ def submit_gis_job(  # noqa: C901
     log("Uploading artifacts to s3.")
     # upload gis file
     gis_key = format_s3_key("artifacts", gis_file.name)
+    _gis_uri = format_s3_uri("artifacts", gis_file.name)
     s3.upload_file(gis_file.as_posix(), bucket, gis_key)
 
     # upload db file
     db_key = format_s3_key("artifacts", db_file.name)
+    db_uri = format_s3_uri("artifacts", db_file.name)
     s3.upload_file(db_file.as_posix(), bucket, db_key)
 
     # upload component map
     component_map_key = format_s3_key("artifacts", component_map.name)
+    component_map_uri = format_s3_uri("artifacts", component_map.name)
     s3.upload_file(component_map.as_posix(), bucket, component_map_key)
 
     # upload semantic fields
     semantic_fields_key = format_s3_key("artifacts", _semantic_fields.name)
+    semantic_fields_uri = format_s3_uri("artifacts", _semantic_fields.name)
     s3.upload_file(_semantic_fields.as_posix(), bucket, semantic_fields_key)
 
-    # TODO: upload full manifest
+    all_data = []
+    for _ix, row in gdf.iterrows():
+        data = {
+            "db_uri": db_uri,
+            "semantic_fields_uri": semantic_fields_uri,
+            "component_map_uri": component_map_uri,
+            "ddy_uri": component_map_uri,
+            "epw_uri": component_map_uri,
+            "semantic_field_context": {
+                field.Name: row[field.Name] for field in semantic_fields.Fields
+            },
+        }
+        all_data.append(data)
+    #     data = {
+    #         # "param_a": ":".join([row[field.Name] for field in semantic_fields.Fields])  # pyright: ignore [reportCallIssue, reportArgumentType]
+    #         "param_a": row[semantic_fields.Height_col] # pyright: ignore [reportArgumentType]
+    #     }
+
+    model_specs_df = pd.DataFrame(all_data)
+    model_specs_df["experiment_id"] = experiment_id
+    model_specs_df["sort_index"] = list(range(len(model_specs_df)))
 
     # upload model specs df
     with tempfile.TemporaryDirectory() as temp_dir:
