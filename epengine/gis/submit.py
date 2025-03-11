@@ -230,7 +230,8 @@ def submit_gis_job(  # noqa: C901
     all_data = []
     for _ix, row in gdf.iterrows():
         data = {
-            "param_a": ":".join([row[field.Name] for field in semantic_fields.Fields])  # pyright: ignore [reportCallIssue, reportArgumentType]
+            # "param_a": ":".join([row[field.Name] for field in semantic_fields.Fields])  # pyright: ignore [reportCallIssue, reportArgumentType]
+            "param_a": row[semantic_fields.Height_col]
         }
         all_data.append(data)
 
