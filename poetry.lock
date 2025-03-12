@@ -1940,7 +1940,7 @@ pydantic = "^2.9.2"
 type = "git"
 url = "https://github.com/szvsw/epinterface"
 reference = "main"
-resolved_reference = "7f56ae81fbd6edbd6f31e242bf369f4902462929"
+resolved_reference = "2f24bb755ca5562244017f2669c4289d48f0911d"
 
 [[package]]
 name = "eppy"
