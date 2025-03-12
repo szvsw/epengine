@@ -1939,8 +1939,8 @@ pydantic = "^2.9.2"
 [package.source]
 type = "git"
 url = "https://github.com/szvsw/epinterface"
-reference = "feature/sbem_library"
-resolved_reference = "36f8a62009fccfe3166b9408cca17a9d53e37108"
+reference = "main"
+resolved_reference = "7f56ae81fbd6edbd6f31e242bf369f4902462929"
 
 [[package]]
 name = "eppy"
@@ -8442,4 +8442,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "0227ecc4ef8a63b821482b5408ea44d19330cc868be4566ab055199dddad6962"
+content-hash = "2d2355b3f8c00d6dbf8729189f7ac2698a0d8f6140cc366576c0ccb95b5afd25"
