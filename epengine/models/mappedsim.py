@@ -5,14 +5,16 @@ from collections.abc import Callable
 from functools import cached_property
 from typing import Any, cast
 
+import pandas as pd
 import yaml
+from epinterface.geometry import ShoeboxGeometry
+from epinterface.sbem.builder import Model
 from epinterface.sbem.components.composer import (
     construct_composer_model,
     construct_graph,
 )
 from epinterface.sbem.components.zones import ZoneComponent
 from epinterface.sbem.prisma.client import PrismaSettings
-from prisma import Prisma
 from pydantic import AnyUrl, Field
 
 from epengine.models.base import LeafSpec
@@ -91,11 +93,8 @@ class SBEMSimulationSpec(LeafSpec):
         """
         return self.fetch_uri(self.component_map_uri)
 
-    def construct_zone_def(self, db: Prisma) -> ZoneComponent:
+    def construct_zone_def(self) -> ZoneComponent:
         """Construct the zone definition for the simulation.
-
-        Args:
-            db (Prisma): The database to use for the simulation
 
         Returns:
             zone_def (ZoneComponent): The zone definition for the simulation
@@ -111,8 +110,16 @@ class SBEMSimulationSpec(LeafSpec):
             component_map_yaml = yaml.safe_load(f)
         selector = SelectorModel.model_validate(component_map_yaml)
 
+        # TODO: make sure we are okay with accwssing the same db
+        # across workers executing the same experiment.
+        settings = PrismaSettings.New(
+            database_path=self.db_path, if_exists="ignore", auto_register=False
+        )
+        db = settings.db
+
         context = self.semantic_field_context
-        return cast(ZoneComponent, selector.get_component(context=context, db=db))
+        with db:
+            return cast(ZoneComponent, selector.get_component(context=context, db=db))
 
     def run(self, log_fn: Callable | None = None):
         """Run the simulation.
@@ -120,12 +127,44 @@ class SBEMSimulationSpec(LeafSpec):
         Args:
             log_fn (Callable | None): The function to use for logging.
         """
-        log = log_fn or logger.info
-        settings = PrismaSettings.New(
-            database_path=self.db_path, if_exists="ignore", auto_register=False
+        _log = log_fn or logger.info
+        zone_def = self.construct_zone_def()
+
+        # TODO: Geometry loading, weather loading, geometry post process, etc
+        model = Model(
+            Weather=AnyUrl(
+                "https://climate.onebuilding.org/WMO_Region_4_North_and_Central_America/USA_United_States_of_America/MA_Massachusetts/USA_MA_Boston-Logan.Intl.AP.725090_TMYx.2009-2023.zip"
+            ),
+            Zone=zone_def,
+            basement_insulation_surface=None,
+            conditioned_basement=False,
+            basement_use_fraction=None,
+            attic_insulation_surface=None,
+            conditioned_attic=False,
+            attic_use_fraction=None,
+            geometry=ShoeboxGeometry(
+                x=0,
+                y=0,
+                w=10,
+                d=10,
+                h=3,
+                wwr=0.2,
+                num_stories=2,
+                basement=False,
+                zoning="by_storey",
+                roof_height=None,
+            ),
         )
-        db = settings.db
-        with db:
-            zone_def = self.construct_zone_def(db)
-        log(f"Zone definition: {zone_def}")
-        return 0
+
+        idf, results, err_text = model.run(move_energy=False)
+        # creating results dataframe index
+
+        dumped_self = self.model_dump(mode="json")
+        # TODO: better constructiok of multiindex; consider adding some
+        # somputed fields, how to handle semantic fields, etc
+        index = pd.MultiIndex.from_tuples(
+            [tuple(dumped_self.values())],
+            names=list(dumped_self.keys()),
+        )
+        results = results.to_frame().T.set_index(index)
+        return idf, results, err_text

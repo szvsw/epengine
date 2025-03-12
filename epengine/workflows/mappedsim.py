@@ -2,7 +2,6 @@
 
 import logging
 
-import pandas as pd
 from hatchet_sdk import Context
 
 from epengine.hatchet import hatchet
@@ -42,11 +41,10 @@ class SimulateSBEMSimulation:
         """
         data = context.workflow_input()
         spec = SBEMSimulationSpecWithContext(**data, hcontext=context)
-        # _idf, results, err_text = await spec.run()
-        # _idf, results, err_text = spec.run(log_fn=context.log)
-        res = spec.run(log_fn=context.log)
-        dfs = {"results": pd.DataFrame({"res": [res, res]})}
+        _idf, results, err_text = spec.run(log_fn=context.log)
+        results = {"results": results}
+        context.log(err_text)
 
-        dfs = serialize_df_dict(dfs)
+        dfs = serialize_df_dict(results)
 
         return dfs
