@@ -295,7 +295,7 @@ async def get_workflow(workflow_run_id: str, bg_tasks: BackgroundTasks) -> FileR
         data = res["collect_children"]
         # TODO: why are we doing it this way with a bg task
         # for removing the tmpdir?  why not use a context
-        # manager?
+        # manager? probably some race condition?
         tempdir = tempfile.mkdtemp()
 
         local_path = Path(tempdir) / "results.h5"

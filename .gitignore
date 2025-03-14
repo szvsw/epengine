@@ -175,3 +175,7 @@ data/idfs/scratch/**
 data/scratch/**
 notebooks/cache/
 copilot/.workspace
+artifacts/**/*.yml
+artifacts/**/*.db
+artifacts/**/*.geojson
+artifacts/**/*.zip
