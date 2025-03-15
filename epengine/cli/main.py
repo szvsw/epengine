@@ -5,18 +5,10 @@ from typing import Literal
 
 import click
 import pandas as pd
-from pydantic import BaseModel
 
-from epengine.gis.submit import GisJobArgs
+from epengine.gis.models import GisJobArgs
 from epengine.models.leafs import AvailableWorkflowSpecs, WorkflowName
-
-
-# TODO: move this
-class Manifest(BaseModel):
-    """A manifest for a sequence of jobs."""
-
-    Name: str
-    Jobs: list[GisJobArgs]
+from epengine.models.manifests import Manifest
 
 
 @click.group()
@@ -193,7 +185,7 @@ def artifacts(
         recursion_factor (int): The recursion factor for scatter/gather subdivision.
         max_depth (int): The max depth for scatter/gather subdivision.
     """
-    from epengine.gis.submit import GisJobArgs, submit_gis_job
+    from epengine.gis.submit import submit_gis_job
 
     config = GisJobArgs(
         gis_file=str(gis),
