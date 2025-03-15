@@ -2,7 +2,7 @@
 
 import logging
 import tempfile
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import cast
 
@@ -26,6 +26,144 @@ from epengine.models.leafs import AvailableWorkflowSpecs
 logger = logging.getLogger(__name__)
 # TODO: this client should be imported
 client = new_client()
+
+
+def reproject_gdf(
+    gdf: gpd.GeoDataFrame, cart_crs: str, log_fn: Callable | None = None
+) -> gpd.GeoDataFrame:
+    """We want to have some safety to ensure there is no confusing behavior with the provided CRS.
+
+    We want to ensure that either:
+    - the gdf is already in the desired crs or EPSG:3857, in which case we bring it back up to 4326
+    - the gdf is already in 4326, in which case we leave it alone
+    - the gdf has no crs, in which case we raise an error
+    - the gdf is in some other crs, in which case we raise an error
+
+    Args:
+        gdf (gpd.GeoDataFrame): The input GeoDataFrame.
+        cart_crs (str): The eventually desired cartesian crs.
+        log_fn (Callable | None): The function to use for logging.
+
+    Raises:
+        ValueError: If the gdf is not in the expected crs or has no crs.
+
+    Returns:
+        gdf (gpd.GeoDataFrame): The reprojected GeoDataFrame.
+
+    """
+    log = log_fn or logger.info
+    log("Checking GIS file crs and reprojecting if necessary...")
+    if not gdf.crs:
+        msg = "GIS file has no crs.  Please set the CRS before running this script."
+        raise ValueError(msg)
+
+    if gdf.crs == "EPSG:3857":
+        gdf = cast(gpd.GeoDataFrame, gdf.to_crs("EPSG:4326"))
+    current_crs = gdf.crs
+
+    log(f"GIS file has crs {current_crs}")
+    if current_crs not in ["EPSG:4326", cart_crs]:
+        msg = f"GIS file has crs {current_crs}.  Please set the CRS to 'EPSG:4326' or '{cart_crs}' before running this script."
+        raise ValueError(msg)
+
+    if current_crs != "EPSG:4326":
+        log("Projecting gis file to EPSG:4326.")
+        gdf = cast(gpd.GeoDataFrame, gdf.to_crs("EPSG:4326"))
+
+    return gdf
+
+
+def rename_shp_cols(
+    gdf: gpd.GeoDataFrame,
+    expected_cols: Sequence[str | None],
+    log_fn: Callable | None = None,
+) -> gpd.GeoDataFrame:
+    """Rename columns of a shapefile to the expected column names.
+
+    This is necessary because shapefiles will trucnate the column
+    name to 10 characters, but users might not realize this when they
+    export from e.g. ArcGIS.
+
+    Args:
+        gdf (gpd.GeoDataFrame): The input GeoDataFrame.
+        expected_cols (Sequence[str]): The expected column names.
+        log_fn (Callable | None): The function to use for logging.
+
+    Returns:
+        gdf (gpd.GeoDataFrame): The input GeoDataFrame with renamed columns.
+    """
+    log = log_fn or logger.info
+    log("Renaming SHAPEFILE columns which may have been truncated...")
+    for col_name in expected_cols:
+        if col_name is None:
+            continue
+        if col_name[:10] in gdf.columns:
+            log(f"Renaming column '{col_name[:10]}' to '{col_name}' as per manifest.")
+            gdf = cast(gpd.GeoDataFrame, gdf.rename(columns={col_name[:10]: col_name}))
+    log("Done renaming SHAPEFILE columns.")
+    return gdf
+
+
+def check_for_column_existence(
+    gdf: gpd.GeoDataFrame,
+    expected_cols: Sequence[str | None],
+    log_fn: Callable | None = None,
+) -> None:
+    """Check if the expected columns exist in the GeoDataFrame.
+
+    Args:
+        gdf (gpd.GeoDataFrame): The input GeoDataFrame.
+        expected_cols (Sequence[str | None]): The expected column names.
+        log_fn (Callable | None): The function to use for logging.
+
+    Raises:
+        ValueError: If a column is not found in the GeoDataFrame.
+    """
+    log = log_fn or logger.info
+    log("Checking for column existence...")
+    for col_name in expected_cols:
+        if col_name is None:
+            continue
+        if col_name not in gdf.columns:
+            msg = f"Column '{col_name}' not found in gdf. Available columns: {gdf.columns.tolist()}"
+            raise ValueError(msg)
+    log("All expected columns found in gdf.")
+
+
+def validate_semantic_field_compatibility(
+    gdf: gpd.GeoDataFrame,
+    semantic_fields: SemanticModelFields,
+    log_fn: Callable | None = None,
+):
+    """Validate the user provided semantic fields against the provided GeoDataFrame.
+
+    Args:
+        gdf (gpd.GeoDataFrame): The input GeoDataFrame.
+        semantic_fields (SemanticModelFields): The semantic fields to validate.
+        log_fn (Callable | None): The function to use for logging.
+
+    Raises:
+        ValueError: If an option is not found in the allowed options for a given semantic field.
+        NotImplementedError: If a field does not have a consistency rule enabled.
+
+    """
+    # TODO: this should become a method of the field spec,
+    # which ought to have an ABC method for each subclass of FieldSpec for checking consistency
+    # AND handling optional fallback behavior for na values?
+    log = log_fn or logger.info
+    log("Validating semantic field compatibility...")
+    for field in semantic_fields.Fields:
+        if isinstance(field, CategoricalFieldSpec):
+            field_vals = gdf[field.Name]
+            is_valid = field_vals.isin(field.Options)
+            is_not_valid = ~is_valid
+            if cast(pd.Series, is_not_valid).any():
+                msg = f"Field '{field.Name}' has values which are not in the allowed options: {field.Options}"
+                raise ValueError(msg)
+        else:
+            msg = f"Field '{field.Name}' is a  {field.__class__.__name__}, which does not yet have a consistency rule enabled."
+            raise NotImplementedError(msg)
+    log("Semantic field compatibility validation complete.")
 
 
 def submit_gis_job(  # noqa: C901
@@ -86,28 +224,7 @@ def submit_gis_job(  # noqa: C901
 
     gdf = cast(gpd.GeoDataFrame, gpd.read_file(gis_file))
 
-    # Handle GIS transformations.
-    # We will want to make sure that the GIS file is in either 4326, 3857,
-    # or the expected cartesian reference.  If it's not, we will raise an
-    # error to be safe for no mismatched expectations.
-    # Then we will project to 4326 so we can safely infer lat lons and so on.
-    log("Checking GIS file crs and reprojecting if necessary...")
-    if not gdf.crs:
-        msg = "GIS file has no crs.  Please set the CRS before running this script."
-        raise ValueError(msg)
-
-    if gdf.crs == "EPSG:3857":
-        gdf = cast(gpd.GeoDataFrame, gdf.to_crs("EPSG:4326"))
-    current_crs = gdf.crs
-
-    log(f"GIS file has crs {current_crs}")
-    if current_crs not in ["EPSG:4326", cart_crs]:
-        msg = f"GIS file has crs {current_crs}.  Please set the CRS to 'EPSG:4326' or '{cart_crs}' before running this script."
-        raise ValueError(msg)
-
-    if current_crs != "EPSG:4326":
-        log("Projecting gis file to EPSG:4326.")
-        gdf = cast(gpd.GeoDataFrame, gdf.to_crs("EPSG:4326"))
+    gdf = reproject_gdf(gdf, cart_crs, log_fn=log)
 
     # load the semantic fields
     # We will need to access this as it stores some
@@ -119,60 +236,29 @@ def submit_gis_job(  # noqa: C901
     with open(_semantic_fields) as f:
         semantic_fields = SemanticModelFields.model_validate(yaml.safe_load(f))
 
+    # TODO: if we refactor the semantic fields class to either return a list of rich fields, or include them in their own dict, we don't need the hardcoded list
+    rich_semantic_fields = [
+        semantic_fields.Height_col,
+        semantic_fields.Num_Floors_col,
+        semantic_fields.WWR_col,
+        semantic_fields.GFA_col,
+    ]
+
+    required_columns = [
+        field.Name for field in semantic_fields.Fields
+    ] + rich_semantic_fields
+
     # We need to deal with the fact that shapefiles will trucnate the column
     # name to 10 characters, but users might not realize this when they
     # export from e.g. ArcGIS.
-    if gis_file.suffix.lower() in [".zip", ".shp", ".shx"]:
-        # Deal with truncated titles
-        for field in semantic_fields.Fields:
-            if field.Name[:10] in gdf.columns:
-                log(
-                    f"Renaming column '{field.Name[:10]}' to '{field.Name}' as per manifest."
-                )
-                gdf = cast(
-                    gpd.GeoDataFrame, gdf.rename(columns={field.Name[:10]: field.Name})
-                )
-
-        # TODO: adding new rich semantic field columns to
-        # to the model would require knowing to update this
-        # list; this logic should be refactored out to exist on semantic fields.
-        for col_name in [
-            semantic_fields.Height_col,
-            semantic_fields.Num_Floors_col,
-            semantic_fields.WWR_col,
-            semantic_fields.GFA_col,
-        ]:
-            if col_name is None:
-                continue
-            if col_name[:10] in gdf.columns:
-                log(
-                    f"Renaming column '{col_name[:10]}' to '{col_name}' as per manifest."
-                )
-                gdf = cast(
-                    gpd.GeoDataFrame, gdf.rename(columns={col_name[:10]: col_name})
-                )
+    gdf = rename_shp_cols(gdf, required_columns, log_fn=log)
 
     # We want to run a consistency check to make sure that the requested semantic fields
     # are actually in the GDF after we have dealt with appropriate renaming.
-    # We also should run a consistency check to make sure that every cell value that is listed as an optional
+    # We also should run a consistency check to make sure that every cell value that is listed as a
     # semantic field is actually one of the expected values.
-    for field in semantic_fields.Fields:
-        if field.Name not in gdf.columns:
-            msg = f"Field '{field.Name}' not found in gdf. Available columns: {gdf.columns.tolist()}"
-            raise ValueError(msg)
-        if isinstance(field, CategoricalFieldSpec):
-            # TODO: this should become a method of the field spec,
-            # which ought to have an ABC method for checking consistency
-            # AND handling optional fallback behavior for na values.
-            field_vals = gdf[field.Name]
-            is_valid = field_vals.isin(field.Options)
-            is_not_valid = ~is_valid
-            if cast(pd.Series, is_not_valid).any():
-                msg = f"Field '{field.Name}' has values which are not in the allowed options: {field.Options}"
-                raise ValueError(msg)
-        else:
-            msg = f"Field '{field.Name}' is a  {field.__class__.__name__}, which does not yet have a consistency rule enabled."
-            raise NotImplementedError(msg)
+    check_for_column_existence(gdf, required_columns, log_fn=log)
+    validate_semantic_field_compatibility(gdf, semantic_fields, log_fn=log)
 
     # First, we will inject a fitted rotated rectangle in cartesian space
     # along with various geometric feature extractions (e.g. the length of the long edge,
@@ -264,6 +350,7 @@ def submit_gis_job(  # noqa: C901
     )
 
     def handle_epw_path(x: str):
+        # GROSS - we should fix this.
         x = "/".join(x.split("\\")[2:-1])
         x = f"https://climate.onebuilding.org/{x}.zip"
         return x
