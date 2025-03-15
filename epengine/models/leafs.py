@@ -6,8 +6,8 @@ from typing import Literal
 from pydantic import AnyUrl, Field
 
 from epengine.models.base import LeafSpec
-from epengine.models.mappedsim import SBEMSimulationSpec
 from epengine.models.shoebox import ShoeboxSimulationSpec
+from epengine.models.shoebox_sbem import SBEMSimulationSpec
 
 
 class SimulationSpec(LeafSpec):
@@ -60,12 +60,12 @@ class SimpleSpec(LeafSpec):
 
 
 WorkflowName = Literal[
-    "simulate_epw_idf", "simple", "simulate_ubem_shoebox", "simulate_sbem_mapped"
+    "simulate_epw_idf", "simple", "simulate_ubem_shoebox", "simulate_sbem_shoebox"
 ]
 
 AvailableWorkflowSpecs: dict[WorkflowName, type[LeafSpec]] = {
     "simulate_epw_idf": SimulationSpec,
     "simple": SimpleSpec,
     "simulate_ubem_shoebox": ShoeboxSimulationSpec,
-    "simulate_sbem_mapped": SBEMSimulationSpec,
+    "simulate_sbem_shoebox": SBEMSimulationSpec,
 }

@@ -1,4 +1,4 @@
-"""A model for a mapped simulation."""
+"""A model for an SBEM composed shoebox simulation."""
 
 import logging
 from collections.abc import Callable

@@ -10,7 +10,7 @@ from epengine.workflows import (
     ScatterGatherWorkflow,
     SimpleTest,
     Simulate,
-    SimulateSBEMSimulation,
+    SimulateSBEMShoebox,
     SimulateShoebox,
 )
 
@@ -112,7 +112,7 @@ class SimWorkerSettings(BaseSettings):
         if self.DOES_LEAF:
             worker.register_workflow(Simulate())
             worker.register_workflow(SimulateShoebox())
-            worker.register_workflow(SimulateSBEMSimulation())
+            worker.register_workflow(SimulateSBEMShoebox())
         worker.register_workflow(SimpleTest())
 
         return worker

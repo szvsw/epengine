@@ -78,8 +78,8 @@ def submit_gis_job(  # noqa: C901
     epw_query = config.epw_query
     _recursion_factor = config.recursion_factor
     _max_depth = config.max_depth
-    if leaf_workflow != "simulate_sbem_mapped":
-        msg = f"Leaf workflow {leaf_workflow} is not supported; currently only 'simulate_sbem_mapped' is supported."
+    if leaf_workflow != "simulate_sbem_shoebox":
+        msg = f"Leaf workflow {leaf_workflow} is not supported; currently only 'simulate_sbem_shoebox' is supported."
         raise ValueError(msg)
 
     # TODO: trigger hatchet job for gis processing
