@@ -190,34 +190,36 @@ def extract_neighbors_geo(
     return polys.tolist()
 
 
-def extract_neighbor_floors(
+def extract_neighbor_heights(
     gdf: gpd.GeoDataFrame,
     neighbor_ixs: list[int],
-    num_floors_col: str = "num_floors",
-    fill_na_val: float = 2,
+    height_col: str = "height",
+    fill_na_val: float = 8,
 ) -> list[float]:
     """Convert neighbor indices to heights for a single building.
 
     Args:
         gdf (gpd.GeoDataFrame): The GeoDataFrame.
         neighbor_ixs (list[int]): The neighbor indices.
-        num_floors_col (str, optional): The number of floors column. Defaults to `num_floors`.
-        fill_na_val (float, optional): The value to fill NaNs with. Defaults to 2.
+        height_col (str, optional): The height column. Defaults to `height`.
+        fill_na_val (float, optional): The value to fill NaNs with. Defaults to 8.
 
     Returns:
-        floors (list[float]): The neighbor floor counts.
+        heights (list[float]): The neighbor heights.
     """
-    floors = gdf.iloc[neighbor_ixs][num_floors_col].fillna(fill_na_val)
-    return floors.tolist()
+    if neighbor_ixs is None or len(neighbor_ixs) == 0 or neighbor_ixs is np.nan:
+        return []
+    heights = gdf.iloc[neighbor_ixs][height_col].fillna(fill_na_val)
+    return heights.tolist()
 
 
 def convert_neighbors(
     gdf: gpd.GeoDataFrame,
     neighbor_col: str = "neighbor_ixs",
     geometry_col: str = "rotated_rectangle",
-    num_floors_col: str = "num_floors",
+    height_col: str = "height",
     neighbor_geo_out_col: str = "neighbor_polys",
-    neighbor_floors_out_col: str = "neighbor_floors",
+    neighbor_heights_out_col: str = "neighbor_heights",
     fill_na_val: float = 2,
 ) -> tuple[gpd.GeoDataFrame, list[str]]:
     """Convert neighbor indices to polygons and heights for all buildings in a GeoDataFrame.
@@ -226,9 +228,9 @@ def convert_neighbors(
         gdf (gpd.GeoDataFrame): The GeoDataFrame.
         neighbor_col (str, optional): The neighbor indices column. Defaults to `neighbor_ixs`.
         geometry_col (str, optional): The geometry column. Defaults to `rotated_rectangle`.
-        num_floors_col (str, optional): The number of floors column. Defaults to `num_floors`.
+        height_col (str, optional): The height column. Defaults to `height`.
         neighbor_geo_out_col (str, optional): The output column for neighbor polygons. Defaults to `neighbor_polys`.
-        neighbor_floors_out_col (str, optional): The output column for neighbor floors. Defaults to `neighbor_heights`.
+        neighbor_heights_out_col (str, optional): The output column for neighbor heights. Defaults to `neighbor_heights`.
         fill_na_val (float, optional): The value to fill NaNs with. Defaults to 2.
 
     Returns:
@@ -242,18 +244,18 @@ def convert_neighbors(
             geometry_col=geometry_col,
         )
     )
-    neighbor_floors = gdf[neighbor_col].apply(
-        lambda x: extract_neighbor_floors(
+    neighbor_heights = gdf[neighbor_col].apply(
+        lambda x: extract_neighbor_heights(
             gdf=gdf,
             neighbor_ixs=x,
-            num_floors_col=num_floors_col,
+            height_col=height_col,
             fill_na_val=fill_na_val,
         )
     )
     gdf[neighbor_geo_out_col] = neighbors
-    gdf[neighbor_floors_out_col] = neighbor_floors
+    gdf[neighbor_heights_out_col] = neighbor_heights
     injected_cols = [
         neighbor_geo_out_col,
-        neighbor_floors_out_col,
+        neighbor_heights_out_col,
     ]
     return gdf, injected_cols
