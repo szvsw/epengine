@@ -179,3 +179,7 @@ artifacts/**/*.yml
 artifacts/**/*.db
 artifacts/**/*.geojson
 artifacts/**/*.zip
+artifacts/**/*.hdf
+artifacts/**/*.h5
+artifacts/**/*.pq
+artifacts/**/*.parquet
