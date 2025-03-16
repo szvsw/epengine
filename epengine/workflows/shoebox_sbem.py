@@ -2,7 +2,7 @@
 
 import logging
 
-from hatchet_sdk import Context
+from hatchet_sdk import Context, sync_to_async
 
 from epengine.hatchet import hatchet
 from epengine.models.mixins import WithHContext
@@ -30,7 +30,7 @@ class SimulateSBEMShoebox:
     """A workflow to simulate an EnergyPlus model."""
 
     @hatchet.step(name="simulate", timeout="10m", retries=2)
-    def simulate(self, context: Context):
+    async def simulate(self, context: Context):
         """Simulate an EnergyPlus Shoebox UBEM model.
 
         Args:
@@ -39,12 +39,18 @@ class SimulateSBEMShoebox:
         Returns:
             dict: A dictionary of dataframes with results.
         """
-        data = context.workflow_input()
-        spec = SBEMSimulationSpecWithContext(**data, hcontext=context)
-        _idf, results, err_text = spec.run(log_fn=context.log)
-        results = {"results": results}
-        context.log(err_text)
+        return await run_step(context)
 
-        dfs = serialize_df_dict(results)
 
-        return dfs
+@sync_to_async
+def run_step(context: Context):
+    """Run a step of the workflow with async safety."""
+    data = context.workflow_input()
+    spec = SBEMSimulationSpecWithContext(**data, hcontext=context)
+    _idf, results, err_text = spec.run(log_fn=context.log)
+    results = {"results": results}
+    context.log(err_text)
+
+    dfs = serialize_df_dict(results)
+
+    return dfs
