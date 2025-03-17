@@ -1,7 +1,9 @@
 """Workflows for iteratively issuing simulations and training a regressor."""
 
+import asyncio
+
 import boto3
-from hatchet_sdk import Context, sync_to_async
+from hatchet_sdk import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.train_sbem import TrainFoldSpec, TrainWithCVSpec
@@ -30,7 +32,9 @@ class TrainRegressorWithCV:
     @hatchet.step(name="train", timeout="10m")
     async def train(self, context: Context):
         """This step is responsible for launching the scatter gather task and returning the convergence results."""
-        return await safe_cv(context)
+        workflow_input = context.workflow_input()
+        train_spec = TrainWithCVSpec(**workflow_input)
+        return await train_spec.allocate(context=context, s3_client=s3)
 
 
 @hatchet.workflow(
@@ -45,20 +49,30 @@ class TrainRegressorWithCVFold:
     @hatchet.step(name="simulate", timeout="10m")
     async def simulate(self, context: Context):
         """This step is responsible for training the model on a single fold."""
-        return await safe_train(context)
+
+        def run():
+            workflow_input = context.workflow_input()
+            train_spec = TrainFoldSpec(**workflow_input)
+            return serialize_df_dict(train_spec.run())
+
+        return await asyncio.to_thread(run)
 
 
-@sync_to_async
-async def safe_cv(context: Context):
-    """This function is responsible for allocating the train with cv spec and returning the convergence results with a wrapper for async safety."""
-    workflow_input = context.workflow_input()
-    train_spec = TrainWithCVSpec(**workflow_input)
-    return await train_spec.allocate(context=context, s3_client=s3)
+if __name__ == "__main__":
+    n_folds = 3
+    train_spec = TrainWithCVSpec(
+        bucket="ml-for-bem",
+        experiment_id="test-train-cv",
+        n_folds=n_folds,
+        data_uri="s3://ml-for-bem/hatchet/braga-baseline-test-22/results/dataset-training.pq",  # pyright: ignore [reportArgumentType]
+        stratification_field="feature.weather.file",
+        progressive_training_iter_ix=0,
+    )
+    from hatchet_sdk.client import new_client
 
+    client = new_client()
 
-@sync_to_async
-def safe_train(context: Context):
-    """This function is responsible for training the model on a single fold and returning the results with a wrapper for async safety."""
-    workflow_input = context.workflow_input()
-    train_spec = TrainFoldSpec(**workflow_input)
-    return serialize_df_dict(train_spec.run())
+    client.admin.run_workflow(
+        workflow_name="train_regressor_with_cv",
+        input=train_spec.model_dump(mode="json"),
+    )

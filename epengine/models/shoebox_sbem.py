@@ -280,6 +280,9 @@ class SBEMSimulationSpec(LeafSpec):
         )
         dumped_self.update(self.feature_dict)
         dumped_self["feature.geometry.core_zone_split"] = model.geometry.zoning
+        dumped_self["feature.geometry.total_conditioned_area"] = (
+            model.total_conditioned_area
+        )
 
         index = pd.MultiIndex.from_tuples(
             [tuple(dumped_self.values())],

@@ -126,17 +126,6 @@ class SimWorkerSettings(BaseSettings):
         return worker
 
 
-async def arun():
-    """Run the EnergyPlus worker.
-
-    Note that this function will be blocking.
-    """
-    settings = SimWorkerSettings()
-    worker = settings.make_worker()
-
-    await worker.async_start()
-
-
 def run():
     """Run the EnergyPlus worker.
 

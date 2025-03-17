@@ -1,10 +1,11 @@
 """Simulate an EnergyPlus ubem shoebox model with associated artifacts."""
 
+import asyncio
 import logging
 
 import numpy as np
 import pandas as pd
-from hatchet_sdk import Context, sync_to_async
+from hatchet_sdk import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.mixins import WithHContext
@@ -41,22 +42,18 @@ class SimulateSBEMShoebox:
         Returns:
             dict: A dictionary of dataframes with results.
         """
-        return await run_step(context)
 
+        def run():
+            data = context.workflow_input()
+            spec = SBEMSimulationSpecWithContext(**data, hcontext=context)
+            _idf, results, err_text = spec.run(log_fn=context.log)
+            # results = toy_results(results)
+            results = {"results": results}
+            context.log(err_text)
 
-@sync_to_async
-def run_step(context: Context):
-    """Run a step of the workflow with async safety."""
-    data = context.workflow_input()
-    spec = SBEMSimulationSpecWithContext(**data, hcontext=context)
-    _idf, results, err_text = spec.run(log_fn=context.log)
-    results = toy_results(results)
-    results = {"results": results}
-    context.log(err_text)
+            return serialize_df_dict(results)
 
-    dfs = serialize_df_dict(results)
-
-    return dfs
+        return await asyncio.to_thread(run)
 
 
 def toy_results(results: pd.DataFrame):

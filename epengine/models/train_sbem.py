@@ -617,7 +617,9 @@ class TrainWithCVSpec(BaseSpec, WithBucket):
             input=payload,
         )
 
+        context.log("CV Scheduled, waiting for completion...")
         result = await workflowRef.result()
+        context.log("CV Completed, collecting results")
 
         if "collect_children" not in result:
             msg = f"Workflow {workflowRef.workflow_run_id} failed."
@@ -647,50 +649,5 @@ class TrainWithCVSpec(BaseSpec, WithBucket):
         else:
             # go to sampler
             pass
-        return {"converged": convergence_all}
-
-
-if __name__ == "__main__":
-    # seg_results = []
-    # for i in range(n_folds):
-    #     train_fold = TrainFoldSpec(
-    #         experiment_id="test",
-    #         sort_index=i,
-    #         n_folds=n_folds,
-    #         data_uri="s3://ml-for-bem/hatchet/braga-baseline-test-22/results/dataset-training.pq",  # pyright: ignore [reportArgumentType]
-    #         stratification_field="feature.weather.file",
-    #         progressive_training_iter_ix=0,
-    #     )
-    #     results = train_fold.run()
-    #     seg_results.append(results["stratum_metrics"])
-    # seg_results = pd.concat(seg_results)
-
-    # test_results = cast(
-    #     pd.Series, seg_results.xs("test", level="split_segment", axis=1).mean(axis=0)
-    # )
-    # thresholds = ConvergenceThresholds()
-    # comp_all, comp_strata, comp_stratum_and_target, comp = thresholds.check_convergence(
-    #     test_results
-    # )
-    # print(comp)
-    # print(comp_stratum_and_target)
-    # print(comp_strata)
-    # print(comp_all)
-
-    n_folds = 3
-    train_spec = TrainWithCVSpec(
-        bucket="ml-for-bem",
-        experiment_id="test-train-cv",
-        n_folds=n_folds,
-        data_uri="s3://ml-for-bem/hatchet/braga-baseline-test-22/results/dataset-training.pq",  # pyright: ignore [reportArgumentType]
-        stratification_field="feature.weather.file",
-        progressive_training_iter_ix=0,
-    )
-    from hatchet_sdk.client import new_client
-
-    client = new_client()
-
-    client.admin.run_workflow(
-        workflow_name="train_regressor_with_cv",
-        input=train_spec.model_dump(mode="json"),
-    )
+        context.log("CV Completed, returning results")
+        return {"converged": "yas"}
