@@ -2,6 +2,8 @@
 
 import logging
 
+import numpy as np
+import pandas as pd
 from hatchet_sdk import Context, sync_to_async
 
 from epengine.hatchet import hatchet
@@ -48,9 +50,27 @@ def run_step(context: Context):
     data = context.workflow_input()
     spec = SBEMSimulationSpecWithContext(**data, hcontext=context)
     _idf, results, err_text = spec.run(log_fn=context.log)
+    results = toy_results(results)
     results = {"results": results}
     context.log(err_text)
 
     dfs = serialize_df_dict(results)
 
     return dfs
+
+
+def toy_results(results: pd.DataFrame):
+    """Toy results for testing."""
+    index = results.index.to_frame(index=False)
+    index = index[[col for col in index.columns if col.startswith("feature")]]
+    numericals = index.select_dtypes(include=[float, int]).values.flatten()
+    numericals_squared = (numericals * numericals.reshape(-1, 1)).flatten()
+    indicators = np.concatenate([numericals, numericals_squared])
+    seed = 42
+    gen = np.random.RandomState(seed)
+    results_cols = results.columns.to_list()
+    coeff_mat = gen.uniform(size=(len(results_cols), len(indicators)))
+    linear_terms = coeff_mat @ indicators
+    for i, col in enumerate(results_cols):
+        results.loc[:, col] = linear_terms[i]
+    return results

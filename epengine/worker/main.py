@@ -12,6 +12,8 @@ from epengine.workflows import (
     Simulate,
     SimulateSBEMShoebox,
     SimulateShoebox,
+    TrainRegressorWithCV,
+    TrainRegressorWithCVFold,
 )
 
 
@@ -23,6 +25,7 @@ class SimWorkerSettings(BaseSettings):
     COPILOT_ENVIRONMENT_NAME: str | None = None
     DOES_FAN: bool = True
     DOES_LEAF: bool = True
+    DOES_TRAIN: bool = True
     MAX_RUNS: int | None = None
 
     @property
@@ -108,11 +111,16 @@ class SimWorkerSettings(BaseSettings):
         if (self.FLY_REGION == "sea" or self.FLY_REGION is None) and self.DOES_FAN:
             worker.register_workflow(ScatterGatherWorkflow())
             worker.register_workflow(ScatterGatherRecursiveWorkflow())
+            worker.register_workflow(TrainRegressorWithCVFold())
 
         if self.DOES_LEAF:
             worker.register_workflow(Simulate())
             worker.register_workflow(SimulateShoebox())
             worker.register_workflow(SimulateSBEMShoebox())
+
+        if self.DOES_TRAIN:
+            worker.register_workflow(TrainRegressorWithCV())
+
         worker.register_workflow(SimpleTest())
 
         return worker

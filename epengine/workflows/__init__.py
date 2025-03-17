@@ -5,6 +5,7 @@ from .shoebox import SimulateShoebox
 from .shoebox_sbem import SimulateSBEMShoebox
 from .simple import SimpleTest
 from .simulate import Simulate
+from .train_sbem import TrainRegressorWithCV, TrainRegressorWithCVFold
 
 __all__ = [
     "ScatterGatherRecursiveWorkflow",
@@ -13,4 +14,6 @@ __all__ = [
     "Simulate",
     "SimulateSBEMShoebox",
     "SimulateShoebox",
+    "TrainRegressorWithCV",
+    "TrainRegressorWithCVFold",
 ]
