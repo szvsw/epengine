@@ -16,6 +16,8 @@ from epengine.workflows import (
     TrainRegressorWithCVFold,
 )
 
+# from epengine.workflows.minimal_multi_level_test import Fanout, Leaf, Root, RootAlt
+
 
 class SimWorkerSettings(BaseSettings):
     """Settings for the EnergyPlus worker."""
@@ -122,6 +124,10 @@ class SimWorkerSettings(BaseSettings):
             worker.register_workflow(TrainRegressorWithCV())
 
         worker.register_workflow(SimpleTest())
+        # worker.register_workflow(Root())
+        # worker.register_workflow(Fanout())
+        # worker.register_workflow(Leaf())
+        # worker.register_workflow(RootAlt())
 
         return worker
 

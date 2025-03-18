@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 from hatchet_sdk import Context
+from hatchet_sdk.workflow_run import WorkflowRunRef
 from pydantic import AnyUrl, BaseModel, Field
 from sklearn.metrics import (
     mean_absolute_error,
@@ -23,8 +24,7 @@ else:
     S3ClientType = object
 
 
-from epengine.models.base import BaseSpec
-from epengine.models.leafs import LeafSpec
+from epengine.models.base import BaseSpec, LeafSpec
 from epengine.models.mixins import WithBucket
 from epengine.models.outputs import URIResponse
 
@@ -612,17 +612,20 @@ class TrainWithCVSpec(BaseSpec, WithBucket):
             "experiment_id": f"{self.experiment_id}/iter-{self.progressive_training_iter_ix:03d}/train",
         }
 
-        workflowRef = await context.aio.spawn_workflow(
+        workflow_ref = await context.aio.spawn_workflow(
             workflow_name="scatter_gather",
             input=payload,
         )
+        return {"id": workflow_ref.workflow_run_id}
 
+    async def state_transition(self, context: Context, workflow_ref: WorkflowRunRef):
+        """Transition the state of the workflow."""
         context.log("CV Scheduled, waiting for completion...")
-        result = await workflowRef.result()
+        result = await workflow_ref.result()
         context.log("CV Completed, collecting results")
 
         if "collect_children" not in result:
-            msg = f"Workflow {workflowRef.workflow_run_id} failed."
+            msg = f"Workflow {workflow_ref.workflow_run_id} failed."
             raise RuntimeError(msg)
         collect_children_result = result["collect_children"]
         uri = URIResponse.model_validate(collect_children_result)
