@@ -8,9 +8,8 @@ from typing import TYPE_CHECKING, Literal, cast
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from hatchet_sdk import Context
-from hatchet_sdk.workflow_run import WorkflowRunRef
-from pydantic import AnyUrl, BaseModel, Field
+import yaml
+from pydantic import AnyUrl, BaseModel, Field, model_validator
 from sklearn.metrics import (
     mean_absolute_error,
     mean_absolute_percentage_error,
@@ -24,9 +23,16 @@ else:
     S3ClientType = object
 
 
+from epinterface.sbem.fields.spec import (
+    CategoricalFieldSpec,
+    NumericFieldSpec,
+    SemanticModelFields,
+)
+
 from epengine.models.base import BaseSpec, LeafSpec
 from epengine.models.mixins import WithBucket
 from epengine.models.outputs import URIResponse
+from epengine.utils.filesys import fetch_uri
 
 
 class ConvergenceThresholds(BaseModel):
@@ -119,6 +125,12 @@ class StratificationSpec(BaseModel):
         default="equal",
         description="The sampling method to use over the strata.",
     )
+    aliases: list[str] = Field(
+        default_factory=lambda: ["epwzip_path", "epw_path"],
+        description="The alias to use for the stratum as a fallback.",
+    )
+
+    # TODO: consider allowing the stratification to be a compound with e.g. component_map_uri and semantic_fields_uri and database_uri
 
 
 class CrossValidationSpec(BaseModel):
@@ -189,6 +201,255 @@ class ProgressiveTrainingSpec(BaseSpec, WithBucket):
         description="The uri of the database to train on.",
     )
 
+    @property
+    def gis_path(self) -> Path:
+        """The path to the gis data."""
+        return self.fetch_uri(self.gis_uri)
+
+    @cached_property
+    def gis_data(self) -> pd.DataFrame:
+        """Load the gis data."""
+        return pd.read_parquet(self.gis_path)
+
+    @property
+    def semantic_fields_path(self) -> Path:
+        """The path to the semantic fields data."""
+        return self.fetch_uri(self.semantic_fields_uri)
+
+    @cached_property
+    def semantic_fields_data(self) -> SemanticModelFields:
+        """Load the semantic fields data."""
+        with open(self.semantic_fields_path) as f:
+            return SemanticModelFields.model_validate(yaml.safe_load(f))
+
+    def s3_key_for_iteration(self, iteration_ix: int) -> str:
+        """The s3 root key for the iteration."""
+        return f"{self.experiment_id}/iter-{iteration_ix:03d}"
+
+
+class StageSpec(BaseModel):
+    """A spec that is common to both the sample and train stages (and possibly others)."""
+
+    progressive_training_spec: ProgressiveTrainingSpec = Field(
+        ...,
+        description="The progressive training spec.",
+    )
+    progressive_training_iteration_ix: int = Field(
+        ...,
+        description="The index of the current training iteration within the outer loop.",
+    )
+    data_uri: AnyUrl | None = Field(
+        ...,
+        description="The uris of the previous simulation results to sample from.",
+    )
+    stage_type: Literal["sample", "train"] = Field(
+        ...,
+        description="The type of stage.",
+    )
+
+    @cached_property
+    def random_generator(self) -> np.random.Generator:
+        """The random generator."""
+        return np.random.default_rng(self.progressive_training_iteration_ix)
+
+    @cached_property
+    def experiment_key(self) -> str:
+        """The root key for the experiment."""
+        return f"{self.progressive_training_spec.s3_key_for_iteration(self.progressive_training_iteration_ix)}/{self.stage_type}"
+
+    def load_previous_data(self, s3_client: S3ClientType) -> pd.DataFrame | None:
+        """Load the previous data."""
+        if self.data_uri is None:
+            return None
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            fpath = tmpdir / "previous_data.parquet"
+            fetch_uri(
+                uri=self.data_uri,
+                local_path=fpath,
+                use_cache=False,
+                s3=s3_client,
+            )
+            df = pd.read_parquet(fpath)
+        return df
+
+
+class SampleSpec(StageSpec):
+    """A spec for thhe sampling stage of the progressive training."""
+
+    # TODO: add the ability to receive the last set of error metrics and use them to inform the sampling
+
+    def sample(self) -> pd.DataFrame:
+        """Sample the gis data."""
+        df = self.progressive_training_spec.gis_data
+
+        stratification_field = self.progressive_training_spec.stratification.field
+        stratification_aliases = self.progressive_training_spec.stratification.aliases
+
+        if stratification_field not in df.columns and not any(
+            alias in df.columns for alias in stratification_aliases
+        ):
+            msg = f"Stratification field {stratification_field} not found in gis data.  Please check the field name and/or the aliases."
+            raise ValueError(msg)
+
+        if stratification_field not in df.columns:
+            stratification_field = next(
+                alias for alias in stratification_aliases if alias in df.columns
+            )
+
+        strata = cast(list[str], df[stratification_field].unique().tolist())
+
+        if self.progressive_training_spec.stratification.sampling == "equal":
+            return self.sample_equally_by_stratum(df, strata, stratification_field)
+        elif self.progressive_training_spec.stratification.sampling == "error-weighted":
+            msg = "Error-weighted sampling is not yet implemented."
+            raise NotImplementedError(msg)
+        elif self.progressive_training_spec.stratification.sampling == "proportional":
+            msg = "Proportional sampling is not yet implemented."
+            raise NotImplementedError(msg)
+        else:
+            msg = f"Invalid sampling method: {self.progressive_training_spec.stratification.sampling}"
+            raise ValueError(msg)
+
+    def sample_equally_by_stratum(
+        self, df: pd.DataFrame, strata: list[str], stratification_field: str
+    ) -> pd.DataFrame:
+        """Sample equally by stratum.
+
+        This will break the dataframe up into n strata and ensure that each strata ends up with the same number of samples.
+
+        Args:
+            df (pd.DataFrame): The dataframe to sample from.
+            strata (list[str]): The unique values of the strata.
+            stratification_field (str): The field to stratify the data by.
+
+        Returns:
+            samples (pd.DataFrame): The sampled dataframe.
+        """
+        stratum_dfs = {
+            stratum: df[df[stratification_field] == stratum] for stratum in strata
+        }
+        n_per_iter = (
+            self.progressive_training_spec.iteration.n_per_iter
+            if self.progressive_training_iteration_ix != 0
+            else self.progressive_training_spec.iteration.n_init
+        )
+        n_per_stratum = n_per_iter // len(strata)
+
+        # TODO: consider how we want to handle potentially having the same geometry appear in both
+        # the training and testing sets.
+        # if any(len(stratum_df) < n_per_stratum for stratum_df in stratum_dfs.values()):
+        #     msg = "There are not enough buildings in some strata to sample the desired number of buildings per stratum."
+        #     # connsider making this a warning?
+        #     raise ValueError(msg)
+
+        sampled_strata = {
+            stratum: stratum_df.sample(
+                n=n_per_stratum, random_state=self.random_generator, replace=True
+            )
+            for stratum, stratum_df in stratum_dfs.items()
+        }
+        return cast(pd.DataFrame, pd.concat(sampled_strata.values()))
+
+    def sample_semantic_fields(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Sample the semantic fields."""
+        # TODO: consider randomizing the locations?
+        semantic_fields = self.progressive_training_spec.semantic_fields_data
+        for field in semantic_fields.Fields:
+            if isinstance(field, CategoricalFieldSpec):
+                options = field.Options
+                df[field.Name] = self.random_generator.choice(options, size=len(df))
+            elif isinstance(field, NumericFieldSpec):
+                df[field.Name] = self.random_generator.uniform(
+                    field.Min, field.Max, size=len(df)
+                )
+            else:
+                msg = f"Invalid field type: {type(field)}"
+                raise TypeError(msg)
+        return df
+
+    def to_sim_specs(self, df: pd.DataFrame):
+        """Convert the sampled dataframe to a list of simulation specs.
+
+        For now, we are assuming that all the other necessary fields are present and we are just
+        ensuring that sort_index and experiment_id are set appropriately.
+        """
+        df["semantic_field_context"] = df.apply(
+            lambda row: {
+                field.Name: row[field.Name]
+                for field in self.progressive_training_spec.semantic_fields_data.Fields
+            },
+            axis=1,
+        )
+        df["sort_index"] = np.arange(len(df))
+        df["experiment_id"] = self.experiment_key
+        # TODO: consider allowing the component map/semantic_fields/database to be inherited from the row
+        # e.g. to allow multiple component maps and dbs per run.
+        df["component_map_uri"] = str(self.progressive_training_spec.component_map_uri)
+        df["semantic_fields_uri"] = str(
+            self.progressive_training_spec.semantic_fields_uri
+        )
+        df["db_uri"] = str(self.progressive_training_spec.database_uri)
+        return df
+
+    def make_payload(self, s3_client: S3ClientType):
+        """Make the payload for the scatter gather task, including generating the simulation specs and serializing them to s3."""
+        df = self.sample()
+        df = self.sample_semantic_fields(df)
+        df = self.to_sim_specs(df)
+        # serialize to a parquet file and upload to s3
+        bucket = self.progressive_training_spec.bucket
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            fpath = tmpdir / "specs.pq"
+            df.to_parquet(fpath)
+            key = f"hatchet/{self.experiment_key}/specs.pq"
+            specs_uri = f"s3://{bucket}/{key}"
+            s3_client.upload_file(fpath.as_posix(), bucket, key)
+
+        payload = {
+            "specs": specs_uri,
+            "bucket": bucket,
+            "workflow_name": "simulate_sbem_shoebox",
+            "experiment_id": self.experiment_key,
+            "recursion_map": {
+                "factor": 3,  # TODO: configure this
+                "max_depth": 1,
+            },
+        }
+        return payload
+
+    def combine_results(self, new_data_uri: URIResponse, s3_client: S3ClientType):
+        """Combine the results of the previous and new data."""
+        previous_data = self.load_previous_data(s3_client)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            fpath = tmpdir / "new_data.parquet"
+            fetch_uri(
+                uri=new_data_uri.uri, local_path=fpath, use_cache=False, s3=s3_client
+            )
+            df = cast(pd.DataFrame, pd.read_hdf(fpath, key="results"))
+        if previous_data is not None:
+            df = pd.concat([previous_data, df], axis=0)
+        # serialize to a parquet file and upload to s3
+        bucket = self.progressive_training_spec.bucket
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            fpath = tmpdir / "results.parquet"
+            df.to_parquet(fpath)
+            key = f"hatchet/{self.experiment_key}/full-dataset.pq"
+            specs_uri = f"s3://{bucket}/{key}"
+            s3_client.upload_file(fpath.as_posix(), bucket, key)
+        return specs_uri
+
+    @model_validator(mode="after")
+    def check_stage(self):
+        """The sampling spec must have stage set to 'sample'."""
+        if self.stage_type != "sample":
+            msg = f"Invalid stage: {self.stage_type}"
+            raise ValueError(msg)
+        return self
+
 
 class TrainFoldSpec(LeafSpec):
     """Train an sbem model for a specific fold.
@@ -239,8 +500,9 @@ class TrainFoldSpec(LeafSpec):
     def data(self) -> pd.DataFrame:
         """The data."""
         df = pd.read_parquet(self.data_path)
+        # TODO: should we assume they are shuffled already?
         # shuffle the order of the rows
-        df = df.sample(frac=1, random_state=42)
+        df = df.sample(frac=1, random_state=42, replace=False)
         return df
 
     @cached_property
@@ -555,82 +817,72 @@ class TrainFoldSpec(LeafSpec):
         return train_preds, test_preds
 
 
-class TrainWithCVSpec(BaseSpec, WithBucket):
+class TrainWithCVSpec(StageSpec):
     """Train an SBEM model using a scatter gather approach for cross-fold validation."""
 
-    n_folds: int = Field(
-        ..., description="The number of folds for the entire parent task."
-    )
-    data_uri: AnyUrl = Field(..., description="The uri of the data to train on.")
-    stratification_field: str = Field(
-        ...,
-        description="The field to stratify the data by for monitoring convergence in parent task.",
-    )
-    progressive_training_iter_ix: int = Field(
-        ...,
-        description="The index of the current training iteration within the outer loop.",
-    )
-    thresholds: ConvergenceThresholds = Field(
-        default_factory=ConvergenceThresholds,
-        description="The thresholds for convergence.",
-    )
+    @model_validator(mode="after")
+    def check_stage(self):
+        """The training spec must have stage set to 'train'."""
+        if self.stage_type != "train":
+            msg = f"Invalid stage: {self.stage_type}"
+            raise ValueError(msg)
+        return self
 
     @property
     def schedule(self) -> list[TrainFoldSpec]:
         """Create the task schedule."""
         schedule = []
-        for i in range(self.n_folds):
+        data_uri = self.data_uri
+        if data_uri is None:
+            msg = "Data URI is required for training."
+            raise ValueError(msg)
+
+        for i in range(self.progressive_training_spec.cross_val.n_folds):
             schedule.append(
                 TrainFoldSpec(
                     # TODO: this should be set in a better manner
-                    experiment_id=self.experiment_id,
+                    experiment_id=self.experiment_key,
                     sort_index=i,
-                    n_folds=self.n_folds,
-                    data_uri=self.data_uri,
-                    stratification_field=self.stratification_field,
-                    progressive_training_iter_ix=self.progressive_training_iter_ix,
+                    n_folds=self.progressive_training_spec.cross_val.n_folds,
+                    data_uri=data_uri,
+                    stratification_field=self.progressive_training_spec.stratification.field,
+                    progressive_training_iter_ix=self.progressive_training_iteration_ix,
                 )
             )
         return schedule
 
-    async def allocate(self, context: Context, s3_client: S3ClientType):
+    def allocate(self, s3_client: S3ClientType):
         """Allocate the task."""
         # 1. turn the schedule into a parquet dataframe
         df = pd.DataFrame([m.model_dump() for m in self.schedule])
+        bucket = self.progressive_training_spec.bucket
         with tempfile.TemporaryDirectory() as tempdir:
             temp_path = Path(tempdir) / "train_specs.parquet"
             df.to_parquet(temp_path)
-            key = f"hatchet/{self.experiment_id}/train_specs.parquet"
-            specs_uri = f"s3://{self.bucket}/{key}"
-            s3_client.upload_file(temp_path.as_posix(), self.bucket, key)
+            key = f"hatchet/{self.experiment_key}/train_specs.parquet"
+            specs_uri = f"s3://{bucket}/{key}"
+            s3_client.upload_file(temp_path.as_posix(), bucket, key)
 
         payload = {
             "specs": specs_uri,
-            "bucket": self.bucket,
-            "workflow_name": "train_regressor_with_cv_fold",
+            "bucket": bucket,
             # TODO: this should be selected in a better manner.
-            "experiment_id": f"{self.experiment_id}/iter-{self.progressive_training_iter_ix:03d}/train",
+            "workflow_name": "train_regressor_with_cv_fold",
+            "experiment_id": self.experiment_key,
         }
+        return payload
 
-        workflow_ref = await context.aio.spawn_workflow(
-            workflow_name="scatter_gather",
-            input=payload,
-        )
-        return {"id": workflow_ref.workflow_run_id}
+    def check_convergence(self, uri: URIResponse, s3_client: S3ClientType):
+        """Check the convergence of the training."""
+        with tempfile.TemporaryDirectory() as tempdir:
+            tempdir = Path(tempdir)
+            results_path = tempdir / "results.hdf"
+            # download the results from s3
+            fetch_uri(uri.uri, local_path=results_path, use_cache=False, s3=s3_client)
+            results = cast(
+                pd.DataFrame, pd.read_hdf(results_path, key="stratum_metrics")
+            )
 
-    async def state_transition(self, context: Context, workflow_ref: WorkflowRunRef):
-        """Transition the state of the workflow."""
-        context.log("CV Scheduled, waiting for completion...")
-        result = await workflow_ref.result()
-        context.log("CV Completed, collecting results")
-
-        if "collect_children" not in result:
-            msg = f"Workflow {workflow_ref.workflow_run_id} failed."
-            raise RuntimeError(msg)
-        collect_children_result = result["collect_children"]
-        uri = URIResponse.model_validate(collect_children_result)
-        results_path = self.fetch_uri(uri.uri, use_cache=False)
-        results = cast(pd.DataFrame, pd.read_hdf(results_path, key="stratum_metrics"))
         fold_averages = cast(
             pd.Series,
             results.xs(
@@ -644,13 +896,8 @@ class TrainWithCVSpec(BaseSpec, WithBucket):
             convergence_monitor_segment,
             convergence_monitor_segment_and_target,
             convergence,
-        ) = self.thresholds.check_convergence(fold_averages)
+        ) = self.progressive_training_spec.convergence_criteria.check_convergence(
+            fold_averages
+        )
 
-        if convergence_all:
-            # go to cleanup
-            pass
-        else:
-            # go to sampler
-            pass
-        context.log("CV Completed, returning results")
-        return {"converged": "yas"}
+        return convergence_all, convergence

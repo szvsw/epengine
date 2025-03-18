@@ -1,6 +1,7 @@
 """Simulate an EnergyPlus ubem shoebox model with associated artifacts."""
 
 import asyncio
+import hashlib
 import logging
 
 import numpy as np
@@ -46,23 +47,40 @@ class SimulateSBEMShoebox:
         def run():
             data = context.workflow_input()
             spec = SBEMSimulationSpecWithContext(**data, hcontext=context)
-            _idf, results, err_text = spec.run(log_fn=context.log)
-            # results = toy_results(results)
-            results = {"results": results}
-            context.log(err_text)
+            # _idf, results, err_text = spec.run(log_fn=context.log)
+            # context.log(err_text)
 
+            features = spec.feature_dict
+            features["experiment_id"] = spec.experiment_id
+            features["sort_index"] = spec.sort_index
+            results = toy_results(features)
+
+            results = {"results": results}
             return serialize_df_dict(results)
 
         return await asyncio.to_thread(run)
 
 
-def toy_results(results: pd.DataFrame):
+def toy_results(feature_dict: dict[str, float | int | str]):
     """Toy results for testing."""
+    features_as_multiindex = pd.MultiIndex.from_frame(
+        pd.DataFrame(feature_dict, index=pd.Index([0]))
+    )
+    results = pd.DataFrame(
+        {"output_1": [0.0], "output_2": [0.0], "output_3": [0.0]},
+        index=features_as_multiindex,
+    )
     index = results.index.to_frame(index=False)
     index = index[[col for col in index.columns if col.startswith("feature")]]
     numericals = index.select_dtypes(include=[float, int]).values.flatten()
     numericals_squared = (numericals * numericals.reshape(-1, 1)).flatten()
-    indicators = np.concatenate([numericals, numericals_squared])
+    categoricals = index.select_dtypes(include="object").values.flatten()
+
+    categoricals_hashed = np.array([
+        int(hashlib.sha256(cat.encode()).hexdigest()[-2:], 16) for cat in categoricals
+    ])
+
+    indicators = np.concatenate([numericals, numericals_squared, categoricals_hashed])
     seed = 42
     gen = np.random.RandomState(seed)
     results_cols = results.columns.to_list()

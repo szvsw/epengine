@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings
 
 from epengine.hatchet import hatchet
 from epengine.workflows import (
+    SampleAndSimulate,
     ScatterGatherRecursiveWorkflow,
     ScatterGatherWorkflow,
     SimpleTest,
@@ -122,6 +123,7 @@ class SimWorkerSettings(BaseSettings):
 
         if self.DOES_TRAIN:
             worker.register_workflow(TrainRegressorWithCV())
+            worker.register_workflow(SampleAndSimulate())
 
         worker.register_workflow(SimpleTest())
         # worker.register_workflow(Root())
