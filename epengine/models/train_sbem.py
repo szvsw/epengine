@@ -35,6 +35,7 @@ from epengine.models.outputs import URIResponse
 from epengine.utils.filesys import fetch_uri
 
 
+# TODO: add tracking of "WORST" in each.
 class ConvergenceThresholds(BaseModel):
     """The thresholds for convergence."""
 
@@ -146,6 +147,9 @@ class IterationSpec(BaseModel):
     """The iteration spec."""
 
     n_init: int = Field(default=10000, description="The number of initial samples.")
+    min_per_stratum: int = Field(
+        default=100, description="The minimum number of samples per stratum."
+    )
     n_per_iter: int = Field(
         default=10000,
         description="The number of samples to add per each iteration of the outer loop.",
@@ -341,7 +345,14 @@ class SampleSpec(StageSpec):
             if self.progressive_training_iteration_ix != 0
             else self.progressive_training_spec.iteration.n_init
         )
-        n_per_stratum = n_per_iter // len(strata)
+        n_per_stratum = max(
+            n_per_iter // len(strata),
+            (
+                self.progressive_training_spec.iteration.min_per_stratum
+                if self.progressive_training_iteration_ix == 0
+                else 0
+            ),
+        )
 
         # TODO: consider how we want to handle potentially having the same geometry appear in both
         # the training and testing sets.

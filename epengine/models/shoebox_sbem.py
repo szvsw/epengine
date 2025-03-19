@@ -88,9 +88,11 @@ class SBEMSimulationSpec(LeafSpec):
     height: float = Field(..., description="The height of the building [m].")
     num_floors: int = Field(..., description="The number of floors in the building.")
     f2f_height: float = Field(..., description="The floor to floor height [m].")
+    # TODO: add fp area? gfa?
     # footprint_area: float = Field(
     #     ..., description="The footprint area of the building [m^2]."
     # )
+    # TODO: add some fields about requests for specific results, e.g. heating/cooling, monthly, utilities vs raw etc?
 
     @property
     def feature_dict(self) -> dict[str, str | int | float]:

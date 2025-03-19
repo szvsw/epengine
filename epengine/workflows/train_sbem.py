@@ -230,7 +230,7 @@ if __name__ == "__main__":
     input_component_map_file = "./artifacts/component-map-ma-simple.yml"
     input_semantic_fields_file = "./artifacts/semantic-fields-ma-simple.yml"
     input_database_file = "./artifacts/components-ma-simple.db"
-    experiment_id = "test/progressive-training-20"
+    experiment_id = "test/progressive-training-22"
     bucket = "ml-for-bem"
     bucket_prefix = "hatchet"
     existing_artifacts = "forbid"
@@ -270,16 +270,17 @@ if __name__ == "__main__":
 
     progressive_training_spec = ProgressiveTrainingSpec(
         iteration=IterationSpec(
-            max_iters=5,
+            max_iters=10,
             max_samples=10000,  # TODO: this is currently unused
-            n_per_iter=4000,
-            n_init=4000,
-            recursion_factor=6,
+            n_per_iter=5000,
+            n_init=5000,
+            recursion_factor=7,
             recursion_max_depth=1,
+            min_per_stratum=100,
         ),
         convergence_criteria=ConvergenceThresholds(
-            mae=1,
-            rmse=1,
+            mae=3,
+            rmse=5,
             mape=0.05,
             r2=0.95,
             cvrmse=0.05,
