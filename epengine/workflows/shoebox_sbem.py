@@ -47,13 +47,13 @@ class SimulateSBEMShoebox:
         def run():
             data = context.workflow_input()
             spec = SBEMSimulationSpecWithContext(**data, hcontext=context)
-            # _idf, results, err_text = spec.run(log_fn=context.log)
-            # context.log(err_text)
+            _idf, results, err_text = spec.run(log_fn=context.log)
+            context.log(err_text)
 
-            features = spec.feature_dict
-            features["experiment_id"] = spec.experiment_id
-            features["sort_index"] = spec.sort_index
-            results = toy_results(features)
+            # features = spec.feature_dict
+            # features["experiment_id"] = spec.experiment_id
+            # features["sort_index"] = spec.sort_index
+            # results = toy_results(features)
 
             results = {"results": results}
             return serialize_df_dict(results)

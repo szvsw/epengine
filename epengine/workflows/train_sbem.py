@@ -222,11 +222,15 @@ if __name__ == "__main__":
 
     client = new_client()
 
-    input_gis_file = "./artifacts/prog-train-specs-with-two-regions.pq"
-    input_component_map_file = "./artifacts/component-map.yml"
-    input_semantic_fields_file = "./artifacts/semantic-fields.yml"
-    input_database_file = "./artifacts/components.db"
-    experiment_id = "test/progressive-training-12"
+    # input_gis_file = "./artifacts/prog-train-specs-with-two-regions.pq"
+    # input_component_map_file = "./artifacts/component-map.yml"
+    # input_semantic_fields_file = "./artifacts/semantic-fields.yml"
+    # input_database_file = "./artifacts/components.db"
+    input_gis_file = "./artifacts/ma-geometry.pq"
+    input_component_map_file = "./artifacts/component-map-ma-simple.yml"
+    input_semantic_fields_file = "./artifacts/semantic-fields-ma-simple.yml"
+    input_database_file = "./artifacts/components-ma-simple.db"
+    experiment_id = "test/progressive-training-17"
     bucket = "ml-for-bem"
     bucket_prefix = "hatchet"
     existing_artifacts = "forbid"
@@ -266,7 +270,12 @@ if __name__ == "__main__":
 
     progressive_training_spec = ProgressiveTrainingSpec(
         iteration=IterationSpec(
-            max_iters=10, max_samples=1_000, n_per_iter=100, n_init=200
+            max_iters=20,
+            max_samples=100_000,  # TODO: this is currently unused
+            n_per_iter=10_000,
+            n_init=20_000,
+            recursion_factor=3,
+            recursion_max_depth=1,
         ),
         convergence_criteria=ConvergenceThresholds(
             mae=1,

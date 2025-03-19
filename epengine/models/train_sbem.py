@@ -97,6 +97,7 @@ class ConvergenceThresholds(BaseModel):
         )
 
 
+# TODO: pass this to train step.
 class XGBHyperparameters(BaseModel):
     """The parameters for the xgboost model."""
 
@@ -155,6 +156,12 @@ class IterationSpec(BaseModel):
     )
     max_samples: int = Field(
         default=1_000_000, description="The maximum number of samples to collect."
+    )
+    recursion_factor: int = Field(
+        default=3, description="The subdivision factor for recursive scatter gathers."
+    )
+    recursion_max_depth: int = Field(
+        default=1, description="The maximum depth of recursion for scatter gathers."
     )
     # max_time: float = Field(
     #     default=60 * 60 * 12, description="The maximum time to run the outer loop."
@@ -413,8 +420,8 @@ class SampleSpec(StageSpec):
             "workflow_name": "simulate_sbem_shoebox",
             "experiment_id": self.experiment_key,
             "recursion_map": {
-                "factor": 3,  # TODO: configure this
-                "max_depth": 1,
+                "factor": self.progressive_training_spec.iteration.recursion_factor,
+                "max_depth": self.progressive_training_spec.iteration.recursion_max_depth,
             },
         }
         return payload

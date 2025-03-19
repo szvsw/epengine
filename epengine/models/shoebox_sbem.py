@@ -252,10 +252,11 @@ class SBEMSimulationSpec(LeafSpec):
                 idf,
                 building=self.rotated_rectangle,
                 neighbor_polys=self.neighbor_polys,  # pyright: ignore [reportArgumentType]
-                neighbor_floors=[
-                    (floor / self.f2f_height) if floor is not None else None
-                    for floor in self.neighbor_floors
-                ],
+                # neighbor_floors=[
+                #     (floor / self.f2f_height) if floor is not None else None
+                #     for floor in self.neighbor_floors
+                # ],
+                neighbor_floors=self.neighbor_floors,
                 neighbor_f2f_height=self.f2f_height,
                 target_short_length=self.short_edge,
                 target_long_length=self.long_edge,
