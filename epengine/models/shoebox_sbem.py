@@ -219,6 +219,7 @@ class SBEMSimulationSpec(LeafSpec):
         zone_def = self.construct_zone_def()
 
         # TODO: Geometry loading, weather loading, geometry post process, etc
+        _use_core_perim = self.long_edge > 15 and self.short_edge > 15
         model = Model(
             Weather=WeatherUrl(self.epwzip_uri),  # pyright: ignore [reportCallIssue]
             Zone=zone_def,
@@ -232,8 +233,8 @@ class SBEMSimulationSpec(LeafSpec):
             geometry=ShoeboxGeometry(
                 x=0,
                 y=0,
-                w=10,
-                d=10,
+                w=self.long_edge,
+                d=self.short_edge,
                 h=self.f2f_height,
                 wwr=self.wwr,
                 num_stories=self.num_floors,

@@ -643,7 +643,10 @@ class TrainFoldSpec(LeafSpec):
         for col in fparams.columns:
             if col in self.numeric_min_maxs:
                 min_val, max_val = self.numeric_min_maxs[col]
-                fparams[col] = (fparams[col] - min_val) / (max_val - min_val)
+                # TODO: getting a loc-setting warning here
+                fparams.loc[:, col] = (fparams.loc[:, col] - min_val) / (
+                    (max_val - min_val) if ((max_val - min_val) > 0) else 1
+                )
             elif col in self.non_numeric_options:
                 unique_vals = self.non_numeric_options[col]
                 fparams[col] = pd.Categorical(
