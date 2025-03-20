@@ -6,13 +6,18 @@ from pydantic_settings import BaseSettings
 
 from epengine.hatchet import hatchet
 from epengine.workflows import (
+    SampleAndSimulate,
     ScatterGatherRecursiveWorkflow,
     ScatterGatherWorkflow,
     SimpleTest,
     Simulate,
     SimulateSBEMShoebox,
     SimulateShoebox,
+    TrainRegressorWithCV,
+    TrainRegressorWithCVFold,
 )
+
+# from epengine.workflows.minimal_multi_level_test import Fanout, Leaf, Root, RootAlt
 
 
 class SimWorkerSettings(BaseSettings):
@@ -23,6 +28,7 @@ class SimWorkerSettings(BaseSettings):
     COPILOT_ENVIRONMENT_NAME: str | None = None
     DOES_FAN: bool = True
     DOES_LEAF: bool = True
+    DOES_TRAIN: bool = True
     MAX_RUNS: int | None = None
 
     @property
@@ -113,20 +119,19 @@ class SimWorkerSettings(BaseSettings):
             worker.register_workflow(Simulate())
             worker.register_workflow(SimulateShoebox())
             worker.register_workflow(SimulateSBEMShoebox())
+
+        if self.DOES_TRAIN:
+            worker.register_workflow(TrainRegressorWithCVFold())
+            worker.register_workflow(TrainRegressorWithCV())
+            worker.register_workflow(SampleAndSimulate())
+
         worker.register_workflow(SimpleTest())
+        # worker.register_workflow(Root())
+        # worker.register_workflow(Fanout())
+        # worker.register_workflow(Leaf())
+        # worker.register_workflow(RootAlt())
 
         return worker
-
-
-async def arun():
-    """Run the EnergyPlus worker.
-
-    Note that this function will be blocking.
-    """
-    settings = SimWorkerSettings()
-    worker = settings.make_worker()
-
-    await worker.async_start()
 
 
 def run():

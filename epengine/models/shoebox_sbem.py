@@ -88,9 +88,11 @@ class SBEMSimulationSpec(LeafSpec):
     height: float = Field(..., description="The height of the building [m].")
     num_floors: int = Field(..., description="The number of floors in the building.")
     f2f_height: float = Field(..., description="The floor to floor height [m].")
+    # TODO: add fp area? gfa?
     # footprint_area: float = Field(
     #     ..., description="The footprint area of the building [m^2]."
     # )
+    # TODO: add some fields about requests for specific results, e.g. heating/cooling, monthly, utilities vs raw etc?
 
     @property
     def feature_dict(self) -> dict[str, str | int | float]:
@@ -219,6 +221,7 @@ class SBEMSimulationSpec(LeafSpec):
         zone_def = self.construct_zone_def()
 
         # TODO: Geometry loading, weather loading, geometry post process, etc
+        _use_core_perim = self.long_edge > 15 and self.short_edge > 15
         model = Model(
             Weather=WeatherUrl(self.epwzip_uri),  # pyright: ignore [reportCallIssue]
             Zone=zone_def,
@@ -232,8 +235,8 @@ class SBEMSimulationSpec(LeafSpec):
             geometry=ShoeboxGeometry(
                 x=0,
                 y=0,
-                w=10,
-                d=10,
+                w=self.long_edge,
+                d=self.short_edge,
                 h=self.f2f_height,
                 wwr=self.wwr,
                 num_stories=self.num_floors,
@@ -252,10 +255,11 @@ class SBEMSimulationSpec(LeafSpec):
                 idf,
                 building=self.rotated_rectangle,
                 neighbor_polys=self.neighbor_polys,  # pyright: ignore [reportArgumentType]
-                neighbor_floors=[
-                    (floor / self.f2f_height) if floor is not None else None
-                    for floor in self.neighbor_floors
-                ],
+                # neighbor_floors=[
+                #     (floor / self.f2f_height) if floor is not None else None
+                #     for floor in self.neighbor_floors
+                # ],
+                neighbor_floors=self.neighbor_floors,
                 neighbor_f2f_height=self.f2f_height,
                 target_short_length=self.short_edge,
                 target_long_length=self.long_edge,
@@ -280,6 +284,9 @@ class SBEMSimulationSpec(LeafSpec):
         )
         dumped_self.update(self.feature_dict)
         dumped_self["feature.geometry.core_zone_split"] = model.geometry.zoning
+        dumped_self["feature.geometry.total_conditioned_area"] = (
+            model.total_conditioned_area
+        )
 
         index = pd.MultiIndex.from_tuples(
             [tuple(dumped_self.values())],

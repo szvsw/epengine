@@ -64,6 +64,11 @@ mkdocstrings-python = "^1.11.1"
 coiled = "^1.36.0"
 dask = {extras = ["complete"], version = "^2024.7.1"}
 
+
+[tool.poetry.group.ml.dependencies]
+xgboost = "^3.0.0"
+scikit-learn = "^1.6.1"
+
 [tool.poetry.scripts]
 epe = "epengine.cli.main:cli"
 epengine = "epengine.cli.main:cli"
