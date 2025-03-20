@@ -1938,8 +1938,8 @@ pydantic = "^2.9.2"
 [package.source]
 type = "git"
 url = "https://github.com/szvsw/epinterface"
-reference = "feature/sdl-101-include-raw-converted-and-moved-in-default-outputs"
-resolved_reference = "a1acd91ce35981d856da62a7c506932502665cb5"
+reference = "main"
+resolved_reference = "a133bd7ece882b883f48a9cd141fc50508b50e5c"
 
 [[package]]
 name = "eppy"
@@ -8274,4 +8274,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "b3cabc3ba11494aa6395f29785ba7eb70c408b3d3d0a149b1b027d89eb2a37ee"
+content-hash = "9be2e766c0e7fdbce898b1044fc455ac0d79b3c54ca898ab9bb2a7f960b7e882"

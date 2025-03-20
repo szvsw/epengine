@@ -237,6 +237,19 @@ class ProgressiveTrainingSpec(BaseSpec, WithBucket):
         """The s3 root key for the iteration."""
         return f"{self.experiment_id}/iter-{iteration_ix:03d}"
 
+    def upload_self(self, s3_client: S3ClientType):
+        """Upload a dumpout of this spec to the s3 bucket root."""
+        with tempfile.TemporaryDirectory() as tempdir:
+            tempdir = Path(tempdir)
+            fpath = tempdir / "spec.yml"
+            with open(fpath, "w") as f:
+                yaml.dump(self.model_dump(mode="json"), f, indent=2)
+            s3_client.upload_file(
+                fpath.as_posix(),
+                self.bucket,
+                f"hatchet/{self.experiment_id}/artifacts/experiment-spec.yml",
+            )
+
 
 class StageSpec(BaseModel):
     """A spec that is common to both the sample and train stages (and possibly others)."""
@@ -917,6 +930,15 @@ class TrainWithCVSpec(StageSpec):
                 axis=1,
             ).mean(axis=0),
         )
+        with tempfile.TemporaryDirectory() as tempdir:
+            fold_averages_path = Path(tempdir) / "fold-averaged-errors.pq"
+            fold_averages.to_frame(
+                name=self.progressive_training_iteration_ix
+            ).to_parquet(fold_averages_path)
+            key = f"hatchet/{self.experiment_key}/fold-averaged-errors.pq"
+            bucket = self.progressive_training_spec.bucket
+            s3_client.upload_file(fold_averages_path.as_posix(), bucket, key)
+
         (
             convergence_all,
             convergence_monitor_segment,
