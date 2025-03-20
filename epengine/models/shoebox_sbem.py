@@ -268,7 +268,7 @@ class SBEMSimulationSpec(LeafSpec):
             return idf
 
         idf, results, err_text = model.run(
-            move_energy=False, post_geometry_callback=post_geometry_callback
+            post_geometry_callback=post_geometry_callback
         )
         # creating results dataframe index
 
@@ -294,3 +294,52 @@ class SBEMSimulationSpec(LeafSpec):
         )
         results = results.to_frame().T.set_index(index)
         return idf, results, err_text
+
+
+if __name__ == "__main__":
+    import time
+
+    spec = SBEMSimulationSpec(
+        experiment_id="test-2",
+        sort_index=0,
+        rotated_rectangle="POLYGON ((5 0, 5 10, 15 10, 15 0, 5 0))",
+        num_floors=2,
+        long_edge=10,
+        short_edge=10,
+        aspect_ratio=1,
+        rotated_rectangle_area_ratio=1,
+        long_edge_angle=0.23,
+        wwr=0.5,
+        height=7,
+        f2f_height=3.5,
+        neighbor_polys=["POLYGON ((-10 0, -10 10, -5 10, -5 0, -10 0))"],
+        neighbor_floors=[3],
+        neighbor_heights=[10.5],
+        epwzip_uri="https://climate.onebuilding.org/WMO_Region_4_North_and_Central_America/USA_United_States_of_America/MA_Massachusetts/USA_MA_Boston-Logan.Intl.AP.725090_TMYx.2009-2023.zip",  # pyright: ignore [reportArgumentType]
+        db_uri=AnyUrl("file:///artifacts/components-ma-simple.db"),
+        semantic_fields_uri=AnyUrl("file:///artifacts/semantic-fields-ma-simple.yml"),
+        component_map_uri=AnyUrl("file:///artifacts/component-map-ma-simple.yml"),
+        semantic_field_context={
+            "Region": "MA",
+            "Typology": "SFH",
+            "Age_bracket": "old",
+            "Conditioning": "ASHP",
+            "DHW": "Electric_resistance_DHW",
+            "Equipment": "EnergyStar_equipment",
+            "Lighting": "LED",
+            "Ventilation": "BasicNat",
+            "Thermostat": "NoControls",
+        },
+    )
+
+    s = time.time()
+    idf, results, warnings = spec.run()
+    e = time.time()
+    print(f"Execution time: {e - s:.2f} seconds")
+    print("----")
+    print(results.reset_index(drop=True)["Raw"])
+    print("----")
+    print(results.reset_index(drop=True)["End Uses"])
+    print("----")
+    print(results.reset_index(drop=True)["Utilities"])
+    print("----")

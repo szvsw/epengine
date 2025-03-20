@@ -446,7 +446,12 @@ class SampleSpec(StageSpec):
             fetch_uri(
                 uri=new_data_uri.uri, local_path=fpath, use_cache=False, s3=s3_client
             )
-            df = cast(pd.DataFrame, pd.read_hdf(fpath, key="results"))
+            # TODO: data frame subsection selection should be a configuration option within the
+            # progressive iteration training spec.
+            df = cast(
+                pd.DataFrame,
+                cast(pd.DataFrame, pd.read_hdf(fpath, key="results"))["Raw"],
+            )
         if previous_data is not None:
             df = pd.concat([previous_data, df], axis=0)
         # serialize to a parquet file and upload to s3
