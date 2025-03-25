@@ -463,10 +463,14 @@ class SampleSpec(StageSpec):
             # progressive iteration training spec.
             df = cast(
                 pd.DataFrame,
-                cast(pd.DataFrame, pd.read_hdf(fpath, key="results"))["Raw"],
+                cast(pd.DataFrame, pd.read_hdf(fpath, key="results")),
             )
         if previous_data is not None:
             df = pd.concat([previous_data, df], axis=0)
+
+        # strip out any constant columns
+        is_all_zeros = (df.max(axis=0) - df.min(axis=0)).abs() < 1e-5
+        df = df.loc[:, ~is_all_zeros]
         # serialize to a parquet file and upload to s3
         bucket = self.progressive_training_spec.bucket
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -535,7 +539,17 @@ class TrainFoldSpec(LeafSpec):
     @cached_property
     def data(self) -> pd.DataFrame:
         """The data."""
-        df = pd.read_parquet(self.data_path)
+        df = pd.read_parquet(self.data_path)["Raw"]
+        df = cast(
+            pd.DataFrame,
+            (
+                df.T.groupby(
+                    level=[lev for lev in df.columns.names if lev.lower() != "month"]
+                )
+                .sum()
+                .T
+            ),
+        )
         # TODO: should we assume they are shuffled already?
         # shuffle the order of the rows
         df = df.sample(frac=1, random_state=42, replace=False)
@@ -949,3 +963,49 @@ class TrainWithCVSpec(StageSpec):
         )
 
         return convergence_all, convergence
+
+
+# if __name__ == "__main__":
+#     bucket = "ml-for-bem"
+#     experiment_id = "test/progressive-training-25"
+#     bucket_prefix = "hatchet"
+#     progressive_training_spec = ProgressiveTrainingSpec(
+#         iteration=IterationSpec(
+#             max_iters=2,
+#             max_samples=100,  # TODO: this is currently unused
+#             n_per_iter=10_000,
+#             n_init=10_000,
+#             recursion_factor=7,
+#             recursion_max_depth=1,
+#             min_per_stratum=100,
+#         ),
+#         convergence_criteria=ConvergenceThresholds(
+#             mae=3,
+#             rmse=5,
+#             mape=0.05,
+#             r2=0.95,
+#             cvrmse=0.05,
+#         ),
+#         bucket=bucket,
+#         experiment_id=experiment_id,
+#         stratification=StratificationSpec(
+#             field="feature.weather.file",
+#             sampling="equal",
+#             aliases=["epwzip_path", "epwzip_uri"],
+#         ),
+#         cross_val=CrossValidationSpec(
+#             n_folds=5,
+#         ),
+#         gis_uri=gis_uri,  # pyright: ignore [reportArgumentType]
+#         component_map_uri=component_map_uri,  # pyright: ignore [reportArgumentType]
+#         semantic_fields_uri=semantic_fields_uri,  # pyright: ignore [reportArgumentType]
+#         database_uri=database_uri,  # pyright: ignore [reportArgumentType]
+#     )
+
+#     sample_spec = SampleSpec(
+#         progressive_training_spec=progressive_training_spec,
+#         progressive_training_iteration_ix=0,
+#         stage_type="sample",
+#         data_uri=None,
+#     )
+#     progressive_training_spec.upload_self(s3)

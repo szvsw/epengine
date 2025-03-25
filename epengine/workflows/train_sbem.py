@@ -227,10 +227,10 @@ if __name__ == "__main__":
     # input_semantic_fields_file = "./artifacts/semantic-fields.yml"
     # input_database_file = "./artifacts/components.db"
     input_gis_file = "./artifacts/ma-geometry.pq"
-    input_component_map_file = "./artifacts/component-map-ma-simple.yml"
-    input_semantic_fields_file = "./artifacts/semantic-fields-ma-simple.yml"
-    input_database_file = "./artifacts/components-ma-simple.db"
-    experiment_id = "test/progressive-training-22"
+    input_component_map_file = "./artifacts/component-map-ma.yml"
+    input_semantic_fields_file = "./artifacts/semantic-fields-ma.yml"
+    input_database_file = "./artifacts/components-ma.db"
+    experiment_id = "test/progressive-training-26"
     bucket = "ml-for-bem"
     bucket_prefix = "hatchet"
     existing_artifacts = "forbid"
@@ -270,10 +270,10 @@ if __name__ == "__main__":
 
     progressive_training_spec = ProgressiveTrainingSpec(
         iteration=IterationSpec(
-            max_iters=10,
-            max_samples=10000,  # TODO: this is currently unused
-            n_per_iter=5000,
-            n_init=5000,
+            max_iters=1,
+            max_samples=100,  # TODO: this is currently unused
+            n_per_iter=20_000,
+            n_init=20_000,
             recursion_factor=7,
             recursion_max_depth=1,
             min_per_stratum=100,
@@ -307,6 +307,7 @@ if __name__ == "__main__":
         stage_type="sample",
         data_uri=None,
     )
+    progressive_training_spec.upload_self(s3)
     client.admin.run_workflow(
         workflow_name="sample_and_simulate",
         input=sample_spec.model_dump(mode="json"),

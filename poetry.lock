@@ -1939,7 +1939,7 @@ pydantic = "^2.9.2"
 type = "git"
 url = "https://github.com/szvsw/epinterface"
 reference = "main"
-resolved_reference = "a133bd7ece882b883f48a9cd141fc50508b50e5c"
+resolved_reference = "932cadce6cd77868e8eeb39da554ec41a8b45f66"
 
 [[package]]
 name = "eppy"
@@ -8274,4 +8274,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "9be2e766c0e7fdbce898b1044fc455ac0d79b3c54ca898ab9bb2a7f960b7e882"
+content-hash = "8e351316654c43fe16d73cd7eb6b18f3066eba81c7fba47645ce6aa52b6b1905"
