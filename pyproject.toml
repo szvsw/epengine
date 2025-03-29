@@ -20,7 +20,7 @@ numpy = "<2.3"
 tqdm = "^4.66.4"
 tables = "^3.9.2"
 scipy = "1.14.1"
-archetypal = {git = "https://github.com/samuelduchesne/archetypal", branch = "main"}
+archetypal = "^2.18.5"
 epinterface = {git = "https://github.com/szvsw/epinterface", branch = "main"}
 ladybug-core = "^0.43.2"
 

@@ -197,61 +197,57 @@ files = [
 
 [[package]]
 name = "archetypal"
-version = "2.18.4"
+version = "2.18.5"
 description = "Retrieve, construct, simulate, convert and analyse building archetypes"
 optional = false
-python-versions = ">=3.9,<4.0"
-files = []
-develop = false
+python-versions = "<4.0,>=3.9"
+files = [
+    {file = "archetypal-2.18.5-py3-none-any.whl", hash = "sha256:8f6b7ea9d624225d9007f99dbac153a9e370b5084f7007b21276304bf2de10c8"},
+    {file = "archetypal-2.18.5.tar.gz", hash = "sha256:57e6f3e976c69adf22ccc79cbcbb08fd331029fe7956389eec07eb292ccf7c96"},
+]
 
 [package.dependencies]
 beautifulsoup4 = "<=4.8"
-click = "^8.1.7"
-contourpy = "^1.2.1"
-coolprop = "^6.6.0"
-cycler = "^0.12.1"
-decorator = "^5.1.1"
-deprecation = "^2.1.0"
-energy_pandas = "^0.4.1"
-eppy = "^0.5.63"
-esoreader = "^1.2.3"
-fonttools = "^4.53.0"
-future = "^1.0.0"
-kiwisolver = "^1.4.5"
-lxml = "^5.2.2"
+click = ">=8.1.7,<9.0.0"
+contourpy = ">=1.2.1,<2.0.0"
+coolprop = ">=6.6.0,<7.0.0"
+cycler = ">=0.12.1,<0.13.0"
+decorator = ">=5.1.1,<6.0.0"
+deprecation = ">=2.1.0,<3.0.0"
+energy_pandas = ">=0.4.1,<0.5.0"
+eppy = ">=0.5.63,<0.6.0"
+esoreader = ">=1.2.3,<2.0.0"
+fonttools = ">=4.53.0,<5.0.0"
+future = ">=1.0.0,<2.0.0"
+kiwisolver = ">=1.4.5,<2.0.0"
+lxml = ">=5.2.2,<6.0.0"
 matplotlib = ">=3.4,<4.0"
-munch = "^4.0.0"
+munch = ">=4.0.0,<5.0.0"
 networkx = "<3"
-numpy = {version = "^2.1.1", markers = "python_version == \"3.10\""}
-outdated = "^0.2.2"
-packaging = "^24.1"
+numpy = {version = ">=2.1.1,<3.0.0", markers = "python_version == \"3.10\""}
+outdated = ">=0.2.2,<0.3.0"
+packaging = ">=24.1,<25.0"
 pandas = ">=2.0.3"
-path = "^16.14.0"
-pillow = "^10.3.0"
-pyclipper = "^1.3.0.post5"
-pycountry = "^24.6.1"
-pydantic-settings = "^2.3.2"
-pydot3k = "^1.0.17"
-pyparsing = "^3.1.2"
-pypoly2tri = "^0.0.3"
-python-dateutil = "^2.9.0.post0"
-requests = "^2.32.3"
-scikit-learn = "^1.5.0"
-shapely = "^2.0.6"
-sigfig = "^1.3.3"
-six = "^1.16.0"
-soupsieve = "^2.5"
-tomli = "^2.0.1"
-tqdm = "^4.66.4"
-transforms3d = "^0.4.1"
-typing-extensions = "^4.12.2"
-validator-collection = "^1.5.0"
-
-[package.source]
-type = "git"
-url = "https://github.com/samuelduchesne/archetypal"
-reference = "main"
-resolved_reference = "a64e7a16080005e1eff2d9e2636fbc6b1f0c09f4"
+path = ">=16.14.0,<17.0.0"
+pillow = ">=10.3.0,<11.0.0"
+pyclipper = ">=1.3.0.post5,<2.0.0"
+pycountry = ">=24.6.1,<25.0.0"
+pydantic-settings = ">=2.3.2,<3.0.0"
+pydot3k = ">=1.0.17,<2.0.0"
+pyparsing = ">=3.1.2,<4.0.0"
+pypoly2tri = ">=0.0.3,<0.0.4"
+python-dateutil = ">=2.9.0.post0,<3.0.0"
+requests = ">=2.32.3,<3.0.0"
+scikit-learn = ">=1.5.0,<2.0.0"
+shapely = ">=2.0.6,<3.0.0"
+sigfig = ">=1.3.3,<2.0.0"
+six = ">=1.16.0,<2.0.0"
+soupsieve = ">=2.5,<3.0"
+tomli = ">=2.0.1,<3.0.0"
+tqdm = ">=4.66.4,<5.0.0"
+transforms3d = ">=0.4.1,<0.5.0"
+typing-extensions = ">=4.12.2,<5.0.0"
+validator-collection = ">=1.5.0,<2.0.0"
 
 [[package]]
 name = "argon2-cffi"
@@ -1926,7 +1922,7 @@ files = []
 develop = false
 
 [package.dependencies]
-archetypal = "^2.18.4"
+archetypal = "^2.18.5"
 click = "8.1.7"
 geopandas = "^1.0.1"
 httpx = "^0.27.2"
@@ -1939,7 +1935,7 @@ pydantic = "^2.9.2"
 type = "git"
 url = "https://github.com/szvsw/epinterface"
 reference = "main"
-resolved_reference = "44b6465d4d89dfc8dceb825406b18d95ac1801ea"
+resolved_reference = "43d927c2536959df375aa9da535556e0532b35e1"
 
 [[package]]
 name = "eppy"
@@ -8274,4 +8270,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "8e351316654c43fe16d73cd7eb6b18f3066eba81c7fba47645ce6aa52b6b1905"
+content-hash = "2dcfe6305a9b22ee3cd09998edf5b04e00af9156fe590b96e3f57b29ad29994a"
