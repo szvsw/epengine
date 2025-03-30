@@ -74,15 +74,13 @@ hatchet-token: ## Start the hatchet service and generate a token
 .PHONY: dev-with-hatchet
 dev-with-hatchet: ## Start the docker compose services with the api and worker along with moto
 	@make down
-	@docker compose build
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.hatchet.yml up
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.hatchet.yml up --build
 
 
 .PHONY: dev
 dev: ## Start the docker compose services with the api and worker along with moto
 	@make down
-	@docker compose build
-	@docker compose up
+	@docker compose up --build
 
 .PHONY: worker-it
 worker-it: ## Run the worker in interactive mode
