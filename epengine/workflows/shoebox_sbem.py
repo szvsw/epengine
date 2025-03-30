@@ -89,3 +89,109 @@ def toy_results(feature_dict: dict[str, float | int | str]):
     for i, col in enumerate(results_cols):
         results.loc[:, col] = linear_terms[i]
     return results
+
+
+if __name__ == "__main__":
+    import datetime
+    from pathlib import Path
+
+    import boto3
+    from hatchet_sdk import new_client
+    from hatchet_sdk.clients.admin import WorkflowRunDict
+    from pydantic import AnyUrl
+
+    n_sims = 100
+    experiment_id = "test/shoebox-sbem-benchmark"
+    bucket = "ml-for-bem"
+    bucket_prefix = "hatchet"
+    artifact_path = Path("E:/repos/epengine/artifacts")
+    semantic_fields_local_path = artifact_path / "semantic-fields-ma.yml"
+    component_map_local_path = artifact_path / "component-map-ma.yml"
+    db_local_path = artifact_path / "components-ma.db"
+    epwzip_path = "https://climate.onebuilding.org/WMO_Region_4_North_and_Central_America/USA_United_States_of_America/MA_Massachusetts/USA_MA_Boston-Logan.Intl.AP.725090_TMYx.2009-2023.zip"
+
+    s3 = boto3.client("s3")
+    semantic_fields_key = f"{bucket_prefix}/{experiment_id}/semantic-fields-ma.yml"
+    component_map_key = f"{bucket_prefix}/{experiment_id}/component-map-ma.yml"
+    db_key = f"{bucket_prefix}/{experiment_id}/components-ma.db"
+
+    semantic_fields_uri = f"s3://{bucket}/{semantic_fields_key}"
+    component_map_uri = f"s3://{bucket}/{component_map_key}"
+    db_uri = f"s3://{bucket}/{db_key}"
+
+    s3.upload_file(semantic_fields_local_path.as_posix(), bucket, semantic_fields_key)
+    s3.upload_file(component_map_local_path.as_posix(), bucket, component_map_key)
+    s3.upload_file(db_local_path.as_posix(), bucket, db_key)
+
+    spec = SBEMSimulationSpec(
+        experiment_id="test/shoebox-sbem-benchmark-2",
+        sort_index=0,
+        rotated_rectangle="POLYGON ((5 0, 5 10, 15 10, 15 0, 5 0))",
+        num_floors=3,
+        height=3 * 3.5,
+        long_edge=17,
+        short_edge=17,
+        aspect_ratio=1,
+        rotated_rectangle_area_ratio=1,
+        long_edge_angle=0.23,
+        wwr=0.15,
+        f2f_height=3.5,
+        neighbor_polys=["POLYGON ((-10 0, -10 10, -5 10, -5 0, -10 0))"],
+        neighbor_floors=[3],
+        neighbor_heights=[10.5],
+        epwzip_uri=AnyUrl(epwzip_path),
+        db_uri=AnyUrl(db_uri),
+        semantic_fields_uri=AnyUrl(semantic_fields_uri),
+        component_map_uri=AnyUrl(component_map_uri),
+        semantic_field_context={
+            "Region": "MA",
+            "Typology": "SFH",
+            "Age_bracket": "post_2003",
+            "Attic_and_roof": "InsulationRoof",
+            "Basement": "OccupiedInsulatedWallsInsulatedCeiling",
+            "Weatherization": "TightEnvelope",
+            "Walls": "FullInsulationWallsCavity",
+            "Windows": "DoublePaneLowE",
+            "Heating": "NaturalGasHeating",
+            "Cooling": "ACWindow",
+            "Distribution": "HotWaterUninsulated",
+            "DHW": "NaturalGasDHW",
+            "Lighting": "LED",
+            "Thermostat": "Controls",
+            "Equipment": "HighEfficiencyEquipment",
+        },
+    )
+    specs = [
+        spec.model_copy(deep=True, update={"sort_index": i}) for i in range(n_sims)
+    ]
+    workflow_run_dict: list[WorkflowRunDict] = [
+        {
+            "workflow_name": "simulate_sbem_shoebox",
+            "input": spec.model_dump(mode="json"),
+            "options": {},
+        }
+        for spec in specs
+    ]
+    client = new_client()
+    import time
+
+    individual_times = []
+    print(f"Submitting {len(workflow_run_dict)} workflows")
+    start = time.time()
+    n_per_submission = 100
+    for i in range(0, n_sims, n_per_submission):
+        start_time = time.time()
+        client.admin.run_workflows(workflow_run_dict[i : i + n_per_submission])
+        end_time = time.time()
+        individual_times.append(end_time - start_time)
+    end = time.time()
+    print(f"Sending to queue took {(end - start):.1f}s")
+    print(
+        f"Sending to queue per 1000 tasks took {((end - start) / n_sims * 1000):.1f}s"
+    )
+    print(
+        f"Average time per submission: {(sum(individual_times) / len(individual_times)):.3f}s"
+    )
+
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(current_time)
