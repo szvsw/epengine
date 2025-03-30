@@ -52,6 +52,7 @@ tox = "^4.11.1"
 jupyter = "^1.0.0"
 pyright = "^1.1.392"
 boto3-stubs = {extras = ["essential"], version = "^1.35.23"}
+pyinstrument = "^5.0.1"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.4.2"
