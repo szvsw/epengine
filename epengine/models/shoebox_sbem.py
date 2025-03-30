@@ -508,12 +508,15 @@ class SBEMSimulationSpec(LeafSpec):
 if __name__ == "__main__":
     import time
 
+    from epinterface.data import DefaultEPWZipPath
+
+    artifact_path = Path("E:/repos/epengine/artifacts").as_posix()
     spec = SBEMSimulationSpec(
         experiment_id="test-2",
         sort_index=0,
         rotated_rectangle="POLYGON ((5 0, 5 10, 15 10, 15 0, 5 0))",
-        num_floors=2,
-        height=7,
+        num_floors=3,
+        height=3 * 3.5,
         long_edge=17,
         short_edge=17,
         aspect_ratio=1,
@@ -524,13 +527,13 @@ if __name__ == "__main__":
         neighbor_polys=["POLYGON ((-10 0, -10 10, -5 10, -5 0, -10 0))"],
         neighbor_floors=[3],
         neighbor_heights=[10.5],
-        epwzip_uri="https://climate.onebuilding.org/WMO_Region_4_North_and_Central_America/USA_United_States_of_America/MA_Massachusetts/USA_MA_Boston-Logan.Intl.AP.725090_TMYx.2009-2023.zip",  # pyright: ignore [reportArgumentType]
-        db_uri=AnyUrl("file:///artifacts/components-ma.db"),
-        semantic_fields_uri=AnyUrl("file:///artifacts/semantic-fields-ma.yml"),
-        component_map_uri=AnyUrl("file:///artifacts/component-map-ma.yml"),
+        epwzip_uri=f"file://{DefaultEPWZipPath}",  # pyright: ignore [reportArgumentType]
+        db_uri=AnyUrl(f"file://{artifact_path}/components-ma.db"),
+        semantic_fields_uri=AnyUrl(f"file://{artifact_path}/semantic-fields-ma.yml"),
+        component_map_uri=AnyUrl(f"file://{artifact_path}/component-map-ma.yml"),
         semantic_field_context={
             "Region": "MA",
-            "Typology": "MFH",
+            "Typology": "SFH",
             "Age_bracket": "post_2003",
             "Attic_and_roof": "InsulationRoof",
             "Basement": "OccupiedInsulatedWallsInsulatedCeiling",
@@ -575,7 +578,7 @@ if __name__ == "__main__":
     )
     print(results["Utilities"].sum().sum())
     print("----")
-    idf.saveas("/artifacts/test.idf")
+    idf.saveas(f"{artifact_path}/test.idf")
     # print(results.reset_index(drop=True)["End Uses"])
     # print("----")
     # print(results.reset_index(drop=True)["Utilities"])

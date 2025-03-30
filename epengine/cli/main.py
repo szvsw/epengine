@@ -261,3 +261,210 @@ def get(workflow_run_id: str, output_path: Path | str):
     else:
         # TODO: check what happens if workflow does not exist.
         click.echo(f"Workflow run {workflow_run_id} has not completed yet.")
+
+
+@cli.group()
+def simulate():
+    """Commands for simulating energy models."""
+
+
+@simulate.command()
+@click.option(
+    "--db-path",
+    help="The path to the db file.",
+    prompt="DB file path",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "--semantic-fields-path",
+    help="The path to the semantic fields file.",
+    prompt="Semantic fields file path",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "--component-map-path",
+    help="The path to the component map file.",
+    type=click.Path(exists=True),
+    prompt="Component map file path",
+)
+@click.option(
+    "--latitude",
+    help="The latitude of the site.",
+    prompt="Latitude",
+    type=click.FloatRange(min=-90, max=90),
+)
+@click.option(
+    "--longitude",
+    help="The longitude of the site.",
+    prompt="Longitude",
+    type=click.FloatRange(min=-180, max=180),
+)
+def sbembox(  # noqa: C901
+    db_path: Path,
+    semantic_fields_path: Path,
+    component_map_path: Path,
+    latitude: float,
+    longitude: float,
+):
+    """Simulate a simple SBEM model.
+
+    \b
+    Assumptions:
+    - The model is two stories with a floor to floor height of 3.5m.
+    - The model footprint is 15m x 15m with faces perpendicular to the cardinal directions.
+    - The model has a window-to-wall ratio of 20%.
+    """  # noqa: D301
+    import geopandas as gpd
+    import yaml
+    from epinterface.sbem.fields.spec import (
+        CategoricalFieldSpec,
+        NumericFieldSpec,
+        SemanticModelFields,
+    )
+    from pydantic import AnyUrl
+    from shapely.geometry import Point
+
+    from epengine.gis.data.epw_metadata import closest_epw
+    from epengine.models.shoebox_sbem import SBEMSimulationSpec
+
+    query_pts = (
+        gpd.GeoSeries([Point(longitude, latitude)])
+        .set_crs("EPSG:4326")
+        .to_crs("EPSG:3857")
+    )
+    epw = closest_epw(
+        query_pts,
+        source_filter="source in ['tmyx']",
+        crs="EPSG:3857",
+        log_fn=click.echo,
+    )
+    epw_path = epw.iloc[0]["path"]
+    epw_name = epw.iloc[0]["name"]
+    epw_ob_path = (
+        Path(epw_path.split("onebuilding\\")[-1]).parent.with_suffix(".zip").as_posix()
+    )
+    epw_ob_path = f"https://climate.onebuilding.org/{epw_ob_path}"
+    epw_uri = AnyUrl(epw_ob_path)
+    click.echo(f"EPW: {epw_name}")
+
+    with open(semantic_fields_path) as f:
+        semantic_fields = yaml.safe_load(f)
+    semantic_fields = SemanticModelFields.model_validate(semantic_fields)
+    click.echo(f"Loaded semantic field model file from {semantic_fields_path}.")
+    click.echo(f"Model name: {semantic_fields.Name}")
+
+    def handle_categorical_field(
+        field: CategoricalFieldSpec, input_mode: Literal["string", "int"]
+    ):
+        options = field.Options
+        name = field.Name
+        if len(options) == 1:
+            value = options[0]
+            click.echo(f"{name}: {value} (only one option allowed)")
+            return name, value
+        else:
+            choice = (
+                click.Choice(options)
+                if input_mode == "string"
+                else click.IntRange(0, len(options) - 1)
+            )
+            if input_mode == "int":
+                for opt in range(len(options)):
+                    click.echo(f"{opt}: {options[opt]}")
+            value = click.prompt(f"{name}", type=choice)
+            if input_mode == "int":
+                value = options[value]
+                click.echo(f"Selected: {value}\n")
+
+            return name, value
+
+    def handle_numeric_field(field: NumericFieldSpec):
+        name = field.Name
+        low, high = field.Min, field.Max
+        value = -999999999
+        while value < low or value > high:
+            value = click.prompt("Enter the value", type=float)
+            if value < low or value > high:
+                click.echo(f"Value must be between {low} and {high}")
+        return name, value
+
+    click.echo("---")
+    click.echo("Select the semantic field values for the model:")
+    field_values = {}
+    for field in semantic_fields.Fields:
+        if isinstance(field, CategoricalFieldSpec):
+            name, value = handle_categorical_field(field, input_mode="int")
+            field_values[name] = value
+
+        elif isinstance(field, NumericFieldSpec):
+            name, value = handle_numeric_field(field)
+            field_values[name] = value
+        else:
+            msg = f"Unsupported field type: {type(field)}"
+            raise TypeError(msg)
+
+    click.echo("---")
+    click.echo("Semantic field values:")
+    click.echo(yaml.safe_dump(field_values, indent=2, sort_keys=False))
+    click.echo("---")
+
+    spec = SBEMSimulationSpec(
+        experiment_id="local-test",
+        sort_index=0,
+        db_uri=AnyUrl(f"file://{Path(db_path).absolute().as_posix()}"),
+        semantic_fields_uri=AnyUrl(
+            f"file://{Path(semantic_fields_path).absolute().as_posix()}"
+        ),
+        component_map_uri=AnyUrl(
+            f"file://{Path(component_map_path).absolute().as_posix()}"
+        ),
+        semantic_field_context=field_values,
+        neighbor_polys=[],
+        neighbor_heights=[],
+        neighbor_floors=[],
+        rotated_rectangle="POLYGON ((0 0, 0 15, 15 15, 15 0, 0 0))",
+        long_edge_angle=0,
+        short_edge=15,
+        long_edge=15,
+        aspect_ratio=1,
+        rotated_rectangle_area_ratio=1,
+        wwr=0.2,
+        height=7,
+        num_floors=2,
+        f2f_height=3.5,
+        epwzip_uri=epw_uri,
+    )
+    idf, results, err_text = spec.run(log_fn=click.echo)
+
+    # save?
+    should_save = click.confirm("Save the IDF file?", default=False)
+    if should_save:
+        output_path = click.prompt("Output path", type=click.Path(exists=False))
+        idf.saveas(output_path)
+        click.echo(f"IDF file saved to {output_path}")
+
+    click.echo("---")
+    annual_results = (
+        results.reset_index(drop=True)
+        .iloc[0]
+        .groupby(["Aggregation", "Meter"])
+        .sum()
+        .loc[["End Uses", "Utilities"]]
+    )
+    click.echo("Annual results:")
+    click.echo(annual_results)
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    monthly_end_uses = results.iloc[0]["End Uses"].unstack(level="Meter")
+    annual_results["End Uses"].plot(kind="bar", ax=ax[0])
+    monthly_end_uses.plot(kind="bar", ax=ax[1])
+    ax[0].set_title("Annual End Uses")
+    ax[1].set_title("Monthly End Uses")
+    ax[0].set_ylabel("Energy (kWh/m²)")
+    ax[1].set_ylabel("Energy (kWh/m²)")
+    ax[0].set_xlabel("End Uses")
+    ax[1].set_xlabel("Month")
+    fig.suptitle(f"EUI: {annual_results['End Uses'].sum():.1f} kWh/m²")
+    fig.tight_layout()
+    plt.show()
