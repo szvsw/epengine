@@ -17,7 +17,7 @@ from epinterface.geometry import (
     compute_shading_mask,
     match_idf_to_building_and_neighbors,
 )
-from epinterface.sbem.builder import Model
+from epinterface.sbem.builder import AtticAssumptions, BasementAssumptions, Model
 from epinterface.sbem.components.composer import (
     construct_composer_model,
     construct_graph,
@@ -433,12 +433,14 @@ class SBEMSimulationSpec(LeafSpec):
             Weather=self.epwzip_path,
             Zone=zone_def,
             # TODO: compute these somehow?
-            basement_insulation_surface=None,
-            conditioned_basement=False,
-            basement_use_fraction=None,
-            attic_insulation_surface=None,
-            conditioned_attic=False,
-            attic_use_fraction=None,
+            Basement=BasementAssumptions(
+                Conditioned=False,
+                UseFraction=None,
+            ),
+            Attic=AtticAssumptions(
+                Conditioned=False,
+                UseFraction=None,
+            ),
             geometry=ShoeboxGeometry(
                 x=0,
                 y=0,
