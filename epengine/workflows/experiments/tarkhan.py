@@ -5,12 +5,15 @@ import re
 import shutil
 import tempfile
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from pathlib import Path
 from typing import Any
 
+import boto3
 import pandas as pd
 from pydantic import AnyUrl, Field
+from tqdm.autonotebook import tqdm
 
 from epengine.models.base import LeafSpec
 from epengine.utils.results import make_onerow_multiindex_from_dict
@@ -146,6 +149,13 @@ class TarkhanSpec(LeafSpec):
         return pd.DataFrame()
 
 
+def format_scoped_prefix(
+    bucket_prefix: str, experiment_id: str, case_id: str, city: str, grid_id: str
+) -> str:
+    """Format a scoped prefix for a bucket."""
+    return f"{bucket_prefix}/{experiment_id}/{case_id}/{city}/{grid_id}"
+
+
 def make_experiment_specs(
     cases_zipfolder: Path,
     experiment_id: str,
@@ -157,6 +167,8 @@ def make_experiment_specs(
     if cases_zipfolder.suffix != ".zip":
         msg = f"Cases zip folder {cases_zipfolder} is not a zip file"
         raise ValueError(msg)
+
+    s3 = boto3.client("s3")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         tempdir = Path(temp_dir)
@@ -176,12 +188,17 @@ def make_experiment_specs(
         # create a regex to grab the C value from the start of the string and the G value from the end of the string
         regex = re.compile(r"^C(\d+)_(.*)_G(\d+)$")
         all_specs: list[TarkhanSpec] = []
-        for subfolder in matching_subfolders:
+        files_to_upload: list[tuple[str, str, str]] = []
+
+        for subfolder in tqdm(matching_subfolders, desc="Subfolders"):
             match = regex.match(subfolder.name)
             if match:
                 case_id = match.group(1)
                 city = match.group(2)
                 grid_id = match.group(3)
+                scoped_prefix = format_scoped_prefix(
+                    bucket_prefix, experiment_id, case_id, city, grid_id
+                )
                 epws = list(subfolder.glob("*.epw"))
                 if len(epws) != 1:
                     msg = f"Expected 1 epw file in {subfolder}, found {len(epws)}"
@@ -194,12 +211,14 @@ def make_experiment_specs(
                     raise ValueError(msg)
                 climate = climate_matches.group(1)
                 idfs = list(subfolder.glob("*.idf"))
-                for idf in idfs:
+                for idf in tqdm(idfs, desc="IDFs"):
                     idf_name = idf.stem
-                    idf_key = f"{bucket_prefix}/{experiment_id}/{case_id}/{city}/{grid_id}/{idf_name}.idf"
+                    idf_key = f"{scoped_prefix}/{idf_name}.idf"
                     idf_uri = f"s3://{bucket}/{idf_key}"
-                    epw_key = f"{bucket_prefix}/{experiment_id}/{case_id}/{city}/{grid_id}/{epw.name}"
+                    epw_key = f"{scoped_prefix}/{epw.name}"
                     epw_uri = f"s3://{bucket}/{epw_key}"
+                    files_to_upload.append((idf.as_posix(), bucket, idf_key))
+                    files_to_upload.append((epw.as_posix(), bucket, epw_key))
                     spec = TarkhanSpec(
                         sort_index=0,
                         experiment_id=experiment_id,
@@ -213,6 +232,20 @@ def make_experiment_specs(
                     )
                     all_specs.append(spec)
         df = pd.DataFrame([s.model_dump() for s in all_specs])
+        keys = [key for _, _, key in files_to_upload]
+        buckets = [bucket] * len(keys)
+        filenames = [filename for filename, _, _ in files_to_upload]
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            tqdm(
+                executor.map(
+                    s3.upload_file,
+                    filenames,
+                    buckets,
+                    keys,
+                ),
+                desc="Uploading files",
+                total=len(files_to_upload),
+            )
         return df
 
 
