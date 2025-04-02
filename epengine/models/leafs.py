@@ -9,6 +9,7 @@ from epengine.models.base import LeafSpec
 from epengine.models.shoebox import ShoeboxSimulationSpec
 from epengine.models.shoebox_sbem import SBEMSimulationSpec
 from epengine.models.train_sbem import TrainFoldSpec
+from epengine.workflows.experiments.tarkhan import TarkhanSpec
 
 
 class SimulationSpec(LeafSpec):
@@ -66,6 +67,7 @@ WorkflowName = Literal[
     "simulate_ubem_shoebox",
     "simulate_sbem_shoebox",
     "train_regressor_with_cv_fold",
+    "tarkhan",
 ]
 
 AvailableWorkflowSpecs: dict[WorkflowName, type[LeafSpec]] = {
@@ -74,4 +76,5 @@ AvailableWorkflowSpecs: dict[WorkflowName, type[LeafSpec]] = {
     "simulate_ubem_shoebox": ShoeboxSimulationSpec,
     "simulate_sbem_shoebox": SBEMSimulationSpec,
     "train_regressor_with_cv_fold": TrainFoldSpec,
+    "tarkhan": TarkhanSpec,
 }

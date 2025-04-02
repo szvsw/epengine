@@ -308,18 +308,21 @@ class CombineRecurseResultsMultipleKeysError(ValueError):
         )
 
 
-def make_onerow_multiindex_from_dict(d: dict[str, Any]) -> pd.MultiIndex:
+def make_onerow_multiindex_from_dict(
+    d: dict[str, Any], n_rows: int = 1
+) -> pd.MultiIndex:
     """Makes a MultiIndex from a dictionary.
 
     This is useful for returning a wide-form dataframe of results for a single task.
 
     Args:
         d (dict[str, Any]): The dictionary to make the MultiIndex from.
+        n_rows (int): The number of rows to repeat the MultiIndex.
 
     Returns:
         multi_index (pd.MultiIndex): The MultiIndex.
     """
     return pd.MultiIndex.from_tuples(
-        [tuple(d.values())],
+        [tuple(d.values())] * n_rows,
         names=list(d.keys()),
     )

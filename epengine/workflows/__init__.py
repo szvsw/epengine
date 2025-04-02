@@ -1,5 +1,6 @@
 """Workflows package for the EP Engine containing async Hatchet tasks."""
 
+from .experiments.tarkhan import TarkhanWorkflow
 from .scatter_gather import ScatterGatherRecursiveWorkflow, ScatterGatherWorkflow
 from .shoebox import SimulateShoebox
 from .shoebox_sbem import SimulateSBEMShoebox
@@ -19,6 +20,7 @@ __all__ = [
     "Simulate",
     "SimulateSBEMShoebox",
     "SimulateShoebox",
+    "TarkhanWorkflow",
     "TrainRegressorWithCV",
     "TrainRegressorWithCVFold",
 ]

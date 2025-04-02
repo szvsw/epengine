@@ -1,5 +1,6 @@
 """Nada Tarkhan's UWG simulation experiments."""
 
+import asyncio
 import json
 import os
 import re
@@ -10,17 +11,24 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import boto3
 import pandas as pd
 from eppy.bunch_subclass import BadEPFieldError
 from eppy.modeleditor import IDF
+from hatchet_sdk import Context
 from pydantic import AnyUrl, Field
 from tqdm.autonotebook import tqdm
 
+from epengine.hatchet import hatchet
 from epengine.models.base import LeafSpec
-from epengine.utils.results import make_onerow_multiindex_from_dict, serialize_df_dict
+from epengine.utils.results import make_onerow_multiindex_from_dict
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3 import S3Client
+else:
+    S3Client = Any
 
 
 class TarkhanSpec(LeafSpec):
@@ -48,7 +56,7 @@ class TarkhanSpec(LeafSpec):
         """The path to the scoped EPW path."""
         return self.fetch_uri(self.epw_uri)
 
-    def run(self):
+    def run(self, s3: S3Client):
         """Run the simulation."""
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_dir = Path(temp_dir)
@@ -58,14 +66,31 @@ class TarkhanSpec(LeafSpec):
             safe_epw_path = temp_dir / self.epw_path.name
             shutil.copy(self.idf_path, safe_idf_path)
             shutil.copy(self.epw_path, safe_epw_path)
-            summary, _zone_metadata, _hourly_results = self.do_work_in_temp_dir(
+            # TODO: add zone_metadata to the results df
+            summary, _zone_metadata, hourly_results = self.do_work_in_temp_dir(
                 safe_idf_path, safe_epw_path, temp_dir
             )
 
         summary = pd.DataFrame([summary], index=self.make_multiindex())
-        results = {"summary": summary}
-        results = serialize_df_dict(results)
-        return results
+        hourly_results = hourly_results.T
+        hourly_results.index.name = "Zone"
+        hourly_results = hourly_results.set_index(
+            self.make_multiindex(n_rows=len(hourly_results)), append=True
+        )
+
+        results_key = f"{self.scoped_prefix}/results/{self.building_name}/results.h5"
+        bucket = str(self.idf_uri).split("/")[2]
+        results_uri = f"s3://{bucket}/{results_key}"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_dir = Path(temp_dir)
+            results_path = temp_dir / "results.h5"
+            summary.to_hdf(results_path, key="summary", mode="w")
+            hourly_results.to_hdf(results_path, key="hourly_results", mode="a")
+            s3.upload_file(results_path.as_posix(), bucket, results_key)
+
+        # TODO: alternatively, return a normal dict with just the summary
+        # but add a reference to the hourly_results_uri in the summary ix
+        return {"uri": results_uri}
 
     def do_work_in_temp_dir(
         self, idf_path: Path, epw_path: Path, temp_dir: Path
@@ -111,14 +136,16 @@ class TarkhanSpec(LeafSpec):
         idf.saveas(mutated_idf_path.as_posix())
 
         # Run the simulation
-        success = run_energyplus(
+        success, proc = run_energyplus(
             ENERGYPLUS_EXE,
             mutated_idf_path.as_posix(),
             epw_path.as_posix(),
             results_dir.as_posix(),
         )
         if not success:
-            msg = f"EnergyPlus simulation failed for {idf_path}"
+            msg = f"EnergyPlus simulation failed for {idf_path}\n"
+            msg += f"stdout: {proc.stdout}\n"
+            msg += f"stderr: {proc.stderr}\n"
             raise ValueError(msg)
 
         # Get the results
@@ -134,6 +161,7 @@ class TarkhanSpec(LeafSpec):
     def make_multiindex(
         self,
         additional_index_data: dict[str, Any] | None = None,
+        n_rows: int = 1,
     ) -> pd.MultiIndex:
         """Make a MultiIndex from the Spec, and any other methods which might create index data.
 
@@ -154,7 +182,7 @@ class TarkhanSpec(LeafSpec):
             msg = f"Index data is not JSON serializable: {e}"
             raise ValueError(msg) from e
 
-        return make_onerow_multiindex_from_dict(index_data)
+        return make_onerow_multiindex_from_dict(index_data, n_rows)
 
     def create_zone_data(self, idf: IDF) -> pd.DataFrame:  # noqa: C901
         """Generates a CSV of zone-level data (orientation + floor assignment) for the given IDF."""
@@ -295,7 +323,7 @@ def run_energyplus(EPLUS_EXE: str, idf_path: str, epw_path: str, output_dir: str
     os.makedirs(output_dir, exist_ok=True)
     cmd = [EPLUS_EXE, "-w", epw_path, "-d", output_dir, "-r", idf_path]
     proc = subprocess.run(cmd, capture_output=True, text=True)  # noqa: S603
-    return proc.returncode == 0
+    return proc.returncode == 0, proc
 
 
 def compute_summary_stats(hourly_df: pd.DataFrame) -> pd.Series:
@@ -370,6 +398,7 @@ def extract_hourly_csv(hourly_csv_path: Path) -> pd.DataFrame:
 def make_experiment_specs(
     cases_zipfolder: Path,
     experiment_id: str,
+    s3: S3Client,
     bucket: str = "ml-for-bem",
     bucket_prefix: str = "hatchet",
 ):
@@ -378,8 +407,6 @@ def make_experiment_specs(
     if cases_zipfolder.suffix != ".zip":
         msg = f"Cases zip folder {cases_zipfolder} is not a zip file"
         raise ValueError(msg)
-
-    s3 = boto3.client("s3")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         tempdir = Path(temp_dir)
@@ -443,6 +470,7 @@ def make_experiment_specs(
                     )
                     all_specs.append(spec)
         df = pd.DataFrame([s.model_dump() for s in all_specs])
+        df["sort_index"] = list(range(len(df)))
         keys = [key for _, _, key in files_to_upload]
         buckets = [bucket] * len(keys)
         filenames = [filename for filename, _, _ in files_to_upload]
@@ -460,7 +488,39 @@ def make_experiment_specs(
         return df
 
 
+s3 = boto3.client("s3")
+
+
+@hatchet.workflow(
+    name="tarkhan",
+    version="0.0.1",
+    timeout="4m",
+    schedule_timeout="300m",
+)
+class TarkhanWorkflow:
+    """A workflow for running Tarkhan's simulation experiments."""
+
+    @hatchet.step(
+        name="simulate",
+        timeout="4m",
+        retries=2,
+    )
+    async def simulate(self, context: Context):
+        """Simulate the Tarkhan experiments."""
+        data = context.workflow_input()
+        spec = TarkhanSpec(**data)
+
+        results = await asyncio.to_thread(spec.run, s3=s3)
+        return results
+
+
 if __name__ == "__main__":
+    from hatchet_sdk import new_client
+
+    client = new_client()
+    experiment_id = "tarkhan/test-2"
+    bucket = "ml-for-bem"
+    bucket_prefix = "hatchet"
     cases_zipfolder = (
         Path(__file__).parent.parent.parent.parent
         / "local_artifacts"
@@ -470,6 +530,33 @@ if __name__ == "__main__":
     )
     res = make_experiment_specs(
         cases_zipfolder,
-        experiment_id="tarkhan/test",
+        experiment_id=experiment_id,
+        s3=s3,
+        bucket=bucket,
+        bucket_prefix=bucket_prefix,
     )
-    print(res)
+    specs_key = f"{bucket_prefix}/{experiment_id}/specs.parquet"
+    specs_uri = f"s3://{bucket}/{specs_key}"
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+        res.to_parquet(temp_dir / "res.parquet")
+        s3.upload_file(
+            (temp_dir / "res.parquet").as_posix(),
+            bucket,
+            specs_key,
+        )
+
+    payload = {
+        "specs": specs_uri,
+        "bucket": bucket,
+        "workflow_name": "tarkhan",
+        "experiment_id": experiment_id,
+        "recursion_map": {
+            "factor": 2,
+            "max_depth": 1,
+        },
+    }
+    client.admin.run_workflow(
+        "scatter_gather_recursive",
+        input=payload,
+    )
