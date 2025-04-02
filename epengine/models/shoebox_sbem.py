@@ -498,6 +498,18 @@ class SBEMSimulationSpec(LeafSpec):
         dumped_self["feature.geometry.total_conditioned_area"] = (
             model.total_conditioned_area
         )
+        dumped_self["feature.extra_spaces.basement.occupied"] = (
+            model.Basement.UseFraction or 0
+        )
+        dumped_self["feature.extra_spaces.basement.conditioned"] = (
+            "Conditioned" if model.Basement.Conditioned else "Unconditioned"
+        )
+        dumped_self["feature.extra_spaces.attic.occupied"] = (
+            model.Attic.UseFraction or 0
+        )
+        dumped_self["feature.extra_spaces.attic.conditioned"] = (
+            "Conditioned" if model.Attic.Conditioned else "Unconditioned"
+        )
 
         index = pd.MultiIndex.from_tuples(
             [tuple(dumped_self.values())],
