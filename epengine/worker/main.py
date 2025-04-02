@@ -4,6 +4,7 @@ import os
 
 from pydantic_settings import BaseSettings
 
+from epengine.experiments.tarkhan import TarkhanWorkflow
 from epengine.hatchet import hatchet
 from epengine.workflows import (
     SampleAndSimulate,
@@ -13,7 +14,6 @@ from epengine.workflows import (
     Simulate,
     SimulateSBEMShoebox,
     SimulateShoebox,
-    TarkhanWorkflow,
     TrainRegressorWithCV,
     TrainRegressorWithCVFold,
 )
