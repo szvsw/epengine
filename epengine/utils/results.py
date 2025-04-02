@@ -306,3 +306,20 @@ class CombineRecurseResultsMultipleKeysError(ValueError):
         super().__init__(
             "Cannot have both a uri and other keys in the results dict when combining recurse results"
         )
+
+
+def make_onerow_multiindex_from_dict(d: dict[str, Any]) -> pd.MultiIndex:
+    """Makes a MultiIndex from a dictionary.
+
+    This is useful for returning a wide-form dataframe of results for a single task.
+
+    Args:
+        d (dict[str, Any]): The dictionary to make the MultiIndex from.
+
+    Returns:
+        multi_index (pd.MultiIndex): The MultiIndex.
+    """
+    return pd.MultiIndex.from_tuples(
+        [tuple(d.values())],
+        names=list(d.keys()),
+    )
