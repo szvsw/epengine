@@ -40,5 +40,11 @@
         "sha": "9d7789a3ac",
         "tag": "v24.1.0",
         "install_version": "24-1-0"
+    },
+    "24.2.0": {
+        "version": "24.2.0",
+        "sha": "94a887817b",
+        "tag": "v24.2.0",
+        "install_version": "24-2-0"
     }
 }
