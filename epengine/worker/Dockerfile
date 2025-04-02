@@ -43,7 +43,7 @@ WORKDIR /code
 COPY poetry.lock pyproject.toml /code/
 
 # Project initialization:
-RUN poetry install --no-interaction --no-ansi --no-root --with worker --with coiled
+RUN poetry install --no-interaction --no-ansi --no-root --with worker --with coiled --with ml
 RUN epinterface prisma generate
 
 # Unset the proxy after build steps that need it

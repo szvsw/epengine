@@ -36,6 +36,15 @@ optional = true
 [tool.poetry.group.api]
 optional = true
 
+[tool.poetry.group.ui]
+optional = true
+
+[tool.poetry.group.coiled]
+optional = true
+
+[tool.poetry.group.ml]
+optional = true
+
 [tool.poetry.group.worker.dependencies]
 
 [tool.poetry.group.api.dependencies]
@@ -69,6 +78,10 @@ dask = {extras = ["complete"], version = "^2024.7.1"}
 [tool.poetry.group.ml.dependencies]
 xgboost = "^3.0.0"
 scikit-learn = "^1.6.1"
+
+
+[tool.poetry.group.ui.dependencies]
+streamlit = "^1.44.0"
 
 [tool.poetry.scripts]
 epe = "epengine.cli.main:cli"
