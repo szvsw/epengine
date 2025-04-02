@@ -524,7 +524,7 @@ if __name__ == "__main__":
 
     from epinterface.data import DefaultEPWZipPath
 
-    artifact_path = Path("E:/repos/epengine/artifacts").as_posix()
+    artifact_path = Path("E:/repos/epinterface/tests/data").as_posix()
     spec = SBEMSimulationSpec(
         experiment_id="test-2",
         sort_index=0,
@@ -542,15 +542,23 @@ if __name__ == "__main__":
         neighbor_floors=[3],
         neighbor_heights=[10.5],
         epwzip_uri=f"file://{DefaultEPWZipPath}",  # pyright: ignore [reportArgumentType]
-        db_uri=AnyUrl(f"file://{artifact_path}/components-ma.db"),
-        semantic_fields_uri=AnyUrl(f"file://{artifact_path}/semantic-fields-ma.yml"),
-        component_map_uri=AnyUrl(f"file://{artifact_path}/component-map-ma.yml"),
+        db_uri=AnyUrl(f"file://{artifact_path}/components-ma-with-abs.db"),
+        semantic_fields_uri=AnyUrl(
+            f"file://{artifact_path}/semantic-fields-ma-with-abs.yml"
+        ),
+        component_map_uri=AnyUrl(
+            f"file://{artifact_path}/component-map-ma-with-abs.yml"
+        ),
         semantic_field_context={
             "Region": "MA",
             "Typology": "SFH",
             "Age_bracket": "post_2003",
-            "Attic_and_roof": "InsulationRoof",
-            "Basement": "OccupiedInsulatedWallsInsulatedCeiling",
+            "AtticVentilation": "UnventilatedAttic",
+            "AtticFloorInsulation": "UninsulatedFloor",
+            "RoofInsulation": "LimitedInsulationRoof",
+            "BasementCeilingInsulation": "UninsulatedCeiling",
+            "BasementWallsInsulation": "UninsulatedWalls",
+            "GroundSlabInsulation": "UninsulatedGroundSlab",
             "Weatherization": "TightEnvelope",
             "Walls": "FullInsulationWallsCavity",
             "Windows": "DoublePaneLowE",
