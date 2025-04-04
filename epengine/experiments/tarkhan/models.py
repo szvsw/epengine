@@ -16,7 +16,7 @@ from eppy.modeleditor import IDF
 from pydantic import AnyUrl, Field
 
 from epengine.models.base import LeafSpec
-from epengine.utils.results import make_onerow_multiindex_from_dict
+from epengine.utils.results import make_onerow_multiindex_from_dict, serialize_df_dict
 
 if TYPE_CHECKING:
     from mypy_boto3_s3 import S3Client
@@ -60,30 +60,59 @@ class TarkhanSpec(LeafSpec):
             shutil.copy(self.idf_path, safe_idf_path)
             shutil.copy(self.epw_path, safe_epw_path)
             # TODO: add zone_metadata to the results df
-            summary, _zone_metadata, hourly_results = self.do_work_in_temp_dir(
+            summary, zone_metadata, hourly_results = self.do_work_in_temp_dir(
                 safe_idf_path, safe_epw_path, temp_dir
             )
 
-        summary = pd.DataFrame([summary], index=self.make_multiindex())
-        hourly_results = hourly_results.T
-        hourly_results.index.name = "Zone"
-        hourly_results = hourly_results.set_index(
-            self.make_multiindex(n_rows=len(hourly_results)), append=True
+            # the summary only has a single row, so we can just use the multiindex
+            summary = pd.DataFrame([summary], index=self.make_multiindex())
+
+            # we will move the normalized zone name into the index, and then append the
+            # multiindex with the appropriate number of rows
+            zone_metadata = zone_metadata.set_index("normalized_zone_name").set_index(
+                self.make_multiindex(n_rows=len(zone_metadata)), append=True
+            )
+
+            # the hourly result needs to be transformed and we add a title to the index,
+            # which is currently the zone name.  Then we will drop the redundant
+            # date/time row since the columns are already in the correct order.
+            # finally we add the multiindex with the appropriate number of rows
+            # to store the grid/case/city/building config.
+            hourly_results = hourly_results.T
+            hourly_results.index.name = "Zone"
+            hourly_results = hourly_results.drop("Date/Time").rename(
+                columns=lambda x: str(x)
+            )
+            hourly_results = hourly_results.set_index(
+                self.make_multiindex(n_rows=len(hourly_results)), append=True
+            )
+
+        # serialize the hourly results to s3 as a parquet file
+        bucket = str(self.idf_uri).split("/")[2]
+        hourly_results_key = (
+            f"{self.scoped_prefix}/results/{self.building_name}/hourly_results.pq"
+        )
+        hourly_results_uri = f"s3://{bucket}/{hourly_results_key}"
+        hourly_results.to_parquet(hourly_results_uri)
+
+        # inject the hourly results uri into the summary index so i t can be easily used
+        # in the future to fetch the hourly results
+        summary = summary.set_index(
+            pd.Series([hourly_results_uri], index=["hourly_results_uri"]), append=True
         )
 
-        results_key = f"{self.scoped_prefix}/results/{self.building_name}/results.h5"
-        bucket = str(self.idf_uri).split("/")[2]
-        results_uri = f"s3://{bucket}/{results_key}"
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_dir = Path(temp_dir)
-            results_path = temp_dir / "results.h5"
-            summary.to_hdf(results_path, key="summary", mode="w")
-            hourly_results.to_hdf(results_path, key="hourly_results", mode="a")
-            s3.upload_file(results_path.as_posix(), bucket, results_key)
+        # _results_key = f"{self.scoped_prefix}/results/{self.building_name}/results.h5"
+        # _results_uri = f"s3://{bucket}/{_results_key}"
+        # with tempfile.TemporaryDirectory() as temp_dir:
+        #     temp_dir = Path(temp_dir)
+        #     results_path = temp_dir / "results.h5"
+        #     summary.to_hdf(results_path, key="summary", mode="w")
+        #     s3.upload_file(results_path.as_posix(), bucket, results_key)
+        #     hourly_results_path = temp_dir / "hourly_results.pq"
+        #     s3.upload_file(hourly_results_path.as_posix(), bucket, hourly_results_key)
 
-        # TODO: alternatively, return a normal dict with just the summary
-        # but add a reference to the hourly_results_uri in the summary ix
-        return {"uri": results_uri}
+        results = {"summary": summary, "zone_metadata": zone_metadata}
+        return serialize_df_dict(results)
 
     def do_work_in_temp_dir(
         self, idf_path: Path, epw_path: Path, temp_dir: Path
@@ -119,7 +148,6 @@ class TarkhanSpec(LeafSpec):
         add_temp_humidity_outputs(idf)
 
         # extract metadata from the IDF
-        # TODO: replace this with actual metadata method
         zone_metadata: pd.DataFrame = self.create_zone_data(idf)
 
         # Save the IDF (maybe)
@@ -142,7 +170,6 @@ class TarkhanSpec(LeafSpec):
             raise ValueError(msg)
 
         # Get the results
-        # TODO: replace this with actual path and any other required arguments to extract_hourly_results
         results_file_path = results_dir / "eplusout.csv"
         hourly_results = extract_hourly_csv(results_file_path)
 

@@ -146,16 +146,14 @@ if __name__ == "__main__":
     from hatchet_sdk import new_client
 
     client = new_client()
-    experiment_id = "tarkhan/test-4"
+    experiment_id = "tarkhan/test-5"
     bucket = "ml-for-bem"
     bucket_prefix = "hatchet"
-    cases_zipfolder = (
-        Path(__file__).parent.parent.parent.parent
-        / "local_artifacts"
-        / "experiments"
-        / "tarkhan"
-        / "Cases.zip"
-    )
+    recursion_map = {
+        "factor": 2,
+        "max_depth": 1,
+    }
+    cases_zipfolder = Path("Cases.zip")
     res = make_experiment_specs(
         cases_zipfolder,
         experiment_id=experiment_id,
@@ -181,12 +179,10 @@ if __name__ == "__main__":
         "bucket": bucket,
         "workflow_name": "tarkhan",
         "experiment_id": experiment_id,
-        "recursion_map": {
-            "factor": 2,
-            "max_depth": 1,
-        },
+        "recursion_map": recursion_map,
     }
-    client.admin.run_workflow(
+    workflow_ref = client.admin.run_workflow(
         "scatter_gather_recursive",
         input=payload,
     )
+    print(f"Workflow run id: {workflow_ref.workflow_run_id}")
