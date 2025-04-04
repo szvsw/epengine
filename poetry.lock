@@ -401,6 +401,7 @@ description = "Timeout context manager for asyncio programs"
 optional = false
 python-versions = ">=3.8"
 groups = ["main", "coiled"]
+markers = "python_version == \"3.10\""
 files = [
     {file = "async_timeout-5.0.1-py3-none-any.whl", hash = "sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c"},
     {file = "async_timeout-5.0.1.tar.gz", hash = "sha256:d9321a7a3d5a6a5e187e824d2fa0793ce379a202935782d555d6e9d2735677d3"},
@@ -2032,7 +2033,7 @@ pydantic = "^2.9.2"
 type = "git"
 url = "https://github.com/szvsw/epinterface"
 reference = "main"
-resolved_reference = "e6b446858479420ad5d998c594ee1b8c77f8c555"
+resolved_reference = "fd3e9996c969053c09b8e2d7df29e0c4b8df0411"
 
 [[package]]
 name = "eppy"
@@ -2090,6 +2091,7 @@ description = "Backport of PEP 654 (exception groups)"
 optional = false
 python-versions = ">=3.7"
 groups = ["main", "api", "coiled", "dev"]
+markers = "python_version == \"3.10\""
 files = [
     {file = "exceptiongroup-1.2.2-py3-none-any.whl", hash = "sha256:3111b9d131c238bec2f8f516e123e14ba243563fb135d3fe885990585aa7795b"},
     {file = "exceptiongroup-1.2.2.tar.gz", hash = "sha256:47c2edf7c6738fafb49fd34290706d1a1a2f4d1c6df275526b62cbb4aa5393cc"},
@@ -5310,7 +5312,11 @@ files = [
 ]
 
 [package.dependencies]
-numpy = {version = ">=1.22.4", markers = "python_version < \"3.11\""}
+numpy = [
+    {version = ">=1.22.4", markers = "python_version < \"3.11\""},
+    {version = ">=1.23.2", markers = "python_version == \"3.11\""},
+    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
+]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
 tzdata = ">=2022.7"
@@ -7657,6 +7663,7 @@ description = "An Enum that inherits from str."
 optional = false
 python-versions = "*"
 groups = ["main"]
+markers = "python_version == \"3.10\""
 files = [
     {file = "StrEnum-0.4.15-py3-none-any.whl", hash = "sha256:a30cda4af7cc6b5bf52c8055bc4bf4b2b6b14a93b574626da33df53cf7740659"},
     {file = "StrEnum-0.4.15.tar.gz", hash = "sha256:878fb5ab705442070e4dd1929bb5e2249511c0bcf2b0eeacf3bcd80875c82eff"},
@@ -7868,6 +7875,7 @@ files = [
     {file = "tomli-2.2.1-py3-none-any.whl", hash = "sha256:cb55c73c5f4408779d0cf3eef9f762b9c9f147a77de7b258bef0a5628adc85cc"},
     {file = "tomli-2.2.1.tar.gz", hash = "sha256:cd45e1dc79c835ce60f7404ec8119f2eb06d38b1deba146f07ced3bbc44505ff"},
 ]
+markers = {dev = "python_version == \"3.10\""}
 
 [[package]]
 name = "tomlkit"
@@ -8811,5 +8819,5 @@ type = ["pytest-mypy"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.10,<3.11"
-content-hash = "4abdefe20b86dbd70b2dd2a9c559dbb5dd72fec80fb6d3357f94a0869a040224"
+python-versions = ">=3.10,<3.13"
+content-hash = "49c8c41014d2615e6b89fb3fb3388315316bfa8249f83e3d33b5f280339c7582"

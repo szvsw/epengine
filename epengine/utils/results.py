@@ -1,5 +1,6 @@
 """This module contains functions to postprocess and serialize results."""
 
+import gc
 import logging
 import tempfile
 from pathlib import Path
@@ -58,6 +59,7 @@ def postprocess(
             )
             df = df.dropna(axis=1, how="all")
             dfs["_".join(tabular_lookup).replace(" ", "_")] = df
+    gc.collect()
     return dfs
 
 
