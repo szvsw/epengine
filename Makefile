@@ -59,6 +59,18 @@ worker: ## Start the worker
 	@make down
 	@docker compose -f docker-compose.yml up -d worker --build
 
+.PHONY: workers
+workers: ## Start the workers with replicas
+	@make down
+	@docker compose -f docker-compose.yml -f docker-compose.replicas.yml up -d worker --build
+
+.PHONY: worker-push
+worker-push: ## Push the worker to the workers
+	@make docker-login
+	@docker compose -f docker-compose.yml build worker
+	@docker compose -f docker-compose.yml push worker
+
+
 .PHONY: worker-it
 worker-it: ## Run the worker in interactive mode
 	@docker compose exec -it worker /bin/bash

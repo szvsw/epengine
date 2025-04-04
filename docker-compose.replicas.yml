@@ -1,0 +1,5 @@
+services:
+  worker:
+    deploy:
+      mode: replicated
+      replicas: 8
