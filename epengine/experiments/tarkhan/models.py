@@ -303,11 +303,21 @@ def get_orientation(azimuth_degrees):
 
 
 def normalize_zone_name(zname):
-    """Normalize the zone name to a standard format."""
-    known_prefixes = ["Flr1_", "Flr2_", "Flr3_", "Flr4_"]
-    for prefix in known_prefixes:
-        if zname.startswith(prefix):
-            return zname.replace(prefix, "")
+    """Normalize the zone name to a standard format.
+
+    Generalize zone name normalization across typologies:
+    e.g., 'FLR2_OFFICEBLDG_3_FLOOR1_ROOM2' → 'OfficeBldg_3_Floor2_Room2'
+    """
+    match = re.match(
+        r"FLR(\d+)_([A-Z]+BLDG)_(\d+)_FLOOR\d+_ROOM(\d+)", zname, re.IGNORECASE
+    )
+    if match:
+        floor_num, bldg_type, bldg_num, room_num = match.groups()
+        # Building type
+        bldg_type_formatted = bldg_type.capitalize()
+        return f"{bldg_type_formatted}_{bldg_num}_Floor{floor_num}_Room{room_num}"
+
+    # Fallback: return as-is if not matched
     return zname
 
 
@@ -335,27 +345,40 @@ def compute_summary_stats(hourly_df: pd.DataFrame) -> pd.Series:
         pd.Series: A series of the summary stats.
     """
     temp_cols = [c for c in hourly_df.columns if "temperature" in c.lower()]
+
     if not temp_cols:
         return pd.Series({
             "peak_temp": None,
             "coldest_temp": None,
             "overheat_hours": None,
             "cold_hours": None,
+            "avg_overheat_per_zone": None,  # new
+            "hottest_zone": None,  # new
         })
 
     hourly_df["max_T"] = hourly_df[temp_cols].max(axis=1)
     hourly_df["min_T"] = hourly_df[temp_cols].min(axis=1)
 
-    peak_temp = hourly_df["max_T"].max()  # highest zone T
-    coldest_temp = hourly_df["min_T"].min()  # lowest zone T
+    # Basic stats
+    peak_temp = hourly_df["max_T"].max()
+    coldest_temp = hourly_df["min_T"].min()
     overheat_hours = (hourly_df["max_T"] > 26).sum()
     cold_hours = (hourly_df["min_T"] < 10).sum()
+
+    # New metrics added
+    zone_oh_counts = [(hourly_df[c] > 26).sum() for c in temp_cols]
+    avg_oh_per_zone = sum(zone_oh_counts) / len(temp_cols) if temp_cols else None
+    hottest_zone_oh = max(zone_oh_counts) if temp_cols else None
 
     return pd.Series({
         "peak_temp": round(peak_temp, 2),
         "coldest_temp": round(coldest_temp, 2),
         "overheat_hours": int(overheat_hours),
         "cold_hours": int(cold_hours),
+        "avg_overheat_per_zone": round(avg_oh_per_zone, 2)
+        if avg_oh_per_zone
+        else None,  # new
+        "hottest_zone": int(hottest_zone_oh) if hottest_zone_oh else None,  # new
     })
 
 
