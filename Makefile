@@ -54,11 +54,19 @@ docs-deploy: ## Build and serve the documentation
 down: ## Stop the docker-compose services
 	@docker compose down --remove-orphans
 
+.PHONY: worker
+worker: ## Start the worker
+	@make down
+	@docker compose -f docker-compose.yml up -d worker --build
+
+.PHONY: worker-it
+worker-it: ## Run the worker in interactive mode
+	@docker compose exec -it worker /bin/bash
+
 .PHONY: prod
 prod: ## Start the docker compose services with the api and worker
 	@make down
-	@docker compose build
-	@docker compose -f docker-compose.yml up -d api worker
+	@docker compose -f docker-compose.yml up -d api worker --build
 
 .PHONY: hatchet-token
 hatchet-token: ## Start the hatchet service and generate a token
@@ -72,20 +80,16 @@ hatchet-token: ## Start the hatchet service and generate a token
 	@echo Username: admin@example.com
 	@echo Password: Admin123!!
 
-.PHONY: dev-with-hatchet
-dev-with-hatchet: ## Start the docker compose services with the api and worker along with moto
-	@make down
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.hatchet.yml up --build
-
-
 .PHONY: dev
 dev: ## Start the docker compose services with the api and worker along with moto
 	@make down
 	@docker compose up --build
 
-.PHONY: worker-it
-worker-it: ## Run the worker in interactive mode
-	@docker compose exec -it worker /bin/bash
+.PHONY: dev-with-hatchet
+dev-with-hatchet: ## Start the docker compose services with the api and worker along with moto
+	@make down
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.hatchet.yml up --build
+
 
 .PHONY: docker-login
 docker-login: ## Login to aws docker ecr
