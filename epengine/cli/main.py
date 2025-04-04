@@ -340,10 +340,7 @@ def sbembox(  # noqa: C901
     )
     epw_path = epw.iloc[0]["path"]
     epw_name = epw.iloc[0]["name"]
-    epw_ob_path = (
-        Path(epw_path.split("onebuilding\\")[-1]).parent.with_suffix(".zip").as_posix()
-    )
-    epw_ob_path = f"https://climate.onebuilding.org/{epw_ob_path}"
+    epw_ob_path = f"https://climate.onebuilding.org/{epw_path}"
     epw_uri = AnyUrl(epw_ob_path)
     click.echo(f"EPW: {epw_name}")
 

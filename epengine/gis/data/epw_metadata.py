@@ -10,8 +10,6 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 # Load the metadata
-metadta_path = Path(__file__).parent / "epw_metadata.geojson"
-metadata = gpd.read_file(metadta_path)
 logger = logging.getLogger(__name__)
 
 
@@ -20,11 +18,14 @@ def closest_epw(
     source_filter: str | None = None,
     crs: str | int = 3857,
     distance_threshold_meters: int | None = 500_000,
-    metadata: gpd.GeoDataFrame = metadata,
+    metadata: gpd.GeoDataFrame | None = None,
     log_fn: Callable | None = None,
 ) -> gpd.GeoDataFrame:
     """Find the closest epw for each row in a dataframe."""
     # Get the closest epw for each row
+    if metadata is None:
+        metadta_path = Path(__file__).parent / "epw_metadata.geojson"
+        metadata = gpd.read_file(metadta_path)
     log = log_fn or logger.info
     log(f"Querying {len(query_pts)} points for the closest EPW.")
     filtered_metadata = (
