@@ -183,3 +183,4 @@ artifacts/**/*.pq
 artifacts/**/*.parquet
 
 minimal_multi_level_test.py
+cache/

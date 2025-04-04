@@ -1,7 +1,10 @@
 """Models for Simulation Specifications."""
 
+import importlib
+import importlib.resources
 import logging
 from pathlib import Path
+from typing import cast
 
 from pydantic import AnyUrl, BaseModel, Field
 
@@ -36,11 +39,18 @@ class BaseSpec(BaseModel, extra="allow", arbitrary_types_allowed=True):
         """
         path = pth.path
 
+        # get the location of the epengine package
+        epengine_dir = importlib.resources.files("epengine")
+        # convert the traversable to an absolute path
+        epengine_dir = Path(cast(Path, epengine_dir))
+        # get the local artifacts directory
+        local_artifacts_dir = epengine_dir.parent / "cache"
+
         if not path or path == "/":
             raise ValueError(f"URI:NO_PATH:{pth}")
         if path.startswith("/"):
             path = path[1:]
-        return Path("/local_artifacts") / self.experiment_id / path
+        return local_artifacts_dir / self.experiment_id / path
 
     def log(self, msg: str):
         """Log a message to the context or to the logger.
