@@ -35,6 +35,19 @@ class BaseSpec(BaseModel, extra="allow", arbitrary_types_allowed=True):
             local_path (Path): The local path of the uri
         """
         path = pth.path
+
+        scheme = pth.scheme
+
+        if scheme == "file":
+            if not path:
+                msg = f"URI:NO_PATH:{pth}"
+                logger.error(msg)
+                raise ValueError(msg)
+            fpath = Path(path)
+            if not fpath.exists():
+                raise FileNotFoundError(f"URI:NO_FILE:{fpath}")
+            return fpath
+
         if not path or path == "/":
             raise ValueError(f"URI:NO_PATH:{pth}")
         if path.startswith("/"):
