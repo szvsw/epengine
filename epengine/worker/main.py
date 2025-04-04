@@ -4,7 +4,7 @@ import os
 
 from pydantic_settings import BaseSettings
 
-from epengine.experiments.tarkhan import TarkhanWorkflow
+from epengine.experiments.tarkhan.workflows import TarkhanWorkflow
 from epengine.hatchet import hatchet
 from epengine.workflows import (
     SampleAndSimulate,

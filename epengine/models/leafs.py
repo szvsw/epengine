@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import AnyUrl, Field
 
-from epengine.experiments.tarkhan import TarkhanSpec
+from epengine.experiments.tarkhan.models import TarkhanSpec
 from epengine.models.base import LeafSpec
 from epengine.models.shoebox import ShoeboxSimulationSpec
 from epengine.models.shoebox_sbem import SBEMSimulationSpec
