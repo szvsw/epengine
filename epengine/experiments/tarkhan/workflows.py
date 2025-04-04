@@ -66,8 +66,10 @@ def make_experiment_specs(
         tempdir = Path(temp_dir)
         cases_folder = tempdir / cases_zipfolder.stem
         # unzip the cases_zipfolder
+        print("Unzipping cases...")
         with zipfile.ZipFile(cases_zipfolder, "r") as zip_ref:
             zip_ref.extractall(cases_folder)
+        print("Done unzipping cases.")
 
         # create a reg ex to confirm that it matches the pattern C[some number of digits]_[some number of any characters]_G[some number of digits]
         regex = re.compile(r"^C\d+_.*_G\d+$")
@@ -94,14 +96,21 @@ def make_experiment_specs(
                 epws = list(subfolder.glob("*.epw"))
                 if len(epws) != 1:
                     msg = f"Expected 1 epw file in {subfolder}, found {len(epws)}"
-                    raise ValueError(msg)
+                    print(msg)
+                    continue
+                    # raise ValueError(msg)
+
                 epw = epws[0]
-                climate_regex = re.compile(r"^C\d+_.*_G\d+_(.*).epw$")
+                climate_regex = re.compile(r"^C\d+_([^_]+)_G\d+_(.*)\.epw")
                 climate_matches = climate_regex.match(epw.name)
                 if not climate_matches:
                     msg = f"Expected epw file to match regex {climate_regex}, but it did not"
                     raise ValueError(msg)
-                climate = climate_matches.group(1)
+                # first match is city name
+                # second match is the file type (rmy, tmy etc)
+                epw_city = climate_matches.group(1)
+                file_type = climate_matches.group(2)
+                climate_key = f"{epw_city}_{file_type}"
                 idfs = list(subfolder.glob("*.idf"))
                 for idf in tqdm(idfs, desc="IDFs"):
                     idf_name = idf.stem
@@ -118,7 +127,7 @@ def make_experiment_specs(
                         epw_uri=AnyUrl(epw_uri),
                         case=case_id,
                         grid=grid_id,
-                        climate=climate,
+                        climate=climate_key,
                         building_name=idf_name,
                         city=city,
                     )
@@ -146,14 +155,15 @@ if __name__ == "__main__":
     from hatchet_sdk import new_client
 
     client = new_client()
-    experiment_id = "tarkhan/test-5"
+    experiment_id = "tarkhan/alignment-test"
     bucket = "ml-for-bem"
     bucket_prefix = "hatchet"
     recursion_map = {
         "factor": 2,
         "max_depth": 1,
     }
-    cases_zipfolder = Path("Cases.zip")
+    cases_zipfolder = Path(__file__).parent / "Cases.zip"
+    cases_zipfolder = Path("C:/users/szvsw/downloads/Cases.zip")
     res = make_experiment_specs(
         cases_zipfolder,
         experiment_id=experiment_id,
@@ -161,8 +171,9 @@ if __name__ == "__main__":
         bucket=bucket,
         bucket_prefix=bucket_prefix,
     )
-    res = pd.concat([res] * 3)
-    res["sort_index"] = list(range(len(res)))
+
+    # res = pd.concat([res.iloc[0:1]] * 200)
+    # res["building_name"] = [f"Building {i}" for i in range(len(res))]
     specs_key = f"{bucket_prefix}/{experiment_id}/specs.parquet"
     specs_uri = f"s3://{bucket}/{specs_key}"
     with tempfile.TemporaryDirectory() as temp_dir:

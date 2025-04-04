@@ -23,6 +23,7 @@ scipy = "1.14.1"
 archetypal = "^2.18.5"
 epinterface = {git = "https://github.com/szvsw/epinterface", branch = "main"}
 ladybug-core = "^0.43.2"
+s3fs = "^2025.3.2"
 
 [tool.poetry.group.dev]
 optional = true

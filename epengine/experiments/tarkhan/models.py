@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import pandas as pd
 from eppy.bunch_subclass import BadEPFieldError
@@ -80,9 +80,7 @@ class TarkhanSpec(LeafSpec):
             # to store the grid/case/city/building config.
             hourly_results = hourly_results.T
             hourly_results.index.name = "Zone"
-            hourly_results = hourly_results.drop("Date/Time").rename(
-                columns=lambda x: str(x)
-            )
+            hourly_results = hourly_results.rename(columns=lambda x: str(x))
             hourly_results = hourly_results.set_index(
                 self.make_multiindex(n_rows=len(hourly_results)), append=True
             )
@@ -93,12 +91,22 @@ class TarkhanSpec(LeafSpec):
             f"{self.scoped_prefix}/results/{self.building_name}/hourly_results.pq"
         )
         hourly_results_uri = f"s3://{bucket}/{hourly_results_key}"
-        hourly_results.to_parquet(hourly_results_uri)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_dir = Path(temp_dir)
+            hourly_results_path = temp_dir / "hourly_results.pq"
+            hourly_results.to_parquet(hourly_results_path)
+            s3.upload_file(hourly_results_path.as_posix(), bucket, hourly_results_key)
+        # hourly_results.to_parquet(hourly_results_uri)
 
         # inject the hourly results uri into the summary index so i t can be easily used
         # in the future to fetch the hourly results
         summary = summary.set_index(
-            pd.Series([hourly_results_uri], index=["hourly_results_uri"]), append=True
+            pd.Series(
+                [hourly_results_uri],
+                index=["hourly_results_uri"],
+                name="hourly_results_uri",
+            ),
+            append=True,
         )
 
         # _results_key = f"{self.scoped_prefix}/results/{self.building_name}/results.h5"
@@ -172,9 +180,25 @@ class TarkhanSpec(LeafSpec):
         # Get the results
         results_file_path = results_dir / "eplusout.csv"
         hourly_results = extract_hourly_csv(results_file_path)
+        hourly_results = hourly_results.drop(columns=["Date/Time"])
+
+        polarities: list[Literal["overheating", "too_cold"]] = [
+            "overheating",
+            "too_cold",
+        ]
+        consecutive_hours: dict[str, float] = {}
+        for threshold in [5, 10, 26, 30, 35]:
+            for polarity in polarities:
+                worst_case = compute_longest_consecutive_duration(
+                    hourly_results, threshold, polarity
+                )
+                indicator = "C" if polarity == "too_cold" else "H"
+                consecutive_hours[f"P_{indicator}_{threshold}"] = worst_case
 
         # convert the results to a dictionary of dataframes
         summary = compute_summary_stats(hourly_results)
+        for key, value in consecutive_hours.items():
+            summary[key] = value
 
         return (summary, zone_metadata, hourly_results)
 
@@ -390,7 +414,10 @@ def compute_summary_stats(hourly_df: pd.DataFrame) -> pd.Series:
     peak_temp = hourly_df["max_T"].max()
     coldest_temp = hourly_df["min_T"].min()
     overheat_hours = (hourly_df["max_T"] > 26).sum()
+    extreme_overheat_hours = (hourly_df["max_T"] > 30).sum()
+    extreme_extreme_overheat_hours = (hourly_df["max_T"] > 35).sum()
     cold_hours = (hourly_df["min_T"] < 10).sum()
+    extreme_cold_hours = (hourly_df["min_T"] < 5).sum()
 
     # New metrics added
     zone_oh_counts = [(hourly_df[c] > 26).sum() for c in temp_cols]
@@ -400,12 +427,15 @@ def compute_summary_stats(hourly_df: pd.DataFrame) -> pd.Series:
     return pd.Series({
         "peak_temp": round(peak_temp, 2),
         "coldest_temp": round(coldest_temp, 2),
-        "overheat_hours": int(overheat_hours),
-        "cold_hours": int(cold_hours),
         "avg_overheat_per_zone": round(avg_oh_per_zone, 2)
         if avg_oh_per_zone
         else None,  # new
         "hottest_zone": int(hottest_zone_oh) if hottest_zone_oh else None,  # new
+        "OH_26": int(overheat_hours),
+        "OH_30": int(extreme_overheat_hours),
+        "OH_35": int(extreme_extreme_overheat_hours),
+        "CH_10": int(cold_hours),
+        "CH_5": int(extreme_cold_hours),
     })
 
 
@@ -436,3 +466,58 @@ def extract_hourly_csv(hourly_csv_path: Path) -> pd.DataFrame:
     selected_cols = time_cols + temp_cols + rh_cols
     df_out = df[selected_cols].copy()
     return cast(pd.DataFrame, df_out)
+
+
+def compute_longest_consecutive_duration(
+    hourly_results_columnar: pd.DataFrame,
+    threshold: float,
+    polarity: Literal["overheating", "too_cold"],
+) -> int:
+    """Compute the longest consecutive duration of a given polarity above or below a threshold."""
+    mask = (
+        hourly_results_columnar > threshold
+        if polarity == "overheating"
+        else hourly_results_columnar < threshold
+    )
+    cumsum = mask.cumsum()
+    worst_cases_per_col = {}
+    all_spans_per_col = {}
+    ix_trackers = {}
+    for col in cumsum.columns:
+        if "temperature" not in col.lower():
+            continue
+        ix_tracker = []
+        ix_trackers[col] = ix_tracker
+        last_sum = 0
+        state = "idle"
+        count = 0
+        consecutive_hours = []
+        ix_start = None
+        for ix, row in cumsum[col].to_dict().items():
+            if state == "idle":
+                if row > last_sum:
+                    ix_start = ix
+                    state = "counting"
+                    count = 1
+            elif state == "counting":
+                if row > last_sum:
+                    count += 1
+                else:
+                    state = "idle"
+                    consecutive_hours.append(count)
+                    ix_tracker.append(hourly_results_columnar[col].loc[ix_start:ix])
+            last_sum = row
+        worst_case = max(consecutive_hours) if (len(consecutive_hours) > 0) else 0
+        is_ever_above_threshold = (cumsum[col] > threshold).any()
+        is_ever_below_threshold = (cumsum[col] < threshold).any()
+        if worst_case == 0 and (
+            (is_ever_above_threshold and polarity == "overheating")
+            or (is_ever_below_threshold and polarity == "too_cold")
+        ):
+            worst_case = 8760
+
+        worst_cases_per_col[col] = worst_case
+        all_spans_per_col[col] = consecutive_hours
+    absolute_worst_case = max(worst_cases_per_col.values())
+
+    return absolute_worst_case
