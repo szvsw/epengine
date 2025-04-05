@@ -299,21 +299,85 @@ def simulate():
     prompt="Longitude",
     type=click.FloatRange(min=-180, max=180),
 )
+@click.option(
+    "--wwr",
+    help="The window-to-wall ratio of the model.",
+    prompt="Window-to-wall ratio",
+    type=click.FloatRange(min=0, max=1),
+)
+@click.option(
+    "--num-floors",
+    help="The number of floors in the model.",
+    prompt="Number of floors",
+    type=click.IntRange(min=1),
+)
+@click.option(
+    "--f2f-height",
+    help="The height of the floor to floor in the model.",
+    prompt="Floor to floor height (min 2.5m)",
+    type=click.FloatRange(min=2.5),
+)
+@click.option(
+    "--basement",
+    help="The basement status of the model.",
+    prompt="Basement",
+    type=click.Choice([
+        "none",
+        "unoccupied_unconditioned",
+        "unoccupied_conditioned",
+        "occupied_unconditioned",
+        "occupied_conditioned",
+    ]),
+)
+@click.option(
+    "--attic",
+    help="The attic status of the model.",
+    prompt="Attic",
+    type=click.Choice([
+        "none",
+        "unoccupied_unconditioned",
+        "unoccupied_conditioned",
+        "occupied_unconditioned",
+        "occupied_conditioned",
+    ]),
+)
 def sbembox(  # noqa: C901
     db_path: Path,
     semantic_fields_path: Path,
     component_map_path: Path,
     latitude: float,
     longitude: float,
+    wwr: float,
+    num_floors: int,
+    f2f_height: float,
+    basement: Literal[
+        "none",
+        "unoccupied_unconditioned",
+        "unoccupied_conditioned",
+        "occupied_unconditioned",
+        "occupied_conditioned",
+    ],
+    attic: Literal[
+        "none",
+        "unoccupied_unconditioned",
+        "unoccupied_conditioned",
+        "occupied_unconditioned",
+        "occupied_conditioned",
+    ],
 ):
     """Simulate a simple SBEM model.
 
     \b
     Assumptions:
-    - The model is two stories with a floor to floor height of 3.5m.
     - The model footprint is 15m x 15m with faces perpendicular to the cardinal directions.
-    - The model has a window-to-wall ratio of 20%.
+    - If an attic is not 'none', it's pitch is randomly set between 4/12 and 6/12 if
+      it is unconditioned and unoccupied, otherwise it is set between 6/12 and 9/12
+    - If an attic or basement is occupied, it's use fraction is randomly set between
+      0.2 and 0.6 of the regular living space use fractions.
+    - The EUI normalizing factor is always the total *conditioned* floor area.
     """  # noqa: D301
+    import datetime
+
     import geopandas as gpd
     import yaml
     from epinterface.sbem.fields.spec import (
@@ -405,8 +469,10 @@ def sbembox(  # noqa: C901
     click.echo(yaml.safe_dump(field_values, indent=2, sort_keys=False))
     click.echo("---")
 
+    current_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    experiment_id = f"{current_timestamp}-local-test"
     spec = SBEMSimulationSpec(
-        experiment_id="local-test",
+        experiment_id=experiment_id,
         sort_index=0,
         db_uri=AnyUrl(f"file://{Path(db_path).absolute().as_posix()}"),
         semantic_fields_uri=AnyUrl(
@@ -425,11 +491,13 @@ def sbembox(  # noqa: C901
         long_edge=15,
         aspect_ratio=1,
         rotated_rectangle_area_ratio=1,
-        wwr=0.2,
-        height=7,
-        num_floors=2,
-        f2f_height=3.5,
+        wwr=wwr,
+        height=num_floors * f2f_height,
+        num_floors=num_floors,
+        f2f_height=f2f_height,
         epwzip_uri=epw_uri,
+        basement=basement,
+        attic=attic,
     )
     idf, results, err_text = spec.run(log_fn=click.echo)
 

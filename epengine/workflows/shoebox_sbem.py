@@ -148,8 +148,8 @@ if __name__ == "__main__":
             "Typology": "SFH",
             "Age_bracket": "post_2003",
             "AtticVentilation": "UnventilatedAttic",
-            "AtticFloorInsulation": "UninsulatedFloor",
-            "RoofInsulation": "LimitedInsulationRoof",
+            "AtticFloorInsulation": "NoInsulation",
+            "RoofInsulation": "HighlyInsulatedRoof",
             "BasementCeilingInsulation": "UninsulatedCeiling",
             "BasementWallsInsulation": "UninsulatedWalls",
             "GroundSlabInsulation": "UninsulatedGroundSlab",
@@ -164,6 +164,8 @@ if __name__ == "__main__":
             "Thermostat": "Controls",
             "Equipment": "HighEfficiencyEquipment",
         },
+        basement="none",
+        attic="none",
     )
     specs = [
         spec.model_copy(deep=True, update={"sort_index": i}) for i in range(n_sims)

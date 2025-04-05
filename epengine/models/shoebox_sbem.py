@@ -228,6 +228,15 @@ class EPWSummary:
         )
 
 
+BasementAtticOccupationConditioningStatus = Literal[
+    "none",
+    "unoccupied_unconditioned",
+    "unoccupied_conditioned",
+    "occupied_unconditioned",
+    "occupied_conditioned",
+]
+
+
 class SBEMSimulationSpec(LeafSpec):
     """A spec for running an EnergyPlus simulation."""
 
@@ -287,6 +296,13 @@ class SBEMSimulationSpec(LeafSpec):
     height: float = Field(..., description="The height of the building [m].")
     num_floors: int = Field(..., description="The number of floors in the building.")
     f2f_height: float = Field(..., description="The floor to floor height [m].")
+    basement: BasementAtticOccupationConditioningStatus = Field(
+        ..., description="The type of basement in the building."
+    )
+    attic: BasementAtticOccupationConditioningStatus = Field(
+        ..., description="The type of attic in the building."
+    )
+
     # TODO: add fp area? gfa?
     # footprint_area: float = Field(
     #     ..., description="The footprint area of the building [m^2]."
@@ -305,13 +321,14 @@ class SBEMSimulationSpec(LeafSpec):
             "feature.geometry.orientation.cos": np.cos(self.long_edge_angle),
             "feature.geometry.orientation.sin": np.sin(self.long_edge_angle),
             "feature.geometry.aspect_ratio": self.aspect_ratio,
-            "feature.geometry.rotated_rectangle_area_ratio": self.rotated_rectangle_area_ratio,
             "feature.geometry.wwr": self.wwr,
             "feature.geometry.height": self.height,
             "feature.geometry.num_floors": self.num_floors,
             "feature.geometry.f2f_height": self.f2f_height,
             "feature.geometry.zoning": self.use_core_perim_zoning,
-            # TODO: add gfa? or just fp area? or pull from model.geometry?
+            "feature.geometry.energy_model_conditioned_area": self.energy_model_conditioned_area,
+            "feature.geometry.energy_model_occupied_area": self.energy_model_occupied_area,
+            "feature.geometry.attic_height": self.attic_height or 0,
         }
 
         # TODO: consider passing in
@@ -340,12 +357,32 @@ class SBEMSimulationSpec(LeafSpec):
         features["feature.weather.file"] = self.epwzip_path.stem
         features.update(EPWSummary.FromEPW(self.epwzip_path).flat_dict)
 
-        # where to put ff2 height, wwr?
-
         # conditional features are derived from the static and semantic features,
         # and may be subject to things like conditional sampling, estimation etc.
         # e.g. rvalues, uvalues, schedule, etc.
         # additional things like basement/attic config?
+        features["feature.extra_spaces.basement.exists"] = (
+            "Yes" if self.has_basement else "No"
+        )
+        features["feature.extra_spaces.basement.occupied"] = (
+            "Yes" if self.basement_is_occupied else "No"
+        )
+        features["feature.extra_spaces.basement.conditioned"] = (
+            "Yes" if self.basement_is_conditioned else "No"
+        )
+        features["feature.extra_spaces.basement.use_fraction"] = (
+            self.basement_use_fraction
+        )
+        features["feature.extra_spaces.attic.exists"] = (
+            "Yes" if self.has_attic else "No"
+        )
+        features["feature.extra_spaces.attic.occupied"] = (
+            "Yes" if self.attic_is_occupied else "No"
+        )
+        features["feature.extra_spaces.attic.conditioned"] = (
+            "Yes" if self.attic_is_conditioned else "No"
+        )
+        features["feature.extra_spaces.attic.use_fraction"] = self.attic_use_fraction
 
         return features
 
@@ -419,6 +456,110 @@ class SBEMSimulationSpec(LeafSpec):
         use_core_perim = self.long_edge > 15 and self.short_edge > 15
         return "core/perim" if use_core_perim else "by_storey"
 
+    @property
+    def basement_is_occupied(self) -> bool:
+        """Whether the basement is occupied."""
+        return self.basement in ["occupied_unconditioned", "occupied_conditioned"]
+
+    @property
+    def attic_is_occupied(self) -> bool:
+        """Whether the attic is occupied."""
+        return self.attic in ["occupied_unconditioned", "occupied_conditioned"]
+
+    @property
+    def basement_is_conditioned(self) -> bool:
+        """Whether the basement is conditioned."""
+        return self.basement in ["occupied_conditioned", "unoccupied_conditioned"]
+
+    @property
+    def attic_is_conditioned(self) -> bool:
+        """Whether the attic is conditioned."""
+        return self.attic in ["occupied_conditioned", "unoccupied_conditioned"]
+
+    @cached_property
+    def basement_use_fraction(self) -> float:
+        """The use fraction of the basement."""
+        if not self.basement_is_occupied:
+            return 0
+        # TODO: use a fixed value?
+        return np.random.uniform(0.2, 0.6)
+
+    @cached_property
+    def attic_use_fraction(self) -> float:
+        """The use fraction of the attic."""
+        if not self.attic_is_occupied:
+            return 0
+        # TODO: use sampling as a fallback value when a default is not provided rather
+        # than always sampling.
+        return np.random.uniform(0.2, 0.6)
+
+    @cached_property
+    def has_basement(self) -> bool:
+        """Whether the building has a basement."""
+        return self.basement != "none"
+
+    @cached_property
+    def has_attic(self) -> bool:
+        """Whether the building has an attic."""
+        return self.attic != "none"
+
+    @cached_property
+    def attic_height(self) -> float | None:
+        """The height of the attic."""
+        if not self.has_attic:
+            return None
+        min_occupied_or_conditioned_rise_over_run = 6 / 12
+        max_occupied_or_conditioned_rise_over_run = 9 / 12
+        min_unoccupied_and_unconditioned_rise_over_run = 4 / 12
+        max_unoccupied_and_unconditioned_rise_over_run = 6 / 12
+
+        run = self.short_edge / 2
+        if self.attic_is_occupied or self.attic_is_conditioned:
+            return run * np.random.uniform(
+                min_occupied_or_conditioned_rise_over_run,
+                max_occupied_or_conditioned_rise_over_run,
+            )
+        else:
+            return run * np.random.uniform(
+                min_unoccupied_and_unconditioned_rise_over_run,
+                max_unoccupied_and_unconditioned_rise_over_run,
+            )
+
+    @property
+    def n_conditioned_floors(self) -> int:
+        """The number of conditioned floors in the building."""
+        n_floors = self.num_floors
+        if self.basement_is_conditioned:
+            n_floors += 1
+        if self.attic_is_conditioned:
+            n_floors += 1
+        return n_floors
+
+    @property
+    def n_occupied_floors(self) -> int:
+        """The number of occupied floors in the building."""
+        n_floors = self.num_floors
+        if self.basement_is_occupied:
+            n_floors += 1
+        if self.attic_is_occupied:
+            n_floors += 1
+        return n_floors
+
+    @property
+    def energy_model_footprint_area(self) -> float:
+        """The floor area of the building."""
+        return self.long_edge * self.short_edge
+
+    @property
+    def energy_model_conditioned_area(self) -> float:
+        """The conditioned area of the building."""
+        return self.n_conditioned_floors * self.energy_model_footprint_area
+
+    @property
+    def energy_model_occupied_area(self) -> float:
+        """The conditioned area of the building."""
+        return self.n_occupied_floors * self.energy_model_footprint_area
+
     def run(self, log_fn: Callable | None = None):
         """Run the simulation.
 
@@ -434,12 +575,14 @@ class SBEMSimulationSpec(LeafSpec):
             Zone=zone_def,
             # TODO: compute these somehow?
             Basement=BasementAssumptions(
-                Conditioned=False,
-                UseFraction=None,
+                Conditioned=self.basement_is_conditioned,
+                UseFraction=self.basement_use_fraction
+                if self.basement_is_occupied
+                else None,
             ),
             Attic=AtticAssumptions(
-                Conditioned=False,
-                UseFraction=None,
+                Conditioned=self.attic_is_conditioned,
+                UseFraction=self.attic_use_fraction if self.attic_is_occupied else None,
             ),
             geometry=ShoeboxGeometry(
                 x=0,
@@ -449,9 +592,9 @@ class SBEMSimulationSpec(LeafSpec):
                 h=self.f2f_height,
                 wwr=self.wwr,
                 num_stories=self.num_floors,
-                basement=False,
+                basement=self.has_basement,
                 zoning=self.use_core_perim_zoning,
-                roof_height=None,
+                roof_height=self.attic_height,
             ),
         )
 
@@ -495,21 +638,11 @@ class SBEMSimulationSpec(LeafSpec):
             },
         )
         dumped_self.update(self.feature_dict)
-        dumped_self["feature.geometry.total_conditioned_area"] = (
-            model.total_conditioned_area
-        )
-        dumped_self["feature.extra_spaces.basement.occupied"] = (
-            model.Basement.UseFraction or 0
-        )
-        dumped_self["feature.extra_spaces.basement.conditioned"] = (
-            "Conditioned" if model.Basement.Conditioned else "Unconditioned"
-        )
-        dumped_self["feature.extra_spaces.attic.occupied"] = (
-            model.Attic.UseFraction or 0
-        )
-        dumped_self["feature.extra_spaces.attic.conditioned"] = (
-            "Conditioned" if model.Attic.Conditioned else "Unconditioned"
-        )
+        if not np.allclose(
+            model.total_conditioned_area, self.energy_model_conditioned_area
+        ):
+            msg = f"Total conditioned area mismatch: {model.total_conditioned_area} != {self.energy_model_conditioned_area}"
+            raise ValueError(msg)
 
         index = pd.MultiIndex.from_tuples(
             [tuple(dumped_self.values())],
@@ -520,13 +653,17 @@ class SBEMSimulationSpec(LeafSpec):
 
 
 if __name__ == "__main__":
+    import datetime
     import time
 
     from epinterface.data import DefaultEPWZipPath
 
+    current_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
     artifact_path = Path("E:/repos/epinterface/tests/data").as_posix()
+    experiment_id = f"test-{current_timestamp}"
     spec = SBEMSimulationSpec(
-        experiment_id="test-2",
+        experiment_id=experiment_id,
         sort_index=0,
         rotated_rectangle="POLYGON ((5 0, 5 10, 15 10, 15 0, 5 0))",
         num_floors=3,
@@ -542,34 +679,32 @@ if __name__ == "__main__":
         neighbor_floors=[3],
         neighbor_heights=[10.5],
         epwzip_uri=f"file://{DefaultEPWZipPath}",  # pyright: ignore [reportArgumentType]
-        db_uri=AnyUrl(f"file://{artifact_path}/components-ma-with-abs.db"),
-        semantic_fields_uri=AnyUrl(
-            f"file://{artifact_path}/semantic-fields-ma-with-abs.yml"
-        ),
-        component_map_uri=AnyUrl(
-            f"file://{artifact_path}/component-map-ma-with-abs.yml"
-        ),
+        db_uri=AnyUrl(f"file://{artifact_path}/components-ma.db"),
+        semantic_fields_uri=AnyUrl(f"file://{artifact_path}/semantic-fields-ma.yml"),
+        component_map_uri=AnyUrl(f"file://{artifact_path}/component-map-ma.yml"),
         semantic_field_context={
-            "Region": "MA",
-            "Typology": "SFH",
-            "Age_bracket": "post_2003",
-            "AtticVentilation": "UnventilatedAttic",
-            "AtticFloorInsulation": "UninsulatedFloor",
-            "RoofInsulation": "LimitedInsulationRoof",
+            "Age_bracket": "btw_1975_2003",
+            "AtticFloorInsulation": "Insulated",
+            "AtticVentilation": "VentilatedAttic",
             "BasementCeilingInsulation": "UninsulatedCeiling",
-            "BasementWallsInsulation": "UninsulatedWalls",
-            "GroundSlabInsulation": "UninsulatedGroundSlab",
-            "Weatherization": "TightEnvelope",
-            "Walls": "FullInsulationWallsCavity",
-            "Windows": "DoublePaneLowE",
-            "Heating": "NaturalGasHeating",
+            "BasementWallsInsulation": "InsulatedWalls",
             "Cooling": "ACWindow",
-            "Distribution": "HotWaterUninsulated",
-            "DHW": "NaturalGasDHW",
-            "Lighting": "LED",
-            "Thermostat": "Controls",
+            "DHW": "HPWH",
+            "Distribution": "AirDuctsConditionedUninsulated",
             "Equipment": "HighEfficiencyEquipment",
+            "GroundSlabInsulation": "UninsulatedGroundSlab",
+            "Heating": "NaturalGasCondensingHeating",
+            "Lighting": "LED",
+            "Region": "MA",
+            "RoofInsulation": "InsulatedRoof",
+            "Thermostat": "Controls",
+            "Typology": "MFH",
+            "Walls": "FullInsulationWallsCavityExterior",
+            "Weatherization": "TightEnvelope",
+            "Windows": "DoublePaneLowE",
         },
+        basement="unoccupied_unconditioned",
+        attic="unoccupied_unconditioned",
     )
 
     s = time.time()
@@ -591,16 +726,22 @@ if __name__ == "__main__":
         .sum()
     )
     print(results["End Uses"].sum().sum())
+    print(results["End Uses"].sum().sum() * spec.energy_model_conditioned_area)
     print("----")
-    print("----")
-    print(
-        results.reset_index(drop=True)["Utilities"]
-        .stack(level="Month", future_stack=True)
-        .sum()
-    )
-    print(results["Utilities"].sum().sum())
-    print("----")
-    idf.saveas(f"{artifact_path}/test.idf")
+    # print("----")
+    # print(
+    #     results.reset_index(drop=True)["Utilities"]
+    #     .stack(level="Month", future_stack=True)
+    #     .sum()
+    # )
+    # print(
+    #     results["Utilities"].sum().sum()
+    #     * results.index.get_level_values(
+    #         "feature.geometry.energy_model_conditioned_area"
+    #     )
+    # )
+    # print("----")
+    # idf.saveas(f"{artifact_path}/test.idf")
     # print(results.reset_index(drop=True)["End Uses"])
     # print("----")
     # print(results.reset_index(drop=True)["Utilities"])

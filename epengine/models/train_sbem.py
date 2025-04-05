@@ -5,6 +5,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
+import lightgbm as lgb
 import numpy as np
 import pandas as pd
 import xgboost as xgb
@@ -16,6 +17,8 @@ from sklearn.metrics import (
     mean_squared_error,
     r2_score,
 )
+
+from epengine.models.shoebox_sbem import BasementAtticOccupationConditioningStatus
 
 if TYPE_CHECKING:
     from mypy_boto3_s3.client import S3Client as S3ClientType
@@ -399,6 +402,16 @@ class SampleSpec(StageSpec):
                 raise TypeError(msg)
         return df
 
+    def sample_basements_and_attics(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Add basement/attics to models."""
+        type_literal = BasementAtticOccupationConditioningStatus
+        # get the options for the type literal
+        options = type_literal.__args__
+        # sample the type literal
+        df["basement"] = self.random_generator.choice(options, size=len(df))
+        df["attic"] = self.random_generator.choice(options, size=len(df))
+        return df
+
     def to_sim_specs(self, df: pd.DataFrame):
         """Convert the sampled dataframe to a list of simulation specs.
 
@@ -427,6 +440,7 @@ class SampleSpec(StageSpec):
         """Make the payload for the scatter gather task, including generating the simulation specs and serializing them to s3."""
         df = self.sample()
         df = self.sample_semantic_fields(df)
+        df = self.sample_basements_and_attics(df)
         df = self.to_sim_specs(df)
         # serialize to a parquet file and upload to s3
         bucket = self.progressive_training_spec.bucket
@@ -710,7 +724,10 @@ class TrainFoldSpec(LeafSpec):
         test_params = self.normalize_params(test_params)
 
         # Train the model
-        train_preds, test_preds = self.train_xgboost(
+        # train_preds, test_preds = self.train_xgboost(
+        #     train_params, train_targets, test_params, test_targets
+        # )
+        train_preds, test_preds = self.train_lightgbm(
             train_params, train_targets, test_params, test_targets
         )
 
@@ -823,6 +840,44 @@ class TrainFoldSpec(LeafSpec):
             .unstack(level="target")
         )
         return global_metrics, stratum_metrics
+
+    def train_lightgbm(
+        self,
+        train_params: pd.DataFrame,
+        train_targets: pd.DataFrame,
+        test_params: pd.DataFrame,
+        test_targets: pd.DataFrame,
+    ):
+        """Train the lightgbm model."""
+        lgb_params = {
+            "objective": "regression",
+            "metric": "rmse",
+        }
+        test_preds = {}
+        train_preds = {}
+        for col in train_targets.columns:
+            lgb_train_data = lgb.Dataset(train_params, label=train_targets[col])
+            lgb_test_data = lgb.Dataset(test_params, label=test_targets[col])
+            model = lgb.train(
+                lgb_params,
+                lgb_train_data,
+                valid_sets=[lgb_test_data],
+                valid_names=["eval"],
+                callbacks=[lgb.early_stopping(20)],
+            )
+            test_preds[col] = pd.Series(
+                cast(np.ndarray, model.predict(test_params)),
+                index=test_targets.index,
+                name=col,
+            )
+            train_preds[col] = pd.Series(
+                cast(np.ndarray, model.predict(train_params)),
+                index=train_targets.index,
+                name=col,
+            )
+        test_preds = pd.concat(test_preds, axis=1)
+        train_preds = pd.concat(train_preds, axis=1)
+        return train_preds, test_preds
 
     def train_xgboost(
         self,

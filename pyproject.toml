@@ -79,6 +79,7 @@ dask = {extras = ["complete"], version = "^2024.7.1"}
 [tool.poetry.group.ml.dependencies]
 xgboost = "^3.0.0"
 scikit-learn = "^1.6.1"
+lightgbm = "^4.6.0"
 
 
 [tool.poetry.group.ui.dependencies]

@@ -227,10 +227,12 @@ if __name__ == "__main__":
     # input_semantic_fields_file = "./artifacts/semantic-fields.yml"
     # input_database_file = "./artifacts/components.db"
     input_gis_file = "./artifacts/ma-geometry.pq"
-    input_component_map_file = "./artifacts/component-map-ma.yml"
-    input_semantic_fields_file = "./artifacts/semantic-fields-ma.yml"
-    input_database_file = "./artifacts/components-ma.db"
-    experiment_id = "test/progressive-training-26"
+    input_component_map_file = "E:/repos/epinterface/tests/data/component-map-ma.yml"
+    input_semantic_fields_file = (
+        "E:/repos/epinterface/tests/data/semantic-fields-ma.yml"
+    )
+    input_database_file = "E:/repos/epinterface/tests/data/components-ma.db"
+    experiment_id = "test/ma-lib-01"
     bucket = "ml-for-bem"
     bucket_prefix = "hatchet"
     existing_artifacts = "forbid"
@@ -270,11 +272,11 @@ if __name__ == "__main__":
 
     progressive_training_spec = ProgressiveTrainingSpec(
         iteration=IterationSpec(
-            max_iters=1,
+            max_iters=5,
             max_samples=100,  # TODO: this is currently unused
             n_per_iter=20_000,
             n_init=20_000,
-            recursion_factor=7,
+            recursion_factor=5,
             recursion_max_depth=1,
             min_per_stratum=100,
         ),
