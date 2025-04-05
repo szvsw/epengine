@@ -100,20 +100,20 @@ if __name__ == "__main__":
     from hatchet_sdk.clients.admin import WorkflowRunDict
     from pydantic import AnyUrl
 
-    n_sims = 100
-    experiment_id = "test/shoebox-sbem-benchmark"
+    n_sims = 100  # 4500 * 8
+    experiment_id = "test/shoebox-sbem-benchmark-4"
     bucket = "ml-for-bem"
     bucket_prefix = "hatchet"
-    artifact_path = Path("E:/repos/epengine/artifacts")
-    semantic_fields_local_path = artifact_path / "semantic-fields-ma.yml"
-    component_map_local_path = artifact_path / "component-map-ma.yml"
-    db_local_path = artifact_path / "components-ma.db"
+    artifact_path = Path("E:/repos/epinterface/tests/data")
+    semantic_fields_local_path = artifact_path / "semantic-fields-ma-with-abs.yml"
+    component_map_local_path = artifact_path / "component-map-ma-with-abs.yml"
+    db_local_path = artifact_path / "components-ma-with-abs.db"
     epwzip_path = "https://climate.onebuilding.org/WMO_Region_4_North_and_Central_America/USA_United_States_of_America/MA_Massachusetts/USA_MA_Boston-Logan.Intl.AP.725090_TMYx.2009-2023.zip"
 
     s3 = boto3.client("s3")
-    semantic_fields_key = f"{bucket_prefix}/{experiment_id}/semantic-fields-ma.yml"
-    component_map_key = f"{bucket_prefix}/{experiment_id}/component-map-ma.yml"
-    db_key = f"{bucket_prefix}/{experiment_id}/components-ma.db"
+    semantic_fields_key = f"{bucket_prefix}/{experiment_id}/semantic-fields.yml"
+    component_map_key = f"{bucket_prefix}/{experiment_id}/component-map.yml"
+    db_key = f"{bucket_prefix}/{experiment_id}/components.db"
 
     semantic_fields_uri = f"s3://{bucket}/{semantic_fields_key}"
     component_map_uri = f"s3://{bucket}/{component_map_key}"
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     s3.upload_file(db_local_path.as_posix(), bucket, db_key)
 
     spec = SBEMSimulationSpec(
-        experiment_id="test/shoebox-sbem-benchmark-2",
+        experiment_id=experiment_id,
         sort_index=0,
         rotated_rectangle="POLYGON ((5 0, 5 10, 15 10, 15 0, 5 0))",
         num_floors=3,
@@ -147,8 +147,12 @@ if __name__ == "__main__":
             "Region": "MA",
             "Typology": "SFH",
             "Age_bracket": "post_2003",
-            "Attic_and_roof": "InsulationRoof",
-            "Basement": "OccupiedInsulatedWallsInsulatedCeiling",
+            "AtticVentilation": "UnventilatedAttic",
+            "AtticFloorInsulation": "UninsulatedFloor",
+            "RoofInsulation": "LimitedInsulationRoof",
+            "BasementCeilingInsulation": "UninsulatedCeiling",
+            "BasementWallsInsulation": "UninsulatedWalls",
+            "GroundSlabInsulation": "UninsulatedGroundSlab",
             "Weatherization": "TightEnvelope",
             "Walls": "FullInsulationWallsCavity",
             "Windows": "DoublePaneLowE",
