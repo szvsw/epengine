@@ -700,7 +700,17 @@ class TrainFoldSpec(LeafSpec):
         for col in fparams.columns:
             if col in self.numeric_min_maxs:
                 min_val, max_val = self.numeric_min_maxs[col]
-                # TODO: getting a loc-setting warning here
+                # TODO: getting a loc-setting warning here because sometimes the original col was an int,
+                # in which case we need to safely convert it
+                if fparams[col].dtype in [
+                    "int64",
+                    "Int64",
+                    "int32",
+                    "int64",
+                    int,
+                ]:
+                    fparams[col] = fparams[col].astype(float)
+
                 fparams.loc[:, col] = (fparams.loc[:, col] - min_val) / (
                     (max_val - min_val) if ((max_val - min_val) > 0) else 1
                 )
