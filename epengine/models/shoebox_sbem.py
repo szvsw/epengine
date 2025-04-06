@@ -236,6 +236,28 @@ BasementAtticOccupationConditioningStatus = Literal[
     "occupied_conditioned",
 ]
 
+OccupiedOptions: list[BasementAtticOccupationConditioningStatus] = [
+    "occupied_unconditioned",
+    "occupied_conditioned",
+]
+
+UnoccupiedOptions: list[BasementAtticOccupationConditioningStatus] = [
+    "none",
+    "unoccupied_unconditioned",
+    "unoccupied_conditioned",
+]
+
+ConditionedOptions: list[BasementAtticOccupationConditioningStatus] = [
+    "occupied_conditioned",
+    "unoccupied_conditioned",
+]
+
+UnconditionedOptions: list[BasementAtticOccupationConditioningStatus] = [
+    "none",
+    "unoccupied_unconditioned",
+    "occupied_unconditioned",
+]
+
 
 class SBEMSimulationSpec(LeafSpec):
     """A spec for running an EnergyPlus simulation."""
@@ -322,7 +344,7 @@ class SBEMSimulationSpec(LeafSpec):
             "feature.geometry.orientation.sin": np.sin(self.long_edge_angle),
             "feature.geometry.aspect_ratio": self.aspect_ratio,
             "feature.geometry.wwr": self.wwr,
-            "feature.geometry.height": self.height,
+            # "feature.geometry.height": self.height,
             "feature.geometry.num_floors": self.num_floors,
             "feature.geometry.f2f_height": self.f2f_height,
             "feature.geometry.zoning": self.use_core_perim_zoning,
@@ -459,22 +481,22 @@ class SBEMSimulationSpec(LeafSpec):
     @property
     def basement_is_occupied(self) -> bool:
         """Whether the basement is occupied."""
-        return self.basement in ["occupied_unconditioned", "occupied_conditioned"]
+        return self.basement in OccupiedOptions
 
     @property
     def attic_is_occupied(self) -> bool:
         """Whether the attic is occupied."""
-        return self.attic in ["occupied_unconditioned", "occupied_conditioned"]
+        return self.attic in OccupiedOptions
 
     @property
     def basement_is_conditioned(self) -> bool:
         """Whether the basement is conditioned."""
-        return self.basement in ["occupied_conditioned", "unoccupied_conditioned"]
+        return self.basement in ConditionedOptions
 
     @property
     def attic_is_conditioned(self) -> bool:
         """Whether the attic is conditioned."""
-        return self.attic in ["occupied_conditioned", "unoccupied_conditioned"]
+        return self.attic in ConditionedOptions
 
     @cached_property
     def basement_use_fraction(self) -> float:

@@ -1,61 +1,61 @@
-# syntax=docker/dockerfile:1
+ARG EP_VERSION=22.2.0
+ARG PYTHON_VERSION=3.12
+FROM nrel/energyplus:${EP_VERSION} AS energyplus
 
-FROM python:3.10-slim-buster
+# Remove unnecessary datasets to reduce image size
+RUN mkdir -p /energyplus-local && \
+    cd $ENERGYPLUS_DOWNLOAD_BASENAME && \
+    rm -rf DataSets Documentation ExampleFiles WeatherData MacroDataSets \
+    workflows PostProcess/convertESOMTRpgm \
+    PostProcess/EP-Compare PreProcess/FMUParser PreProcess/ParametricPreProcessor && \
+    # move the remaining files to a new directory with a known name that
+    # can be used copied from regardless of the location where
+    # ep is installed by the nrel image
+    cp -r * /energyplus-local/
 
-ENV POETRY_VERSION=1.8 \
+FROM python:${PYTHON_VERSION}-slim-bookworm AS main
+
+
+# Install dependencies for running energy models
+# etc
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y ca-certificates libx11-6 libexpat1 \
+    libgomp1 libcurl4-openssl-dev libssl-dev libxml2-dev gfortran \
+    curl tk python3-tk \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy EnergyPlus from the first stage to the second stage
+ARG EP_VERSION
+ENV ENERGYPLUS_INSTALL_DIR=/usr/local/EnergyPlus-${EP_VERSION//./-}
+COPY --from=energyplus /energyplus-local $ENERGYPLUS_INSTALL_DIR
+
+# Create symlinks for EnergyPlus executables
+RUN ln -s $ENERGYPLUS_INSTALL_DIR/energyplus /usr/local/bin/energyplus \
+    && ln -s $ENERGYPLUS_INSTALL_DIR/runenergyplus /usr/local/bin/runenergyplus \
+    && ln -s $ENERGYPLUS_INSTALL_DIR/runreadvars  /usr/local/bin/runreadvars \
+    && ln -s $ENERGYPLUS_INSTALL_DIR/runepmacro /usr/local/bin/runepmacro \
+    && ln -s $ENERGYPLUS_INSTALL_DIR/ExpandObjects /usr/local/bin/ExpandObjects \
+    && ln -s $ENERGYPLUS_INSTALL_DIR/PreProcess/GrndTempCalc/Basement /usr/local/bin/Basement \
+    && ln -s $ENERGYPLUS_INSTALL_DIR/PreProcess/GrndTempCalc/Slab /usr/local/bin/Slab
+
+
+# PYTHON etc setup ...
+ARG POETRY_VERSION=2.1.2
+ENV POETRY_VERSION=$POETRY_VERSION \
     POETRY_VIRTUALENVS_CREATE=false
 
-ENV TRAVIS_OS_NAME=linux
-
-# Build argument for HTTP proxy
-ARG HTTP_PROXY=""
-# Set the proxy if provided
-ENV http_proxy=${HTTP_PROXY}
-ENV https_proxy=${HTTP_PROXY}
-
-# Build argument for EnergyPlus version
-ARG ENERGYPLUS_VERSION=22.2.0
-
-# Copy the versions file first
-COPY epengine/worker/energyplus_versions.json /tmp/energyplus_versions.json
-
-# Set EnergyPlus environment variables using jq
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends jq \
-    && export ENERGYPLUS_VERSION=$(jq -r ".[\"$ENERGYPLUS_VERSION\"].version" /tmp/energyplus_versions.json) \
-    && export ENERGYPLUS_SHA=$(jq -r ".[\"$ENERGYPLUS_VERSION\"].sha" /tmp/energyplus_versions.json) \
-    && export ENERGPYPLUS_TAG=$(jq -r ".[\"$ENERGYPLUS_VERSION\"].tag" /tmp/energyplus_versions.json) \
-    && export ENERGYPLUS_INSTALL_VERSION=$(jq -r ".[\"$ENERGYPLUS_VERSION\"].install_version" /tmp/energyplus_versions.json) \
-    && apt-get install -y --no-install-recommends wget bzip2 ca-certificates curl git libxml2-dev sudo tk python3-tk libgomp1 gfortran \
-    && git clone https://github.com/samuelduchesne/archetypal.git \
-    && cd /archetypal \
-    && sudo chmod +x install_energyplus.sh \
-    && ./install_energyplus.sh \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm /tmp/energyplus_versions.json
-
-# Install poetry
 RUN pip install "poetry==$POETRY_VERSION"
 
-# Copy only requirements to cache them in docker layer
 WORKDIR /code
 COPY poetry.lock pyproject.toml /code/
 
-# Project initialization:
-RUN poetry install --no-interaction --no-ansi --no-root --with worker --with coiled --with ml
-RUN epinterface prisma generate
+ARG POETRY_EXTRAS="-E ml"
+RUN poetry config virtualenvs.in-project true && poetry install --no-interaction --no-ansi --no-root --only main ${POETRY_EXTRAS}
 
-# Unset the proxy after build steps that need it
-ENV http_proxy=
-ENV https_proxy=
-# Copy Python code to the Docker image
-COPY epengine /code/epengine/
-# COPY data/idfs /code/data/idfs
-# COPY data/epws /code/data/epws
+RUN epinterface prisma generate
 
 ENV PYTHONPATH=/code
 
-# ENTRYPOINT [ "poetry", "run", "worker" ]
-# ENTRYPOINT [ "python" ]
+COPY epengine /code/epengine/
+
 CMD [ "python", "epengine/worker/main.py"]

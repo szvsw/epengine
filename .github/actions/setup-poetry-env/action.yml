@@ -38,7 +38,7 @@ runs:
 
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --all-extras --with dev --with worker --with api --with docs --with ml --with ui
+      run: poetry install --no-interaction --all-extras --all-groups
       shell: bash
 
     - name: Generate prisma client

@@ -1,10 +1,14 @@
 .PHONY: install
 install: ## Install the poetry environment and install the pre-commit hooks
 	@echo "🚀 Creating virtual environment using pyenv and poetry"
-	@poetry install --with dev --with worker --with api --with docs --with ml --with ui --with docs
+	@poetry install --all-groups --all-extras
 	@poetry run pre-commit install
 	@poetry shell
 	@epi prisma generate
+
+.PHONY: clean-env
+clean-env: ## Clean the poetry environment
+	@poetry env remove --all
 
 .PHONY: check
 check: ## Run code quality tools.

@@ -5,18 +5,10 @@ from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
-import lightgbm as lgb
 import numpy as np
 import pandas as pd
-import xgboost as xgb
 import yaml
 from pydantic import AnyUrl, BaseModel, Field, model_validator
-from sklearn.metrics import (
-    mean_absolute_error,
-    mean_absolute_percentage_error,
-    mean_squared_error,
-    r2_score,
-)
 
 from epengine.models.shoebox_sbem import BasementAtticOccupationConditioningStatus
 
@@ -161,18 +153,12 @@ class IterationSpec(BaseModel):
         default=100,
         description="The maximum number of outer loop iterations to perform.",
     )
-    max_samples: int = Field(
-        default=1_000_000, description="The maximum number of samples to collect."
-    )
     recursion_factor: int = Field(
         default=3, description="The subdivision factor for recursive scatter gathers."
     )
     recursion_max_depth: int = Field(
         default=1, description="The maximum depth of recursion for scatter gathers."
     )
-    # max_time: float = Field(
-    #     default=60 * 60 * 12, description="The maximum time to run the outer loop."
-    # )
 
 
 class ProgressiveTrainingSpec(BaseSpec, WithBucket):
@@ -306,7 +292,7 @@ class SampleSpec(StageSpec):
 
     # TODO: add the ability to receive the last set of error metrics and use them to inform the sampling
 
-    def sample(self) -> pd.DataFrame:
+    def stratified_selection(self) -> pd.DataFrame:
         """Sample the gis data."""
         df = self.progressive_training_spec.gis_data
 
@@ -404,12 +390,32 @@ class SampleSpec(StageSpec):
 
     def sample_basements_and_attics(self, df: pd.DataFrame) -> pd.DataFrame:
         """Add basement/attics to models."""
-        type_literal = BasementAtticOccupationConditioningStatus
         # get the options for the type literal
-        options = type_literal.__args__
+        options: list[BasementAtticOccupationConditioningStatus] = [
+            "none",
+            "occupied_unconditioned",
+            "unoccupied_unconditioned",
+            "occupied_conditioned",
+            "unoccupied_conditioned",
+        ]
+        weights = [0.5, *([0.5 / 4] * 4)]
         # sample the type literal
-        df["basement"] = self.random_generator.choice(options, size=len(df))
-        df["attic"] = self.random_generator.choice(options, size=len(df))
+        df["basement"] = self.random_generator.choice(options, size=len(df), p=weights)
+        df["attic"] = self.random_generator.choice(options, size=len(df), p=weights)
+        return df
+
+    def sample_wwrs(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Sample the wwrs."""
+        wwr_min = 0.1
+        wwr_max = 0.3
+        df["wwr"] = self.random_generator.uniform(wwr_min, wwr_max, size=len(df))
+        return df
+
+    def sample_f2f_heights(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Sample the f2f heights."""
+        f2f_min = 2.5
+        f2f_max = 4
+        df["f2f_height"] = self.random_generator.uniform(f2f_min, f2f_max, size=len(df))
         return df
 
     def to_sim_specs(self, df: pd.DataFrame):
@@ -438,9 +444,11 @@ class SampleSpec(StageSpec):
 
     def make_payload(self, s3_client: S3ClientType):
         """Make the payload for the scatter gather task, including generating the simulation specs and serializing them to s3."""
-        df = self.sample()
+        df = self.stratified_selection()
         df = self.sample_semantic_fields(df)
         df = self.sample_basements_and_attics(df)
+        df = self.sample_wwrs(df)
+        df = self.sample_f2f_heights(df)
         df = self.to_sim_specs(df)
         # serialize to a parquet file and upload to s3
         bucket = self.progressive_training_spec.bucket
@@ -770,6 +778,13 @@ class TrainFoldSpec(LeafSpec):
         self, preds: pd.DataFrame, targets: pd.DataFrame
     ) -> pd.DataFrame:
         """Compute the metrics."""
+        from sklearn.metrics import (
+            mean_absolute_error,
+            mean_absolute_percentage_error,
+            mean_squared_error,
+            r2_score,
+        )
+
         mae = mean_absolute_error(targets, preds, multioutput="raw_values")
         mse = mean_squared_error(targets, preds, multioutput="raw_values")
         rmse = np.sqrt(mse)
@@ -859,6 +874,8 @@ class TrainFoldSpec(LeafSpec):
         test_targets: pd.DataFrame,
     ):
         """Train the lightgbm model."""
+        import lightgbm as lgb
+
         lgb_params = {
             "objective": "regression",
             "metric": "rmse",
@@ -897,6 +914,8 @@ class TrainFoldSpec(LeafSpec):
         test_targets: pd.DataFrame,
     ):
         """Train the xgboost model."""
+        import xgboost as xgb
+
         hparams = {
             "objective": "reg:squarederror",
             "eval_metric": "rmse",
@@ -1028,49 +1047,3 @@ class TrainWithCVSpec(StageSpec):
         )
 
         return convergence_all, convergence
-
-
-# if __name__ == "__main__":
-#     bucket = "ml-for-bem"
-#     experiment_id = "test/progressive-training-25"
-#     bucket_prefix = "hatchet"
-#     progressive_training_spec = ProgressiveTrainingSpec(
-#         iteration=IterationSpec(
-#             max_iters=2,
-#             max_samples=100,  # TODO: this is currently unused
-#             n_per_iter=10_000,
-#             n_init=10_000,
-#             recursion_factor=7,
-#             recursion_max_depth=1,
-#             min_per_stratum=100,
-#         ),
-#         convergence_criteria=ConvergenceThresholds(
-#             mae=3,
-#             rmse=5,
-#             mape=0.05,
-#             r2=0.95,
-#             cvrmse=0.05,
-#         ),
-#         bucket=bucket,
-#         experiment_id=experiment_id,
-#         stratification=StratificationSpec(
-#             field="feature.weather.file",
-#             sampling="equal",
-#             aliases=["epwzip_path", "epwzip_uri"],
-#         ),
-#         cross_val=CrossValidationSpec(
-#             n_folds=5,
-#         ),
-#         gis_uri=gis_uri,  # pyright: ignore [reportArgumentType]
-#         component_map_uri=component_map_uri,  # pyright: ignore [reportArgumentType]
-#         semantic_fields_uri=semantic_fields_uri,  # pyright: ignore [reportArgumentType]
-#         database_uri=database_uri,  # pyright: ignore [reportArgumentType]
-#     )
-
-#     sample_spec = SampleSpec(
-#         progressive_training_spec=progressive_training_spec,
-#         progressive_training_iteration_ix=0,
-#         stage_type="sample",
-#         data_uri=None,
-#     )
-#     progressive_training_spec.upload_self(s3)

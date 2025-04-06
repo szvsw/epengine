@@ -1,11 +1,13 @@
 services:
   worker:
-    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/hatchet/epengine:${ENERGYPLUS_VERSION:-22.2.0}
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/hatchet/epengine:ep${EP_VERSION:-22.2.0}-py${PYTHON_VERSION:-3.12}
     build:
       context: .
       dockerfile: epengine/worker/Dockerfile
       args:
-        - ENERGYPLUS_VERSION=${ENERGYPLUS_VERSION:-22.2.0}
+        - EP_VERSION=${EP_VERSION:-22.2.0}
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.12}
+        - POETRY_VERSION=${POETRY_VERSION:-2.1.2}
     env_file:
       - .env
     deploy:
@@ -13,6 +15,7 @@ services:
       replicas: 1
     volumes:
       - ./artifacts:/artifacts
+      - ./epengine:/code/epengine
 
   api:
     build:
