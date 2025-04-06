@@ -604,6 +604,7 @@ class SBEMSimulationSpec(LeafSpec):
         # model.geometry.
         def post_geometry_callback(idf: IDF) -> IDF:
             log("Matching IDF to building and neighbors...")
+            original_total_building_area = idf.total_building_area
             idf = match_idf_to_building_and_neighbors(
                 idf,
                 building=self.rotated_rectangle,
@@ -618,6 +619,10 @@ class SBEMSimulationSpec(LeafSpec):
                 target_long_length=self.long_edge,
                 rotation_angle=self.long_edge_angle,
             )
+            new_total_building_area = idf.total_building_area
+            if not np.isclose(original_total_building_area, new_total_building_area):
+                msg = f"Total building area mismatch after matching to building and neighbors: {original_total_building_area} != {new_total_building_area}"
+                raise ValueError(msg)
             log("IDF matched to building and neighbors.")
             return idf
 
@@ -668,8 +673,8 @@ if __name__ == "__main__":
         rotated_rectangle="POLYGON ((5 0, 5 10, 15 10, 15 0, 5 0))",
         num_floors=3,
         height=3 * 3.5,
-        long_edge=17,
-        short_edge=17,
+        long_edge=13,
+        short_edge=10,
         aspect_ratio=1,
         rotated_rectangle_area_ratio=1,
         long_edge_angle=0.23,
@@ -697,11 +702,11 @@ if __name__ == "__main__":
             "Lighting": "LED",
             "Region": "MA",
             "RoofInsulation": "InsulatedRoof",
-            "Thermostat": "Controls",
+            "Thermostat": "NoControls",
             "Typology": "MFH",
             "Walls": "FullInsulationWallsCavityExterior",
-            "Weatherization": "TightEnvelope",
-            "Windows": "DoublePaneLowE",
+            "Weatherization": "LeakyEnvelope",
+            "Windows": "SinglePane",
         },
         basement="unoccupied_unconditioned",
         attic="unoccupied_unconditioned",
