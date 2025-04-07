@@ -127,7 +127,12 @@ class EPWSummary:
         Returns:
             summary (EPWSummary): The EPW summary statistics.
         """
+        global EPWSummaryCache
+        cache_key = None
         if isinstance(epw, Path):
+            cache_key = epw
+            if cache_key in EPWSummaryCache:
+                return EPWSummaryCache[cache_key]
             if epw.suffix == ".epw":
                 epw = EPW(epw)
             elif epw.suffix == ".zip":
@@ -208,7 +213,7 @@ class EPWSummary:
         ]
         latitude = epw.location.latitude
         longitude = epw.location.longitude
-        return cls(
+        summary = cls(
             annual_hdd=annual_hdd,
             annual_cdd=annual_cdd,
             annual_daily_median_median=annual_daily_median_median,
@@ -226,7 +231,12 @@ class EPWSummary:
             latitude=latitude,
             longitude=longitude,
         )
+        if cache_key is not None:
+            EPWSummaryCache[cache_key] = summary
+        return summary
 
+
+EPWSummaryCache: dict[Path | str, EPWSummary] = {}
 
 BasementAtticOccupationConditioningStatus = Literal[
     "none",
@@ -635,6 +645,8 @@ class SBEMSimulationSpec(LeafSpec):
                 #     (floor / self.f2f_height) if floor is not None else None
                 #     for floor in self.neighbor_floors
                 # ],
+                # TODO: use neighbor heights instead of floors so its
+                # more decoupled from the f2f height.
                 neighbor_floors=self.neighbor_floors,
                 neighbor_f2f_height=self.f2f_height,
                 target_short_length=self.short_edge,
