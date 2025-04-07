@@ -26,18 +26,18 @@ RUN apt-get update && \
 
 # Copy EnergyPlus from the first stage to the second stage
 ARG EP_VERSION
-ENV ENERGYPLUS_INSTALL_DIR=/usr/local/EnergyPlus-${EP_VERSION//./-}
-COPY --from=energyplus /energyplus-local $ENERGYPLUS_INSTALL_DIR
+COPY --from=energyplus /energyplus-local /usr/local/EnergyPlus-${EP_VERSION}
 
-# Create symlinks for EnergyPlus executables
-RUN ln -s $ENERGYPLUS_INSTALL_DIR/energyplus /usr/local/bin/energyplus \
-    && ln -s $ENERGYPLUS_INSTALL_DIR/runenergyplus /usr/local/bin/runenergyplus \
-    && ln -s $ENERGYPLUS_INSTALL_DIR/runreadvars  /usr/local/bin/runreadvars \
-    && ln -s $ENERGYPLUS_INSTALL_DIR/runepmacro /usr/local/bin/runepmacro \
-    && ln -s $ENERGYPLUS_INSTALL_DIR/ExpandObjects /usr/local/bin/ExpandObjects \
-    && ln -s $ENERGYPLUS_INSTALL_DIR/PreProcess/GrndTempCalc/Basement /usr/local/bin/Basement \
-    && ln -s $ENERGYPLUS_INSTALL_DIR/PreProcess/GrndTempCalc/Slab /usr/local/bin/Slab
-
+# Rename directory from dotted to dashed version and set up symlinks
+RUN EP_VERSION_DASH=$(echo "${EP_VERSION}" | tr '.' '-') && \
+    mv /usr/local/EnergyPlus-${EP_VERSION} /usr/local/EnergyPlus-${EP_VERSION_DASH} && \
+    ln -s /usr/local/EnergyPlus-${EP_VERSION_DASH}/energyplus /usr/local/bin/energyplus && \
+    ln -s /usr/local/EnergyPlus-${EP_VERSION_DASH}/runenergyplus /usr/local/bin/runenergyplus && \
+    ln -s /usr/local/EnergyPlus-${EP_VERSION_DASH}/runreadvars /usr/local/bin/runreadvars && \
+    ln -s /usr/local/EnergyPlus-${EP_VERSION_DASH}/runepmacro /usr/local/bin/runepmacro && \
+    ln -s /usr/local/EnergyPlus-${EP_VERSION_DASH}/ExpandObjects /usr/local/bin/ExpandObjects && \
+    ln -s /usr/local/EnergyPlus-${EP_VERSION_DASH}/PreProcess/GrndTempCalc/Basement /usr/local/bin/Basement && \
+    ln -s /usr/local/EnergyPlus-${EP_VERSION_DASH}/PreProcess/GrndTempCalc/Slab /usr/local/bin/Slab
 
 # PYTHON etc setup ...
 ARG POETRY_VERSION=2.1.2
