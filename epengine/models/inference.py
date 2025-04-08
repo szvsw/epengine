@@ -18,9 +18,11 @@ from epengine.models.sampling import (
     ConditionalPriorCondition,
     CopySampler,
     FixedValueSampler,
+    MultiplyValueSampler,
     Prior,
     Priors,
     ProductValuesSampler,
+    SumValuesSampler,
     UnconditionalPrior,
     UniformSampler,
 )
@@ -350,15 +352,96 @@ class SBEMInferenceRequestSpec(BaseModel):
         )
         prior_dict["feature.geometry.f2f_height"] = f2f_height_prior
 
-        # attic_slope_if_un_un_prior = UnconditionalPrior(
-        #     sampler=UniformSampler(min=4/12, max=6/12)
-        # )
-        # prior_dict["feature.geometry.attic_slope_if_un_un"] = attic_slope_if_un_un_prior
+        attic_occupied_num = ConditionalPrior(
+            source_feature="feature.extra_spaces.attic.occupied",
+            fallback_prior=None,
+            conditions=[
+                ConditionalPriorCondition(
+                    match_val="Yes",
+                    sampler=FixedValueSampler(value=1),
+                ),
+                ConditionalPriorCondition(
+                    match_val="No",
+                    sampler=FixedValueSampler(value=0),
+                ),
+            ],
+        )
+        prior_dict["feature.extra_spaces.attic.occupied.num"] = attic_occupied_num
 
-        # attic_slope_if_oc_or_con_prior = UnconditionalPrior(
-        #     sampler=UniformSampler(min=6/12, max=9/12)
-        # )
-        # prior_dict["feature.geometry.attic_slope_if_oc_or_con"] = attic_slope_if_oc_or_con_prior
+        attic_conditioned_num = ConditionalPrior(
+            source_feature="feature.extra_spaces.attic.conditioned",
+            fallback_prior=None,
+            conditions=[
+                ConditionalPriorCondition(
+                    match_val="Yes",
+                    sampler=FixedValueSampler(value=1),
+                ),
+                ConditionalPriorCondition(
+                    match_val="No",
+                    sampler=FixedValueSampler(value=0),
+                ),
+            ],
+        )
+        prior_dict["feature.extra_spaces.attic.conditioned.num"] = attic_conditioned_num
+        attic_type_num_prior = UnconditionalPrior(
+            sampler=SumValuesSampler(
+                features_to_sum=[
+                    "feature.extra_spaces.attic.occupied.num",
+                    "feature.extra_spaces.attic.conditioned.num",
+                ]
+            )
+        )
+        prior_dict["feature.extra_spaces.attic.pitch.type.num"] = attic_type_num_prior
+
+        attic_pitch_if_exists_prior = ConditionalPrior(
+            source_feature="feature.extra_spaces.attic.pitch.type.num",
+            fallback_prior=UniformSampler(min=6 / 12, max=9 / 12),
+            conditions=[
+                ConditionalPriorCondition(
+                    match_val=0,
+                    sampler=UniformSampler(min=4 / 12, max=6 / 12),
+                ),
+            ],
+        )
+        prior_dict["feature.extra_spaces.attic.pitch.if_exists"] = (
+            attic_pitch_if_exists_prior
+        )
+
+        attic_pitch_prior = ConditionalPrior(
+            source_feature="feature.extra_spaces.attic.exists",
+            fallback_prior=None,
+            conditions=[
+                ConditionalPriorCondition(
+                    match_val="Yes",
+                    sampler=CopySampler(
+                        feature_to_copy="feature.extra_spaces.attic.pitch.if_exists"
+                    ),
+                ),
+                ConditionalPriorCondition(
+                    match_val="No",
+                    sampler=FixedValueSampler(value=0),
+                ),
+            ],
+        )
+        prior_dict["feature.extra_spaces.attic.pitch"] = attic_pitch_prior
+
+        attic_run_prior = UnconditionalPrior(
+            sampler=MultiplyValueSampler(
+                feature_to_multiply="feature.geometry.short_edge",
+                value_to_multiply=0.5,
+            )
+        )
+        prior_dict["feature.extra_spaces.attic.run"] = attic_run_prior
+
+        attic_height_prior = UnconditionalPrior(
+            sampler=ProductValuesSampler(
+                features_to_multiply=[
+                    "feature.extra_spaces.attic.pitch",
+                    "feature.extra_spaces.attic.run",
+                ]
+            )
+        )
+        prior_dict["feature.geometry.attic_height"] = attic_height_prior
 
         attic_use_fraction_prior = ConditionalPrior(
             source_feature="feature.extra_spaces.attic.occupied",
@@ -708,29 +791,6 @@ class SBEMInferenceRequestSpec(BaseModel):
         base_features = self.base_features
         return pd.DataFrame([base_features] * n)
 
-    def add_sampled_features(self, df: pd.DataFrame):
-        """Add the sampled features to the dataframe."""
-        attic_slope_if_unoccupied_unconditioned = np.random.uniform(
-            4 / 12, 6 / 12, len(df)
-        )
-        attic_slope_if_occupied_or_conditioned = np.random.uniform(
-            6 / 12, 9 / 12, len(df)
-        )
-        attic_slope = np.where(
-            df["feature.extra_spaces.attic.exists"] == "Yes",
-            np.where(
-                (df["feature.extra_spaces.attic.occupied"] == "Yes")
-                | (df["feature.extra_spaces.attic.conditioned"] == "Yes"),
-                attic_slope_if_occupied_or_conditioned,
-                attic_slope_if_unoccupied_unconditioned,
-            ),
-            0,
-        )
-        short_edge = df["feature.geometry.short_edge"]
-        df["feature.geometry.attic_height"] = attic_slope * short_edge / 2
-
-        return df
-
     @cached_property
     def generator(self) -> np.random.Generator:
         """The random number generator for the experiment."""
@@ -749,10 +809,6 @@ class SBEMInferenceRequestSpec(BaseModel):
         df = self.make_inference_features(n)
         priors = self.make_priors()
         df = priors.sample(df, n, self.generator)
-        if (df["feature.extra_spaces.attic.exists"] == "Yes").any():
-            msg = "At least one sample has an attic, which is not allowed for this inference request yet."
-            # TODO: enable attics by setting up the priors for attic pitch -> attic height
-            raise NotImplementedError(msg)
         df_t = self.source_feature_transform.transform(df)
         return df, df_t
 

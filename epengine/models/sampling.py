@@ -311,7 +311,7 @@ class ConditionalPrior(BaseModel):
             final = np.where(mask, samples_for_match_val, final)
 
         if self.fallback_prior is not None:
-            mask = final == np.nan
+            mask = np.isnan(final)
             final = np.where(
                 mask, self.fallback_prior.sample(context, n, generator), final
             )
