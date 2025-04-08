@@ -8,6 +8,7 @@ from epengine.experiments.tarkhan.workflows import TarkhanWorkflow
 from epengine.hatchet import hatchet
 from epengine.workflows import (
     SampleAndSimulate,
+    SBEMInferenceWorkflow,
     ScatterGatherRecursiveWorkflow,
     ScatterGatherWorkflow,
     SimpleTest,
@@ -30,6 +31,7 @@ class SimWorkerSettings(BaseSettings):
     DOES_FAN: bool = True
     DOES_LEAF: bool = True
     DOES_TRAIN: bool = True
+    DOES_INFERENCE: bool = True
     MAX_RUNS: int | None = None
 
     @property
@@ -126,6 +128,8 @@ class SimWorkerSettings(BaseSettings):
             worker.register_workflow(TrainRegressorWithCVFold())
             worker.register_workflow(TrainRegressorWithCV())
             worker.register_workflow(SampleAndSimulate())
+        if self.DOES_INFERENCE:
+            worker.register_workflow(SBEMInferenceWorkflow())
 
         worker.register_workflow(SimpleTest())
         # worker.register_workflow(Root())

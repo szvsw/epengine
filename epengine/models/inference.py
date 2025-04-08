@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import cast
 
-import deprecated
 import geopandas as gpd
 import lightgbm as lgb
 import numpy as np
@@ -221,10 +220,14 @@ class SBEMInferenceRequestSpec(BaseModel):
     @cached_property
     def source_feature_transform(self) -> RegressorInputSpec:
         """Load the source feature transforms from the space.yml file."""
+        from pathlib import Path
+
         import yaml
 
         # TODO: construct a path to an s3 location?
-        with open("E:/repos/epengine/notebooks/space.yml") as f:
+        with open(
+            Path(__file__).parent.parent / "workflows" / "artifacts" / "space.yml"
+        ) as f:
             space = yaml.safe_load(f)
         return RegressorInputSpec.model_validate(space)
 
@@ -234,7 +237,9 @@ class SBEMInferenceRequestSpec(BaseModel):
         from pathlib import Path
 
         lgb_models: dict[str, lgb.Booster] = {}
-        for file in Path("E:/repos/epengine/notebooks/models").glob("*.lgb"):
+        for file in (
+            Path(__file__).parent.parent / "workflows" / "artifacts" / "models"
+        ).glob("*.lgb"):
             with open(file) as f:
                 model = lgb.Booster(model_str=f.read())
             model_name = file.stem.replace("model_", "").replace("_", " ")
@@ -703,10 +708,6 @@ class SBEMInferenceRequestSpec(BaseModel):
         base_features = self.base_features
         return pd.DataFrame([base_features] * n)
 
-    @deprecated.deprecated(
-        reason="This method is deprecated and will be removed in a future version.",
-        version="0.1.0",
-    )
     def add_sampled_features(self, df: pd.DataFrame):
         """Add the sampled features to the dataframe."""
         attic_slope_if_unoccupied_unconditioned = np.random.uniform(
