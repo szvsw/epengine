@@ -2,8 +2,10 @@
 
 from dataclasses import dataclass
 from functools import cached_property
+from pathlib import Path
 from typing import cast
 
+import boto3
 import geopandas as gpd
 import lightgbm as lgb
 import numpy as np
@@ -198,6 +200,10 @@ class SBEMInferenceResponseSpec(BaseModel):
     Total: TotalsSpec
 
 
+GLOBAL_MODEL_CACHE: dict[str, lgb.Booster] = {}
+GLOBAL_FEATURE_TRANSFORM_CACHE: dict[str, RegressorInputSpec] = {}
+
+
 class SBEMInferenceRequestSpec(BaseModel):
     """MA inference request spec."""
 
@@ -218,34 +224,67 @@ class SBEMInferenceRequestSpec(BaseModel):
     semantic_field_context: dict[str, float | str | int]
 
     source_experiment: str
+    bucket: str = "ml-for-bem"
+
+    @cached_property
+    def artifact_keys(self) -> tuple[dict[str, str], dict[str, str]]:
+        """Get the artifact keys for each of the model files and the yml files."""
+        s3 = boto3.client("s3")
+        response = s3.list_objects_v2(
+            Bucket=self.bucket, Prefix=f"hatchet/{self.source_experiment}"
+        )
+        if "Contents" not in response:
+            msg = f"No contents found for {self.source_experiment}"
+            raise ValueError(msg)
+
+        # get all the lgb file keys
+        lgb_file_keys = [
+            obj["Key"]
+            for obj in response["Contents"]
+            if "Key" in obj and obj["Key"].endswith(".lgb")
+        ]
+        # get all the yml files
+        yml_file_keys = [
+            obj["Key"]
+            for obj in response["Contents"]
+            if "Key" in obj and obj["Key"].endswith(".yml")
+        ]
+        yml_files = {Path(key).stem: key for key in yml_file_keys}
+        model_files = {Path(key).stem: key for key in lgb_file_keys}
+        return model_files, yml_files
 
     @cached_property
     def source_feature_transform(self) -> RegressorInputSpec:
         """Load the source feature transforms from the space.yml file."""
-        from pathlib import Path
-
         import yaml
 
-        # TODO: construct a path to an s3 location?
-        with open(
-            Path(__file__).parent.parent / "workflows" / "artifacts" / "space.yml"
-        ) as f:
-            space = yaml.safe_load(f)
-        return RegressorInputSpec.model_validate(space)
+        _, yml_files = self.artifact_keys
+        space_key = yml_files["space"]
+        s3 = boto3.client("s3")
+        if space_key in GLOBAL_FEATURE_TRANSFORM_CACHE:
+            return GLOBAL_FEATURE_TRANSFORM_CACHE[space_key]
+        else:
+            response = s3.get_object(Bucket=self.bucket, Key=space_key)
+            space = yaml.safe_load(response["Body"].read().decode("utf-8"))
+            transform = RegressorInputSpec.model_validate(space)
+            GLOBAL_FEATURE_TRANSFORM_CACHE[space_key] = transform
+            return transform
 
     @cached_property
     def lgb_models(self) -> dict[str, lgb.Booster]:
         """Load the lgb models from the s3 location."""
-        from pathlib import Path
-
+        model_files, _ = self.artifact_keys
         lgb_models: dict[str, lgb.Booster] = {}
-        for file in (
-            Path(__file__).parent.parent / "workflows" / "artifacts" / "models"
-        ).glob("*.lgb"):
-            with open(file) as f:
-                model = lgb.Booster(model_str=f.read())
-            model_name = file.stem.replace("model_", "").replace("_", " ")
-            lgb_models[model_name] = model
+        s3 = boto3.client("s3")
+        for col, key in model_files.items():
+            global GLOBAL_MODEL_CACHE
+            if key in GLOBAL_MODEL_CACHE:
+                lgb_models[col] = GLOBAL_MODEL_CACHE[key]
+            else:
+                response = s3.get_object(Bucket=self.bucket, Key=key)
+                model = lgb.Booster(model_str=response["Body"].read().decode("utf-8"))
+                lgb_models[col] = model
+                GLOBAL_MODEL_CACHE[key] = model
         return lgb_models
 
     @cached_property
@@ -808,6 +847,12 @@ class SBEMInferenceRequestSpec(BaseModel):
         """
         df = self.make_inference_features(n)
         priors = self.make_priors()
+        # TODO: we should consider removing all features which are in the priors
+        # to ensure that there are no strange overwrite behaviors...
+        df = df.drop(
+            columns=[p for p in priors.sampled_features if p in df.columns],
+            axis=1,
+        )
         df = priors.sample(df, n, self.generator)
         df_t = self.source_feature_transform.transform(df)
         return df, df_t
@@ -1018,6 +1063,85 @@ class SBEMInferenceRequestSpec(BaseModel):
             disaggregations_summary=disaggregations_summary,
             totals_summary=totals_summary,
         )
+
+
+class SBEMInferenceSavingsRequestSpec(BaseModel):
+    """An inference request spec for computing savings using matched samples."""
+
+    original: SBEMInferenceRequestSpec
+    upgraded_semantic_field_context: dict[str, float | str | int]
+
+    def run(self, n: int = 10000):
+        """Run the inference for a savings problem.
+
+        This function will ensure that the original and upgraded models keep aligned
+        features for stochastically sampled values, e.g. attic_height, wwr, etc.
+
+        Args:
+            n (int): The number of samples to run.
+
+        Returns:
+            original_results (SBEMDistributions): The results of the original model.
+            new_results (SBEMDistributions): The results of the upgraded model.
+            delta_results (SBEMDistributions): The results of the delta between the original and upgraded models.
+        """
+        original_results = self.original.run(n)
+        original_features = original_results.features
+        original_priors = self.original.make_priors()
+
+        # first, we must compute which semantic features have changed.
+        changed_context_fields: dict[str, float | str | int] = {
+            f"feature.semantic.{f}": v
+            for f, v in self.upgraded_semantic_field_context.items()
+            if v != self.original.semantic_field_context[f]
+        }
+        changed_feature_names = set(changed_context_fields.keys())
+
+        # then we will get the priors that must be re-run as they are downstream
+        # of the changed features.
+        changed_priors = original_priors.select_prior_tree_for_changed_features(
+            changed_feature_names
+        )
+
+        # then we will take the original features and update the changed semantic
+        # features.
+        new_features = original_features.copy(deep=True)
+        for feature_name, value in changed_context_fields.items():
+            new_features[feature_name] = value
+
+        # then we compute the new features using the changed priors
+        new_features = changed_priors.sample(
+            new_features, len(new_features), self.original.generator
+        )
+
+        # then we run traditional inference on the new features
+        new_transformed_features = self.original.source_feature_transform.transform(
+            new_features
+        )
+        new_results_raw = self.original.predict(new_transformed_features)
+        new_results = self.original.compute_distributions(new_features, new_results_raw)
+
+        # finally, we compute the deltas and the corresponding summary
+        # statistics.
+        disaggs_delta = original_results.disaggregations - new_results.disaggregations
+        totals_delta = original_results.totals - new_results.totals
+        disaggs_delta_summary = disaggs_delta.describe(
+            percentiles=[0.05, 0.25, 0.5, 0.75, 0.95]
+        ).drop(["count"])
+        totals_delta_summary = totals_delta.describe(
+            percentiles=[0.05, 0.25, 0.5, 0.75, 0.95]
+        ).drop(["count"])
+
+        # return the results
+        delta_results = SBEMDistributions(
+            features=new_results.features,
+            disaggregations=disaggs_delta,
+            totals=totals_delta,
+            disaggregations_summary=disaggs_delta_summary,
+            totals_summary=totals_delta_summary,
+        )
+
+        return original_results, new_results, delta_results
 
 
 # provided features

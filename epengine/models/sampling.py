@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import cast
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel, model_validator
@@ -24,6 +25,12 @@ class Sampler(ABC):
         """Sample features from a prior, which may depend on a context."""
         pass
 
+    @property
+    @abstractmethod
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        pass
+
 
 class UniformSampler(BaseModel, Sampler):
     """A uniform sampler which generates values uniformly between a min and max value."""
@@ -36,6 +43,11 @@ class UniformSampler(BaseModel, Sampler):
     ) -> np.ndarray:
         """Sample uniformly between a min and max value."""
         return generator.uniform(self.min, self.max, size=n)
+
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return set()
 
 
 class ClippedNormalSampler(BaseModel, Sampler):
@@ -55,6 +67,11 @@ class ClippedNormalSampler(BaseModel, Sampler):
         samples = generator.normal(self.mean, self.std, size=n).clip(clip_min, clip_max)
         return samples
 
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return set()
+
 
 class FixedValueSampler(BaseModel):
     """A fixed value sampler which generates a fixed value for all samples."""
@@ -66,6 +83,11 @@ class FixedValueSampler(BaseModel):
     ) -> np.ndarray:
         """Sample a fixed value."""
         return np.full(n, self.value)
+
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return set()
 
 
 class CategoricalSampler(BaseModel):
@@ -79,6 +101,11 @@ class CategoricalSampler(BaseModel):
     ) -> np.ndarray:
         """Sample from a categorical distribution."""
         return generator.choice(self.values, size=n, p=self.weights)
+
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return set()
 
     @model_validator(mode="after")
     def check_values_and_weights(self):
@@ -110,6 +137,11 @@ class CopySampler(BaseModel):
             raise SamplingError(msg)
         return context[self.feature_to_copy].to_numpy()
 
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return {self.feature_to_copy}
+
 
 class AddValueSampler(BaseModel):
     """A deterministic sampler which adds a value to a feature."""
@@ -125,6 +157,11 @@ class AddValueSampler(BaseModel):
             msg = f"Feature to add to {self.feature_to_add_to} not found in context dataframe."
             raise SamplingError(msg)
         return context[self.feature_to_add_to].to_numpy() + self.value_to_add
+
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return {self.feature_to_add_to}
 
 
 class SumValuesSampler(BaseModel):
@@ -145,6 +182,11 @@ class SumValuesSampler(BaseModel):
             )
             raise SamplingError(msg)
         return np.sum(context[self.features_to_sum].to_numpy(), axis=1)
+
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return set(self.features_to_sum)
 
 
 class MultiplyValueSampler(BaseModel):
@@ -167,6 +209,11 @@ class MultiplyValueSampler(BaseModel):
             raise SamplingError(msg)
         return context[self.feature_to_multiply].to_numpy() * self.value_to_multiply
 
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return {self.feature_to_multiply}
+
 
 class ProductValuesSampler(BaseModel):
     """A deterministic sampler which generates a product of features."""
@@ -187,6 +234,11 @@ class ProductValuesSampler(BaseModel):
             raise SamplingError(msg)
         return np.prod(context[self.features_to_multiply].to_numpy(), axis=1)
 
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return set(self.features_to_multiply)
+
 
 class InvertSampler(BaseModel):
     """A deterministic sampler which generates the multiplicative inverse of a feature."""
@@ -206,6 +258,11 @@ class InvertSampler(BaseModel):
             )
             raise SamplingError(msg)
         return 1 / context[self.feature_to_invert].to_numpy()
+
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return {self.feature_to_invert}
 
 
 class LogSampler(BaseModel):
@@ -230,6 +287,11 @@ class LogSampler(BaseModel):
             raise SamplingError(msg)
         return np.log(context[self.feature_to_log].to_numpy()) / np.log(self.base)
 
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return {self.feature_to_log}
+
 
 class ConcatenateFeaturesSampler(BaseModel):
     """A deterministic sampler which concatenates features."""
@@ -251,6 +313,11 @@ class ConcatenateFeaturesSampler(BaseModel):
             raise SamplingError(msg)
         cols: pd.DataFrame = cast(pd.DataFrame, context[self.features_to_concatenate])
         return cols.astype(str).agg(self.separator.join, axis=1).to_numpy()
+
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return set(self.features_to_concatenate)
 
 
 # TODO:
@@ -288,8 +355,30 @@ class ConditionalPriorCondition(BaseModel):
         """Sample from a conditional prior condition."""
         return self.sampler.sample(context, n, generator)
 
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return self.sampler.depends_on
 
-class ConditionalPrior(BaseModel):
+
+class PriorABC(ABC):
+    """A prior."""
+
+    @abstractmethod
+    def sample(
+        self, context: pd.DataFrame, n: int, generator: np.random.Generator
+    ) -> np.ndarray:
+        """Sample from a prior."""
+        pass
+
+    @property
+    @abstractmethod
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        pass
+
+
+class ConditionalPrior(BaseModel, PriorABC):
     """A conditional prior."""
 
     source_feature: str
@@ -325,8 +414,15 @@ class ConditionalPrior(BaseModel):
 
         return final
 
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return {self.source_feature} | {
+            dependency for c in self.conditions for dependency in c.depends_on
+        }
 
-class UnconditionalPrior(BaseModel):
+
+class UnconditionalPrior(BaseModel, PriorABC):
     """An unconditional prior."""
 
     sampler: PriorSampler
@@ -334,6 +430,11 @@ class UnconditionalPrior(BaseModel):
     def sample(self, context: pd.DataFrame, n: int, generator: np.random.Generator):
         """Sample from an unconditional prior."""
         return self.sampler.sample(context, n, generator)
+
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return self.sampler.depends_on
 
 
 Prior = UnconditionalPrior | ConditionalPrior
@@ -349,4 +450,78 @@ class Priors(BaseModel):
         working_df = context.copy(deep=True)
         for feature, prior in self.sampled_features.items():
             working_df[feature] = prior.sample(working_df, n, generator)
+        if working_df.isna().any().any():  # pyright: ignore [reportAttributeAccessIssue]
+            msg = "Working dataframe contains NaN values; possibly due to an unmatched value."
+            raise SamplingError(msg)
         return working_df
+
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return {
+            dependency
+            for prior in self.sampled_features.values()
+            for dependency in prior.depends_on
+        }
+
+    @property
+    def dependency_graph(self) -> nx.DiGraph:
+        """Construct a dependency graph between columns in the context dataframe.
+
+        Edges connect *from* the dependency *to* the dependent feature.
+        """
+        g = nx.DiGraph()
+        for feature, prior in self.sampled_features.items():
+            if prior.depends_on:
+                for dependency in prior.depends_on:
+                    g.add_edge(dependency, feature)
+        return g
+
+    @property
+    def root_features(self) -> set[str]:
+        """The features that have no dependencies."""
+        return {
+            node
+            for node in self.dependency_graph.nodes
+            if self.dependency_graph.in_degree(node) == 0
+        }
+
+    def select_prior_tree_for_changed_features(
+        self, changed_features: set[str]
+    ) -> "Priors":
+        """Select the prior tree for the changed features.
+
+        This function will return a new Priors object with only the priors that are
+        downstream of the changed features.
+
+        Args:
+            changed_features (set[str]): The features that have changed.
+
+        Returns:
+            priors (Priors): A new Priors object with only the priors that are downstream of the changed features.
+        """
+        g = self.dependency_graph
+        all_changing_priors: set[str] = set()
+        for root_feature in self.root_features:
+            # first, we check if this root feature is one of the changed features.
+            if any(f == root_feature for f in changed_features):
+                # if it is, we will grab all of its descendants.
+                desendants = nx.descendants(g, root_feature)
+
+                # if the root feature is in the sampled features, we will add it to the set of changing priors.
+                if root_feature in self.sampled_features:
+                    all_changing_priors.add(root_feature)
+
+                # we will also add all of the descendants to the set of changing priors.
+                for dep in desendants:
+                    if dep in self.sampled_features:
+                        all_changing_priors.add(dep)
+
+        # finally, we will return a new Priors object with only the changing priors.
+        return Priors(
+            sampled_features={
+                f: p
+                for f, p in self.sampled_features.items()
+                if f in all_changing_priors
+            }
+        )
