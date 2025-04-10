@@ -899,6 +899,7 @@ class TrainFoldSpec(LeafSpec):
             model = lgb.train(
                 lgb_params,
                 lgb_train_data,
+                num_boost_round=4000,
                 valid_sets=[lgb_test_data],
                 valid_names=["eval"],
                 callbacks=[lgb.early_stopping(20)],
