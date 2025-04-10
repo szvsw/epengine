@@ -343,6 +343,13 @@ class SBEMInferenceRequestSpec(BaseModel):
             else:
                 response = s3.get_object(Bucket=self.bucket, Key=key)
                 model = lgb.Booster(model_str=response["Body"].read().decode("utf-8"))
+                # with tempfile.TemporaryDirectory() as tmpdir:
+                #     tmp_path = Path(tmpdir) / "model.lgb"
+                #     s3.download_file(
+                #         Bucket=self.bucket, Key=key, Filename=tmp_path.as_posix()
+                #     )
+                #     with open(tmp_path) as f:
+                #         model = lgb.Booster(model_str=f.read())
                 lgb_models[col] = model
                 GLOBAL_MODEL_CACHE[key] = model
         return lgb_models
@@ -1257,7 +1264,11 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             totals_summary=totals_delta_summary,
         )
 
-        return original_results, new_results, delta_results
+        return {
+            "original": original_results,
+            "upgraded": new_results,
+            "delta": delta_results,
+        }
 
 
 # provided features
