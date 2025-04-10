@@ -546,16 +546,26 @@ class SBEMSimulationSpec(LeafSpec):
         max_unoccupied_and_unconditioned_rise_over_run = 6 / 12
 
         run = self.short_edge / 2
-        if self.attic_is_occupied or self.attic_is_conditioned:
-            return run * np.random.uniform(
-                min_occupied_or_conditioned_rise_over_run,
-                max_occupied_or_conditioned_rise_over_run,
-            )
-        else:
-            return run * np.random.uniform(
-                min_unoccupied_and_unconditioned_rise_over_run,
-                max_unoccupied_and_unconditioned_rise_over_run,
-            )
+        attic_height = None
+        attempts = 20
+        while attic_height is None and attempts > 0:
+            if self.attic_is_occupied or self.attic_is_conditioned:
+                attic_height = run * np.random.uniform(
+                    min_occupied_or_conditioned_rise_over_run,
+                    max_occupied_or_conditioned_rise_over_run,
+                )
+            else:
+                attic_height = run * np.random.uniform(
+                    min_unoccupied_and_unconditioned_rise_over_run,
+                    max_unoccupied_and_unconditioned_rise_over_run,
+                )
+            if attic_height > self.f2f_height * 2.5:
+                attic_height = None
+            attempts -= 1
+        if attic_height is None:
+            msg = "Failed to sample valid attic height (must be less than 2.5x f2f height)."
+            raise ValueError(msg)
+        return attic_height
 
     @property
     def n_conditioned_floors(self) -> int:

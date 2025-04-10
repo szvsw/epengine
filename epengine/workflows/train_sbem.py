@@ -224,15 +224,16 @@ if __name__ == "__main__":
 
     client = new_client()
 
-    experiment_id = f"ma-webapp/v0-{current_time}"
-    max_iters = 10
-    n_per_iter = 10_000
-    n_init = 10_000
-    min_per_stratum = 100
+    experiment_id = f"ma-webapp/v1-{current_time}"
+    experiment_id = f"ma-webapp/test/v1-{current_time}"
+    max_iters = 2
+    n_per_iter = 250
+    n_init = 250
+    min_per_stratum = 10
     recursion_factor = 2
-    recursion_max_depth = 4
+    recursion_max_depth = 1
+    input_gis_file = "./artifacts/ma-geometry-no-smalls-subsample.pq"
     yml_dir = "E:/repos/epinterface/tests/data"
-    input_gis_file = "./artifacts/ma-geometry-no-smalls.pq"
     input_component_map_file = f"{yml_dir}/component-map-ma.yml"
     input_semantic_fields_file = f"{yml_dir}/semantic-fields-ma.yml"
     input_database_file = f"{yml_dir}/components-ma.db"

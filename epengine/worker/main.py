@@ -8,6 +8,7 @@ from epengine.experiments.tarkhan.workflows import TarkhanWorkflow
 from epengine.hatchet import hatchet
 from epengine.workflows import (
     SampleAndSimulate,
+    SBEMInferenceSavingsWorkflow,
     SBEMInferenceWorkflow,
     ScatterGatherRecursiveWorkflow,
     ScatterGatherWorkflow,
@@ -130,6 +131,7 @@ class SimWorkerSettings(BaseSettings):
             worker.register_workflow(SampleAndSimulate())
         if self.DOES_INFERENCE:
             worker.register_workflow(SBEMInferenceWorkflow())
+            worker.register_workflow(SBEMInferenceSavingsWorkflow())
 
         worker.register_workflow(SimpleTest())
         # worker.register_workflow(Root())

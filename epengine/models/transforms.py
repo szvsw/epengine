@@ -84,6 +84,17 @@ class RegressorInputSpec(BaseModel):
 
             elif isinstance(feature, ContinuousFeature):
                 low, high = feature.min, feature.max
+                original_dtype = transformed_features[feature.name].dtype
+                if original_dtype in [
+                    "int64",
+                    "Int64",
+                    "int32",
+                    "int64",
+                    int,
+                ]:
+                    transformed_features[feature.name] = transformed_features[
+                        feature.name
+                    ].astype(float)
                 transformed_features[feature.name] = (
                     transformed_features[feature.name] - low
                 ) / (high - low)
@@ -91,18 +102,25 @@ class RegressorInputSpec(BaseModel):
                 msg = f"Unknown feature type: {type(feature): {feature}}"
                 raise TypeError(msg)
 
-        transformed_features = transformed_features[[f.name for f in self.features]]
+        transformed_features = transformed_features[self.feature_names]
 
         return cast(pd.DataFrame, transformed_features)
 
-    def transform(self, features: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, features: pd.DataFrame, do_check: bool = True) -> pd.DataFrame:
         """Transform the features.
 
         Args:
             features (pd.DataFrame): The dataframe to transform.
+            do_check (bool): Whether to check the features.
 
         Returns:
             transformed_features (pd.DataFrame): The transformed features.
         """
-        self.check_features(features)
+        if do_check:
+            self.check_features(features)
         return self.transform_features(features)
+
+    @property
+    def feature_names(self) -> list[str]:
+        """Get the feature names."""
+        return [f.name for f in self.features]

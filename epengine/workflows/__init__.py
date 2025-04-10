@@ -1,6 +1,6 @@
 """Workflows package for the EP Engine containing async Hatchet tasks."""
 
-from .sbem_inference import SBEMInferenceWorkflow
+from .sbem_inference import SBEMInferenceSavingsWorkflow, SBEMInferenceWorkflow
 from .scatter_gather import ScatterGatherRecursiveWorkflow, ScatterGatherWorkflow
 from .shoebox import SimulateShoebox
 from .shoebox_sbem import SimulateSBEMShoebox
@@ -13,6 +13,7 @@ from .train_sbem import (
 )
 
 __all__ = [
+    "SBEMInferenceSavingsWorkflow",
     "SBEMInferenceWorkflow",
     "SampleAndSimulate",
     "ScatterGatherRecursiveWorkflow",
