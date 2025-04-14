@@ -1,16 +1,23 @@
 """Train an sbem model for a specific fold."""
 
+import math
 import tempfile
 from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
+import boto3
 import numpy as np
 import pandas as pd
 import yaml
 from pydantic import AnyUrl, BaseModel, Field, model_validator
 
 from epengine.models.shoebox_sbem import BasementAtticOccupationConditioningStatus
+from epengine.models.transforms import (
+    CategoricalFeature,
+    ContinuousFeature,
+    RegressorInputSpec,
+)
 
 if TYPE_CHECKING:
     from mypy_boto3_s3.client import S3Client as S3ClientType
@@ -406,15 +413,15 @@ class SampleSpec(StageSpec):
 
     def sample_wwrs(self, df: pd.DataFrame) -> pd.DataFrame:
         """Sample the wwrs."""
-        wwr_min = 0.1
-        wwr_max = 0.3
+        wwr_min = 0.05
+        wwr_max = 0.35
         df["wwr"] = self.random_generator.uniform(wwr_min, wwr_max, size=len(df))
         return df
 
     def sample_f2f_heights(self, df: pd.DataFrame) -> pd.DataFrame:
         """Sample the f2f heights."""
-        f2f_min = 2.5
-        f2f_max = 4
+        f2f_min = 2.3
+        f2f_max = 4.3
         df["f2f_height"] = self.random_generator.uniform(f2f_min, f2f_max, size=len(df))
         return df
 
@@ -552,6 +559,7 @@ class TrainFoldSpec(LeafSpec):
         ...,
         description="The index of the current training iteration within the outer loop.",
     )
+    bucket: str = Field(..., description="The bucket to save the models to.")
 
     @property
     def data_path(self) -> Path:
@@ -694,45 +702,46 @@ class TrainFoldSpec(LeafSpec):
         fparams = params[[col for col in params.columns if col.startswith("feature.")]]
         numeric_cols = fparams.select_dtypes(include=["number"]).columns
         numeric_min_maxs = {
-            col: (cast(float, fparams[col].min()), cast(float, fparams[col].max()))
+            col: (float(fparams[col].min()), float(fparams[col].max()))
             for col in numeric_cols
         }
+        for col in numeric_min_maxs:
+            low, high = numeric_min_maxs[col]
+            # we want to floor the "low" value down to the nearest 0.001
+            # and ceil the "high" value up to the nearest 0.001
+            # e.g. if low is -0.799, we want to set it to -0.800
+            # and if high is 0.799, we want to set it to 0.800
+            numeric_min_maxs[col] = (
+                math.floor(low * 1000) / 1000,
+                math.ceil(high * 1000) / 1000,
+            )
         return numeric_min_maxs
+
+    @cached_property
+    def feature_spec(self) -> RegressorInputSpec:
+        """Get the feature spec which can be serialized and reloaded."""
+        params, _ = self.train_segment
+        features: list[CategoricalFeature | ContinuousFeature] = []
+        for col in params.columns:
+            if col in self.numeric_min_maxs:
+                low, high = self.numeric_min_maxs[col]
+                features.append(
+                    ContinuousFeature(name=col, min=float(low), max=float(high))
+                )
+            elif col in self.non_numeric_options:
+                opts = self.non_numeric_options[col]
+                features.append(CategoricalFeature(name=col, values=opts))
+        return RegressorInputSpec(features=features)
 
     def normalize_params(self, params: pd.DataFrame) -> pd.DataFrame:
         """Normalize the params."""
-        fparams = cast(
-            pd.DataFrame,
-            params[[col for col in params.columns if col.startswith("feature.")]],
-        )
-        for col in fparams.columns:
-            if col in self.numeric_min_maxs:
-                min_val, max_val = self.numeric_min_maxs[col]
-                # TODO: getting a loc-setting warning here because sometimes the original col was an int,
-                # in which case we need to safely convert it
-                if fparams[col].dtype in [
-                    "int64",
-                    "Int64",
-                    "int32",
-                    "int64",
-                    int,
-                ]:
-                    fparams[col] = fparams[col].astype(float)
-
-                fparams.loc[:, col] = (fparams.loc[:, col] - min_val) / (
-                    (max_val - min_val) if ((max_val - min_val) > 0) else 1
-                )
-            elif col in self.non_numeric_options:
-                unique_vals = self.non_numeric_options[col]
-                fparams[col] = pd.Categorical(
-                    fparams[col], categories=unique_vals
-                ).codes
-            else:
-                msg = f"Feature {col} is not numeric or categorical and cannot be normalized."
-                raise ValueError(msg)
+        regressor_spec = self.feature_spec
+        fparams = regressor_spec.transform(params, do_check=False)
         return fparams
 
-    def run(self):
+    def run(
+        self,
+    ):
         """Train the model."""
         train_params, train_targets = self.train_segment
         test_params, test_targets = self.test_segment
@@ -745,8 +754,9 @@ class TrainFoldSpec(LeafSpec):
         # train_preds, test_preds = self.train_xgboost(
         #     train_params, train_targets, test_params, test_targets
         # )
+        s3_client = boto3.client("s3")
         train_preds, test_preds = self.train_lightgbm(
-            train_params, train_targets, test_params, test_targets
+            train_params, train_targets, test_params, test_targets, s3_client
         )
 
         # compute the metrics
@@ -872,6 +882,7 @@ class TrainFoldSpec(LeafSpec):
         train_targets: pd.DataFrame,
         test_params: pd.DataFrame,
         test_targets: pd.DataFrame,
+        s3_client: S3ClientType | None = None,
     ):
         """Train the lightgbm model."""
         import lightgbm as lgb
@@ -888,6 +899,7 @@ class TrainFoldSpec(LeafSpec):
             model = lgb.train(
                 lgb_params,
                 lgb_train_data,
+                num_boost_round=4000,
                 valid_sets=[lgb_test_data],
                 valid_names=["eval"],
                 callbacks=[lgb.early_stopping(20)],
@@ -902,9 +914,32 @@ class TrainFoldSpec(LeafSpec):
                 index=train_targets.index,
                 name=col,
             )
+            if s3_client is not None:
+                model_key = self.format_model_key(f"{col}.lgb")
+                model_str = model.model_to_string()
+                s3_client.put_object(Bucket=self.bucket, Key=model_key, Body=model_str)
+
+        if s3_client is not None:
+            import yaml
+
+            space_key = self.format_model_key("space.yml")
+            space_str = yaml.dump(
+                self.feature_spec.model_dump(mode="json"), indent=2, sort_keys=False
+            )
+            s3_client.put_object(Bucket=self.bucket, Key=space_key, Body=space_str)
+
         test_preds = pd.concat(test_preds, axis=1)
         train_preds = pd.concat(train_preds, axis=1)
         return train_preds, test_preds
+
+    @property
+    def model_dir_key(self) -> str:
+        """Get the key for the model directory."""
+        return f"{self.experiment_id}/{self.sort_index}/models"
+
+    def format_model_key(self, model_name: str) -> str:
+        """Format the model key."""
+        return f"hatchet/{self.model_dir_key}/{model_name}"
 
     def train_xgboost(
         self,
@@ -984,6 +1019,7 @@ class TrainWithCVSpec(StageSpec):
                     data_uri=data_uri,
                     stratification_field=self.progressive_training_spec.stratification.field,
                     progressive_training_iter_ix=self.progressive_training_iteration_ix,
+                    bucket=self.progressive_training_spec.bucket,
                 )
             )
         return schedule

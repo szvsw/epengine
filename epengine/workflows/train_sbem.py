@@ -102,7 +102,8 @@ class SampleAndSimulate:
 
 @hatchet.workflow(
     name="train_regressor_with_cv",
-    timeout="10m",
+    timeout="20m",
+    schedule_timeout="20m",
     version="0.1",
 )
 class TrainRegressorWithCV:
@@ -122,7 +123,7 @@ class TrainRegressorWithCV:
         )
         return {"id": workflow_ref.workflow_run_id}
 
-    @hatchet.step(name="await_results", timeout="10m", parents=["allocate"])
+    @hatchet.step(name="await_results", timeout="20m", parents=["allocate"])
     async def await_results(self, context: Context):
         """This step is responsible for awaiting the results of the scatter gather task."""
         workflow_id = cast(dict[str, str], context.step_output("allocate"))["id"]
@@ -136,7 +137,7 @@ class TrainRegressorWithCV:
         uri_response = URIResponse.model_validate(result["collect_children"])
         return uri_response.model_dump(mode="json")
 
-    @hatchet.step(name="check_convergence", timeout="20m", parents=["await_results"])
+    @hatchet.step(name="check_convergence", timeout="10m", parents=["await_results"])
     async def check_convergence(self, context: Context):
         """This step is responsible for checking the convergence of the training."""
         workflow_input = context.workflow_input()
@@ -196,14 +197,15 @@ class TrainRegressorWithCV:
 
 @hatchet.workflow(
     name="train_regressor_with_cv_fold",
-    timeout="10m",
+    timeout="20m",
+    schedule_timeout="20m",
     version="0.1",
 )
 class TrainRegressorWithCVFold:
     """This workflow will train a single fold of a k-fold cross-validation."""
 
     # TODO: we shouldn't have to name this step simulate for the scatter gather to work.
-    @hatchet.step(name="simulate", timeout="10m")
+    @hatchet.step(name="simulate", timeout="20m")
     async def simulate(self, context: Context):
         """This step is responsible for training the model on a single fold."""
 
@@ -224,15 +226,16 @@ if __name__ == "__main__":
 
     client = new_client()
 
-    experiment_id = f"ma-webapp/v0-{current_time}"
-    max_iters = 10
-    n_per_iter = 10_000
-    n_init = 10_000
-    min_per_stratum = 100
+    experiment_id = f"ma-webapp/test/v1-{current_time}"
+    experiment_id = f"ma-webapp/v1-{current_time}"
+    max_iters = 6
+    n_per_iter = 20_000
+    n_init = 100_000
+    min_per_stratum = 300
     recursion_factor = 2
     recursion_max_depth = 4
-    yml_dir = "E:/repos/epinterface/tests/data"
     input_gis_file = "./artifacts/ma-geometry-no-smalls.pq"
+    yml_dir = "E:/repos/epinterface/tests/data"
     input_component_map_file = f"{yml_dir}/component-map-ma.yml"
     input_semantic_fields_file = f"{yml_dir}/semantic-fields-ma.yml"
     input_database_file = f"{yml_dir}/components-ma.db"
@@ -306,11 +309,12 @@ if __name__ == "__main__":
         data_uri=None,
     )
     progressive_training_spec.upload_self(s3)
-    client.admin.run_workflow(
+    run = client.admin.run_workflow(
         workflow_name="sample_and_simulate",
         input=sample_spec.model_dump(mode="json"),
     )
     print(f"Experiment ID: {experiment_id}")
+    print(f"Workflow ID: {run.workflow_run_id}")
 
     # train_spec = TrainWithCVSpec(
     #     progressive_training_spec=progressive_training_spec,
