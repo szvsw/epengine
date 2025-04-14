@@ -443,6 +443,8 @@ def submit_gis_job(  # noqa: C901
             "height": row[semantic_fields.Height_col],
             "num_floors": row[semantic_fields.Num_Floors_col],
             "f2f_height": config.assumptions.f2f_height,  # TODO: bring this into rich fields.
+            "basement": row.get("basement", "none"),
+            "attic": row.get("attic", "none"),
             # TODO: areas.
         }
         workflow_spec.model_validate(data)
