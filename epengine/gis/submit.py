@@ -351,8 +351,8 @@ def submit_gis_job(  # noqa: C901
 
     def handle_epw_path(x: str):
         # GROSS - we should fix this.
-        x = "/".join(x.split("\\")[2:-1])
-        x = f"https://climate.onebuilding.org/{x}.zip"
+        print(f"Using epw path: {x}")
+        x = f"https://climate.onebuilding.org/{x}"
         return x
 
     gdf["epwzip_uri"] = epw_meta["path"].apply(handle_epw_path)
