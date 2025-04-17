@@ -584,27 +584,27 @@ class SBEMInferenceRequestSpec(BaseModel):
             conditions=[
                 ConditionalPriorCondition(
                     match_val="ElectricResistance",
-                    sampler=UniformSampler(min=0.95, max=0.95),
+                    sampler=UniformSampler(min=0.95, max=0.99),
                 ),
                 ConditionalPriorCondition(
                     match_val="OilHeating",
-                    sampler=UniformSampler(min=0.8, max=0.9),
+                    sampler=UniformSampler(min=0.63, max=0.92),
                 ),
                 ConditionalPriorCondition(
                     match_val="NaturalGasHeating",
-                    sampler=UniformSampler(min=0.85, max=0.9),
+                    sampler=UniformSampler(min=0.60, max=0.925),
                 ),
                 ConditionalPriorCondition(
                     match_val="NaturalGasCondensingHeating",
-                    sampler=UniformSampler(min=0.9, max=0.95),
+                    sampler=UniformSampler(min=0.60, max=0.925),
                 ),
                 ConditionalPriorCondition(
                     match_val="ASHPHeating",
-                    sampler=UniformSampler(min=2, max=4),
+                    sampler=UniformSampler(min=2.1, max=4.2),
                 ),
                 ConditionalPriorCondition(
                     match_val="GSHPHeating",
-                    sampler=UniformSampler(min=3, max=5),
+                    sampler=UniformSampler(min=2.9, max=4.8),
                 ),
             ],
         )
@@ -614,23 +614,23 @@ class SBEMInferenceRequestSpec(BaseModel):
             conditions=[
                 ConditionalPriorCondition(
                     match_val="Steam",
-                    sampler=UniformSampler(min=0.8, max=0.9),
+                    sampler=UniformSampler(min=0.5, max=0.8),
                 ),
                 ConditionalPriorCondition(
                     match_val="HotWaterUninsulated",
-                    sampler=UniformSampler(min=0.8, max=0.9),
+                    sampler=UniformSampler(min=0.73, max=0.86),
                 ),
                 ConditionalPriorCondition(
                     match_val="AirDuctsUninsulated",
-                    sampler=UniformSampler(min=0.8, max=0.9),
+                    sampler=UniformSampler(min=0.7, max=0.8),
                 ),
                 ConditionalPriorCondition(
                     match_val="AirDuctsConditionedUninsulated",
-                    sampler=UniformSampler(min=0.8, max=0.9),
+                    sampler=UniformSampler(min=0.85, max=0.9),
                 ),
                 ConditionalPriorCondition(
                     match_val="HotWaterInsulated",
-                    sampler=UniformSampler(min=0.8, max=0.9),
+                    sampler=UniformSampler(min=0.86, max=0.9),
                 ),
                 ConditionalPriorCondition(
                     match_val="AirDuctsInsulated",
@@ -682,24 +682,24 @@ class SBEMInferenceRequestSpec(BaseModel):
                 ),
                 ConditionalPriorCondition(
                     match_val="ACWindow",
-                    sampler=UniformSampler(min=2, max=4),
+                    sampler=UniformSampler(min=2, max=3.5),
                 ),
                 ConditionalPriorCondition(
                     match_val="ACCentral",
-                    sampler=UniformSampler(min=3, max=5),
+                    sampler=UniformSampler(min=2.5, max=3.8),
                 ),
                 ConditionalPriorCondition(
                     match_val="WindowASHP",
-                    sampler=UniformSampler(min=2, max=4),
+                    sampler=UniformSampler(min=3, max=4),
                 ),
                 # TODO: Optional: make this depend on the ASHP heating cop
                 ConditionalPriorCondition(
                     match_val="ASHPCooling",
-                    sampler=UniformSampler(min=2, max=4),
+                    sampler=UniformSampler(min=3.2, max=4.5),
                 ),
                 ConditionalPriorCondition(
                     match_val="GSHPCooling",
-                    sampler=UniformSampler(min=3, max=5),
+                    sampler=UniformSampler(min=3.8, max=5),
                 ),
             ],
         )
@@ -769,15 +769,15 @@ class SBEMInferenceRequestSpec(BaseModel):
                 ),
                 ConditionalPriorCondition(
                     match_val="NaturalGasDHW",
-                    sampler=UniformSampler(min=0.9, max=0.95),
+                    sampler=UniformSampler(min=0.55, max=0.8),
                 ),
                 ConditionalPriorCondition(
                     match_val="NaturalGasHeatingDHWCombo",
-                    sampler=UniformSampler(min=0.9, max=0.95),
+                    sampler=UniformSampler(min=0.8, max=0.95),
                 ),
                 ConditionalPriorCondition(
                     match_val="HPWH",
-                    sampler=UniformSampler(min=3, max=5),
+                    sampler=UniformSampler(min=2.2, max=3.5),
                 ),
             ],
         )
@@ -846,17 +846,17 @@ class SBEMInferenceRequestSpec(BaseModel):
 
         gas_price_prior = UnconditionalPrior(
             sampler=ClippedNormalSampler(
-                mean=0.06, std=0.01, clip_min=0.03, clip_max=0.09
+                mean=0.07, std=0.011, clip_min=0.03, clip_max=0.09
             )
         )
         oil_price_prior = UnconditionalPrior(
             sampler=ClippedNormalSampler(
-                mean=0.10, std=0.01, clip_min=0.07, clip_max=0.13
+                mean=0.102, std=0.024, clip_min=0.07, clip_max=0.13
             )
         )
         electricity_price_prior = UnconditionalPrior(
             sampler=ClippedNormalSampler(
-                mean=0.25, std=0.025, clip_min=0.175, clip_max=0.325
+                mean=0.312, std=0.02, clip_min=0.143, clip_max=0.4013
             )
         )
         prior_dict["feature.fuels.price.NaturalGas"] = gas_price_prior
@@ -865,17 +865,17 @@ class SBEMInferenceRequestSpec(BaseModel):
 
         electricity_emissions_prior = UnconditionalPrior(
             sampler=ClippedNormalSampler(
-                mean=0.0004, std=0.0001, clip_min=0.0001, clip_max=0.0007
+                mean=0.000298, std=0.0000155, clip_min=0.0001, clip_max=0.0005
             )
         )
         gas_emissions_prior = UnconditionalPrior(
             sampler=ClippedNormalSampler(
-                mean=0.005, std=0.0005, clip_min=0.0035, clip_max=0.0065
+                mean=0.000244, std=0.0000122, clip_min=0.000176, clip_max=0.0003
             )
         )
         oil_emissions_prior = UnconditionalPrior(
             sampler=ClippedNormalSampler(
-                mean=0.005, std=0.0005, clip_min=0.0035, clip_max=0.0065
+                mean=0.000267, std=0.000003, clip_min=0.0002, clip_max=0.0003
             )
         )
         prior_dict["feature.fuels.emissions.Electricity"] = electricity_emissions_prior
