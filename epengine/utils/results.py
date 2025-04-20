@@ -1,5 +1,6 @@
 """This module contains functions to postprocess and serialize results."""
 
+import gc
 import logging
 import tempfile
 from pathlib import Path
@@ -58,6 +59,7 @@ def postprocess(
             )
             df = df.dropna(axis=1, how="all")
             dfs["_".join(tabular_lookup).replace(" ", "_")] = df
+    gc.collect()
     return dfs
 
 
@@ -306,3 +308,23 @@ class CombineRecurseResultsMultipleKeysError(ValueError):
         super().__init__(
             "Cannot have both a uri and other keys in the results dict when combining recurse results"
         )
+
+
+def make_onerow_multiindex_from_dict(
+    d: dict[str, Any], n_rows: int = 1
+) -> pd.MultiIndex:
+    """Makes a MultiIndex from a dictionary.
+
+    This is useful for returning a wide-form dataframe of results for a single task.
+
+    Args:
+        d (dict[str, Any]): The dictionary to make the MultiIndex from.
+        n_rows (int): The number of rows to repeat the MultiIndex.
+
+    Returns:
+        multi_index (pd.MultiIndex): The MultiIndex.
+    """
+    return pd.MultiIndex.from_tuples(
+        [tuple(d.values())] * n_rows,
+        names=list(d.keys()),
+    )

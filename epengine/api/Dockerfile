@@ -1,8 +1,7 @@
-# syntax=docker/dockerfile:1
+FROM python:3.12-slim-bookworm
 
-FROM python:3.10-slim-buster
-
-ENV POETRY_VERSION=1.8 \
+ARG POETRY_VERSION=2.1.2
+ENV POETRY_VERSION=$POETRY_VERSION \
     POETRY_VIRTUALENVS_CREATE=false
 
 # Install poetry
@@ -13,7 +12,9 @@ WORKDIR /code
 COPY poetry.lock pyproject.toml /code/
 
 # Project initialization:
-RUN poetry install --no-interaction --no-ansi --no-root --with api
+RUN poetry config virtualenvs.in-project true && poetry install --no-interaction --no-ansi --no-root --only main,api
+
+RUN epinterface prisma generate
 
 # Copy Python code to the Docker image
 COPY epengine /code/epengine/

@@ -5,8 +5,11 @@ from typing import Literal
 
 from pydantic import AnyUrl, Field
 
+from epengine.experiments.tarkhan.models import TarkhanSpec
 from epengine.models.base import LeafSpec
 from epengine.models.shoebox import ShoeboxSimulationSpec
+from epengine.models.shoebox_sbem import SBEMSimulationSpec
+from epengine.models.train_sbem import TrainFoldSpec
 
 
 class SimulationSpec(LeafSpec):
@@ -58,10 +61,20 @@ class SimpleSpec(LeafSpec):
     param_a: int = Field(..., description="A simple parameter A")
 
 
-WorkflowName = Literal["simulate_epw_idf", "simple", "simulate_ubem_shoebox"]
+WorkflowName = Literal[
+    "simulate_epw_idf",
+    "simple",
+    "simulate_ubem_shoebox",
+    "simulate_sbem_shoebox",
+    "train_regressor_with_cv_fold",
+    "tarkhan",
+]
 
 AvailableWorkflowSpecs: dict[WorkflowName, type[LeafSpec]] = {
     "simulate_epw_idf": SimulationSpec,
     "simple": SimpleSpec,
     "simulate_ubem_shoebox": ShoeboxSimulationSpec,
+    "simulate_sbem_shoebox": SBEMSimulationSpec,
+    "train_regressor_with_cv_fold": TrainFoldSpec,
+    "tarkhan": TarkhanSpec,
 }

@@ -36,3 +36,5 @@ services:
         condition: service_completed_successfully
     env_file:
       - .env.dev
+    volumes:
+      - ./epengine:/code/epengine
