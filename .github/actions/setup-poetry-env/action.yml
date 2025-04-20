@@ -5,7 +5,7 @@ inputs:
   python-version:
     required: false
     description: "The python version to use"
-    default: "3.11"
+    default: "3.12"
 
 runs:
   using: "composite"
@@ -17,7 +17,7 @@ runs:
 
     - name: Install Poetry
       env:
-        POETRY_VERSION: "1.7.1"
+        POETRY_VERSION: "2.1.2"
       run: curl -sSL https://install.python-poetry.org | python - -y
       shell: bash
 
@@ -38,5 +38,10 @@ runs:
 
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --all-extras --with dev --with worker --with api --with docs
+      run: poetry install --no-interaction --all-extras --all-groups
+      shell: bash
+
+    - name: Generate prisma client
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: poetry run epinterface prisma generate
       shell: bash

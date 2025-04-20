@@ -156,8 +156,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# Vscode config files
-.vscode/
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
@@ -175,3 +173,14 @@ data/idfs/scratch/**
 data/scratch/**
 notebooks/cache/
 copilot/.workspace
+artifacts/**/*.yml
+artifacts/**/*.db
+artifacts/**/*.geojson
+artifacts/**/*.zip
+artifacts/**/*.hdf
+artifacts/**/*.h5
+artifacts/**/*.pq
+artifacts/**/*.parquet
+
+minimal_multi_level_test.py
+cache/

@@ -1,6 +1,7 @@
 """Filesystem utilities."""
 
 import logging
+import shutil
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 s3: S3ClientType = boto3.client("s3")
 
 
-def fetch_uri(
+def fetch_uri(  # noqa: C901
     uri: AnyUrl | str,
     local_path: Path,
     use_cache: bool = True,
@@ -64,6 +65,18 @@ def fetch_uri(
                 f.write(requests.get(str(uri), timeout=60).content)
         else:
             logger_fn(f"File {local_path} already exists, skipping download.")
+    elif uri.scheme == "file":
+        if not local_path.exists() or not use_cache:
+            logger_fn(f"Copying {uri} to {local_path}...")
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+            if uri.path:
+                shutil.copy(uri.path, local_path.as_posix())
+            else:
+                msg = f"File URI:NO_PATH:{uri}"
+                logger_fn(msg)
+                raise ValueError(msg)
+        else:
+            logger_fn(f"File {local_path} already exists, skipping copy.")
     else:
         raise NotImplementedError(f"URI:SCHEME:{uri.scheme}")
     return local_path

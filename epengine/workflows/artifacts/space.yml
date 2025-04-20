@@ -1,0 +1,685 @@
+features:
+  - name: feature.geometry.long_edge
+    min: 1.8587820232992796
+    max: 204.68179807521815
+  - name: feature.geometry.short_edge
+    min: 0.6891672242615761
+    max: 113.49737283820672
+  - name: feature.geometry.orientation
+    min: -3.141582071355473
+    max: 3.1415757612439017
+  - name: feature.geometry.orientation.cos
+    min: -0.9999999999440081
+    max: 0.9999999999897445
+  - name: feature.geometry.orientation.sin
+    min: -0.9999999999962115
+    max: 0.9999999989522861
+  - name: feature.geometry.aspect_ratio
+    min: 1.0000031375464564
+    max: 10.810115012699804
+  - name: feature.geometry.wwr
+    min: 0.10000053553035589
+    max: 0.29999815390342977
+  - name: feature.geometry.num_floors
+    min: 1.0
+    max: 20.0
+  - name: feature.geometry.f2f_height
+    min: 2.5000164724717124
+    max: 3.9999856490795986
+  - name: feature.geometry.zoning
+    values:
+      - by_storey
+      - core/perim
+  - name: feature.geometry.energy_model_conditioned_area
+    min: 3.0360651789362496
+    max: 63353.018979244065
+  - name: feature.geometry.energy_model_occupied_area
+    min: 3.0360651789362496
+    max: 63353.018979244065
+  - name: feature.geometry.attic_height
+    min: 0.0
+    max: 30.85681680422438
+  - name: feature.geometry.shading_mask_00
+    min: 0.0
+    max: 1.5662996203172397
+  - name: feature.geometry.shading_mask_01
+    min: 0.0
+    max: 1.5661393496834064
+  - name: feature.geometry.shading_mask_02
+    min: 0.0
+    max: 1.5658800049440407
+  - name: feature.geometry.shading_mask_03
+    min: 0.0
+    max: 1.565493998438046
+  - name: feature.geometry.shading_mask_04
+    min: 0.0
+    max: 1.5600297156928145
+  - name: feature.geometry.shading_mask_05
+    min: 0.0
+    max: 1.5610593993226651
+  - name: feature.geometry.shading_mask_06
+    min: 0.0
+    max: 1.5598241726995778
+  - name: feature.geometry.shading_mask_07
+    min: 0.0
+    max: 1.5589808476741507
+  - name: feature.geometry.shading_mask_08
+    min: 0.0
+    max: 1.5595535231040822
+  - name: feature.geometry.shading_mask_09
+    min: 0.0
+    max: 1.559895372080667
+  - name: feature.geometry.shading_mask_10
+    min: 0.0
+    max: 1.5600384215438863
+  - name: feature.geometry.shading_mask_11
+    min: 0.0
+    max: 1.5599953657244254
+  - name: feature.geometry.shading_mask_12
+    min: 0.0
+    max: 1.5597624271086037
+  - name: feature.geometry.shading_mask_13
+    min: 0.0
+    max: 1.559998027092069
+  - name: feature.geometry.shading_mask_14
+    min: 0.0
+    max: 1.5606192965132848
+  - name: feature.geometry.shading_mask_15
+    min: 0.0
+    max: 1.3631523082070107
+  - name: feature.geometry.shading_mask_16
+    min: 0.0
+    max: 1.354385121060765
+  - name: feature.geometry.shading_mask_17
+    min: 0.0
+    max: 1.3657963417014425
+  - name: feature.geometry.shading_mask_18
+    min: 0.0
+    max: 1.559733505802589
+  - name: feature.geometry.shading_mask_19
+    min: 0.0
+    max: 1.315811982071522
+  - name: feature.geometry.shading_mask_20
+    min: 0.0
+    max: 1.5647824784674194
+  - name: feature.geometry.shading_mask_21
+    min: 0.0
+    max: 1.5649848832884734
+  - name: feature.geometry.shading_mask_22
+    min: 0.0
+    max: 1.5650794775918653
+  - name: feature.geometry.shading_mask_23
+    min: 0.0
+    max: 1.5650747134666887
+  - name: feature.geometry.shading_mask_24
+    min: 0.0
+    max: 1.564970173348764
+  - name: feature.geometry.shading_mask_25
+    min: 0.0
+    max: 1.564756477672293
+  - name: feature.geometry.shading_mask_26
+    min: 0.0
+    max: 1.564413135392859
+  - name: feature.geometry.shading_mask_27
+    min: 0.0
+    max: 1.563903360121565
+  - name: feature.geometry.shading_mask_28
+    min: 0.0
+    max: 1.5631631596242639
+  - name: feature.geometry.shading_mask_29
+    min: 0.0
+    max: 1.5620777493904119
+  - name: feature.geometry.shading_mask_30
+    min: 0.0
+    max: 1.4641852638609798
+  - name: feature.geometry.shading_mask_31
+    min: 0.0
+    max: 1.476937562994355
+  - name: feature.geometry.shading_mask_32
+    min: 0.0
+    max: 1.5650031980782462
+  - name: feature.geometry.shading_mask_33
+    min: 0.0
+    max: 1.5655450558857067
+  - name: feature.geometry.shading_mask_34
+    min: 0.0
+    max: 1.5659178892395802
+  - name: feature.geometry.shading_mask_35
+    min: 0.0
+    max: 1.5661673395695308
+  - name: feature.geometry.shading_mask_36
+    min: 0.0
+    max: 1.5663196505861587
+  - name: feature.geometry.shading_mask_37
+    min: 0.0
+    max: 1.566389254587874
+  - name: feature.geometry.shading_mask_38
+    min: 0.0
+    max: 1.566382360364531
+  - name: feature.geometry.shading_mask_39
+    min: 0.0
+    max: 1.5662983635676215
+  - name: feature.geometry.shading_mask_40
+    min: 0.0
+    max: 1.5641006819593268
+  - name: feature.geometry.shading_mask_41
+    min: 0.0
+    max: 1.5649255556022732
+  - name: feature.geometry.shading_mask_42
+    min: 0.0
+    max: 1.565488628031787
+  - name: feature.geometry.shading_mask_43
+    min: 0.0
+    max: 1.5658763303718222
+  - name: feature.geometry.shading_mask_44
+    min: 0.0
+    max: 1.5661369540134888
+  - name: feature.geometry.shading_mask_45
+    min: 0.0
+    max: 1.5662982649651818
+  - name: feature.geometry.shading_mask_46
+    min: 0.0
+    max: 1.566375673729381
+  - name: feature.geometry.shading_mask_47
+    min: 0.0
+    max: 1.566376112689229
+  - name: feature.semantic.DHW
+    values:
+      - ElectricResistanceDHW
+      - HPWH
+      - NaturalGasDHW
+      - NaturalGasHeatingDHWCombo
+  - name: feature.semantic.Walls
+    values:
+      - FullInsulationWallsCavity
+      - FullInsulationWallsCavityExterior
+      - SIP
+      - SomeInsulationWalls
+      - UninsulatedWalls
+  - name: feature.semantic.Region
+    values:
+      - MA
+  - name: feature.semantic.Cooling
+    values:
+      - ACCentral
+      - ACWindow
+      - ASHPCooling
+      - GSHPCooling
+      - WindowASHP
+  - name: feature.semantic.Heating
+    values:
+      - ASHPHeating
+      - ElectricResistance
+      - GSHPHeating
+      - NaturalGasCondensingHeating
+      - NaturalGasHeating
+      - OilHeating
+  - name: feature.semantic.Windows
+    values:
+      - DoublePaneLowE
+      - SinglePane
+      - SinglePaneStormWindows
+      - TriplePaneLowE
+  - name: feature.semantic.Lighting
+    values:
+      - LED
+      - NoLED
+  - name: feature.semantic.Typology
+    values:
+      - MFH
+      - SFH
+  - name: feature.semantic.Equipment
+    values:
+      - HighEfficiencyEquipment
+      - LowEfficiencyEquipment
+  - name: feature.semantic.Thermostat
+    values:
+      - Controls
+      - NoControls
+  - name: feature.semantic.Age_bracket
+    values:
+      - btw_1975_2003
+      - post_2003
+      - pre_1975
+  - name: feature.semantic.Distribution
+    values:
+      - AirDuctsConditionedUninsulated
+      - AirDuctsInsulated
+      - AirDuctsUninsulated
+      - HotWaterInsulated
+      - HotWaterUninsulated
+      - Steam
+  - name: feature.semantic.RoofInsulation
+    values:
+      - HighlyInsulatedRoof
+      - InsulatedRoof
+      - UninsulatedRoof
+  - name: feature.semantic.Weatherization
+    values:
+      - LeakyEnvelope
+      - SomewhatLeakyEnvelope
+      - TightEnvelope
+  - name: feature.semantic.AtticVentilation
+    values:
+      - UnventilatedAttic
+      - VentilatedAttic
+  - name: feature.semantic.AtticFloorInsulation
+    values:
+      - HighlyInsulated
+      - Insulated
+      - NoInsulation
+  - name: feature.semantic.GroundSlabInsulation
+    values:
+      - InsulatedGroundSlab
+      - UninsulatedGroundSlab
+  - name: feature.semantic.BasementWallsInsulation
+    values:
+      - InsulatedWalls
+      - UninsulatedWalls
+  - name: feature.semantic.BasementCeilingInsulation
+    values:
+      - InsulatedCeiling
+      - UninsulatedCeiling
+  - name: feature.weather.file
+    values:
+      - USA_CT_Hartford-Bradley.Intl.AP.725080_TMYx.2007-2021
+      - USA_CT_Windham.AP.725084_TMYx.2004-2018
+      - USA_MA_Barnstable.Muni.AP-Boardman.Polando.Field.725067_TMYx
+      - USA_MA_Barnstable.Muni.AP-Boardman.Polando.Field.725067_TMYx.2004-2018
+      - USA_MA_Bedford-Hanscom.Field.AP.744900_TMYx.2007-2021
+      - USA_MA_Beverly.Rgnl.AP.725088_TMYx.2004-2018
+      - USA_MA_Beverly.Rgnl.AP.725088_TMYx.2007-2021
+      - USA_MA_Blue.Hill.Obs.Science.Center.744907_TMYx.2004-2018
+      - USA_MA_Borden.Flats.Light.Marina.997273_TMYx.2004-2018
+      - USA_MA_Boston-Hull.CG.Lightstation.726054_TMYx
+      - USA_MA_Boston-Logan.Intl.AP.725090_TMYx.2009-2023
+      - USA_MA_Boston.994971_TMYx.2009-2023
+      - USA_MA_Buzzards.Bay-Cuttyhunk.Island.994140_TMYx
+      - USA_MA_CGS.Chatham.744940_TMYx
+      - USA_MA_CGS.Sandwich.726069_TMYx
+      - USA_MA_Chatham.Muni.AP.725069_TMYx.2009-2023
+      - USA_MA_Chicopee-Westover.Metro.AP.744910_TMYx.2009-2023
+      - USA_MA_Fall.River.Harbor.997279_TMYx
+      - USA_MA_Fall.River.Harbor.997279_TMYx.2004-2018
+      - USA_MA_Fitchburg.Muni.AP.725107_TMYx.2004-2018
+      - USA_MA_Fitchburg.Muni.AP.725107_TMYx.2009-2023
+      - USA_MA_Ft.Devens-Moore.AAF.744905_TMYx
+      - USA_MA_Gloucester-Eastern.Point.Lighthouse.725099_TMYx
+      - USA_MA_Lawrence.Muni.AP.744904_TMYx.2007-2021
+      - USA_MA_Marshfield.Muni.AP-Harlow.Field.722256_TMYx.2009-2023
+      - USA_MA_Marthas.Vineyard.AP.725066_TMYx
+      - USA_MA_NAS.South.Weymouth.725097_TMYx
+      - USA_MA_Nantucket.Island.994046_TMYx.2007-2021
+      - USA_MA_Nantucket.Meml.AP.725060_TMYx.2004-2018
+      - USA_MA_New.Bedford.Rgnl.AP.725065_TMYx
+      - USA_MA_North.Adams-Harriman.and.West.AP.725075_TMYx.2004-2018
+      - USA_MA_North.Adams-Harriman.and.West.AP.725075_TMYx.2007-2021
+      - USA_MA_Norwood.Meml.AP.725098_TMYx.2004-2018
+      - USA_MA_Old.Scituate.Lighthouse.726067_TMYx
+      - USA_MA_Orange.Muni.AP.725085_TMYx
+      - USA_MA_Orange.Muni.AP.725085_TMYx.2004-2018
+      - USA_MA_Otis.ANGB.AP.725061_TMYx.2004-2018
+      - USA_MA_Pittsfield.Muni.AP.744104_TMYx
+      - USA_MA_Plymouth.Muni.AP.725064_TMYx.2009-2023
+      - USA_MA_Provincetown.Muni.AP.725073_TMYx.2007-2021
+      - USA_MA_Taunton.Muni.AP.725068_TMYx.2004-2018
+      - USA_MA_Waquiot.Bay.Reserve.998014_TMYx.2009-2023
+      - USA_MA_Westfield-Barnes.Rgnl.AP.744915_TMYx.2004-2018
+      - USA_MA_Westfield-Barnes.Rgnl.AP.744915_TMYx.2007-2021
+      - USA_MA_Woods.Hole.997274_TMYx.2009-2023
+      - USA_MA_Worcester.Rgnl.AP.725100_TMYx.2004-2018
+      - USA_MA_Worcester.Rgnl.AP.725100_TMYx.2007-2021
+      - USA_NH_CGS.Isle.of.Shoals.Lighthouse.725096_TMYx.2009-2023
+      - USA_NH_Great.Bay.Reserve.997993_TMYx
+      - USA_NH_Jaffrey.AP-Silver.Ranch.726163_TMYx.2004-2018
+      - USA_NH_Jaffrey.AP-Silver.Ranch.726163_TMYx.2009-2023
+      - USA_NH_Nashua.AP-Boire.Field.743946_TMYx.2007-2021
+      - USA_NY_Hudson.River.Reserve.997991_TMYx.2004-2018
+      - USA_RI_Conimucut.Lighthouse.997277_TMYx.2007-2021
+      - USA_RI_Newport.State.AP.725079_TMYx.2007-2021
+      - USA_RI_Providence.Harbor.997278_TMYx.2004-2018
+      - USA_RI_Providence.Harbor.997278_TMYx.2007-2021
+      - USA_RI_Smithville-North.Central.State.AP.725054_TMYx.2004-2018
+      - USA_VT_Wilmington.744830_TMYx
+  - name: feature.weather.annual.daily_max_median
+    min: 11.3
+    max: 17.2
+  - name: feature.weather.annual.daily_median_median
+    min: 7.1
+    max: 12.75
+  - name: feature.weather.annual.daily_min_median
+    min: 1.9
+    max: 9.2
+  - name: feature.weather.annual.daily_range_median
+    min: 3.599999999999998
+    max: 11.399999999999999
+  - name: feature.weather.annual.dd_cooling
+    min: 4.791666666666667
+    max: 54.041666666666664
+  - name: feature.weather.annual.dd_heating
+    min: 250.5
+    max: 305.4166666666667
+  - name: feature.weather.latitude
+    min: 41.25695
+    max: 43.05
+  - name: feature.weather.longitude
+    min: -73.917
+    max: -69.94992
+  - name: feature.weather.monthly.daily_max.01
+    min: 5.5
+    max: 20.0
+  - name: feature.weather.monthly.daily_max.02
+    min: 5.7
+    max: 25.3
+  - name: feature.weather.monthly.daily_max.03
+    min: 8.9
+    max: 23.1
+  - name: feature.weather.monthly.daily_max.04
+    min: 12.5
+    max: 34.0
+  - name: feature.weather.monthly.daily_max.05
+    min: 17.5
+    max: 35.6
+  - name: feature.weather.monthly.daily_max.06
+    min: 22.2
+    max: 36.1
+  - name: feature.weather.monthly.daily_max.07
+    min: 27.0
+    max: 37.0
+  - name: feature.weather.monthly.daily_max.08
+    min: 24.9
+    max: 36.0
+  - name: feature.weather.monthly.daily_max.09
+    min: 23.0
+    max: 33.9
+  - name: feature.weather.monthly.daily_max.10
+    min: 18.4
+    max: 29.4
+  - name: feature.weather.monthly.daily_max.11
+    min: 15.3
+    max: 24.3
+  - name: feature.weather.monthly.daily_max.12
+    min: 5.2
+    max: 20.6
+  - name: feature.weather.monthly.daily_max_median.01
+    min: -4.4
+    max: 5.0
+  - name: feature.weather.monthly.daily_max_median.02
+    min: -3.0999999999999996
+    max: 5.550000000000001
+  - name: feature.weather.monthly.daily_max_median.03
+    min: 2.8
+    max: 10.0
+  - name: feature.weather.monthly.daily_max_median.04
+    min: 7.65
+    max: 16.4
+  - name: feature.weather.monthly.daily_max_median.05
+    min: 12.2
+    max: 22.8
+  - name: feature.weather.monthly.daily_max_median.06
+    min: 17.75
+    max: 27.8
+  - name: feature.weather.monthly.daily_max_median.07
+    min: 22.2
+    max: 30.6
+  - name: feature.weather.monthly.daily_max_median.08
+    min: 21.6
+    max: 30.0
+  - name: feature.weather.monthly.daily_max_median.09
+    min: 18.0
+    max: 26.45
+  - name: feature.weather.monthly.daily_max_median.10
+    min: 12.6
+    max: 19.0
+  - name: feature.weather.monthly.daily_max_median.11
+    min: 5.1
+    max: 13.4
+  - name: feature.weather.monthly.daily_max_median.12
+    min: -1.2
+    max: 7.9
+  - name: feature.weather.monthly.daily_median_median.01
+    min: -8.25
+    max: 3.3499999999999996
+  - name: feature.weather.monthly.daily_median_median.02
+    min: -5.6000000000000005
+    max: 3.0
+  - name: feature.weather.monthly.daily_median_median.03
+    min: -0.8500000000000001
+    max: 5.6
+  - name: feature.weather.monthly.daily_median_median.04
+    min: 5.725
+    max: 10.375
+  - name: feature.weather.monthly.daily_median_median.05
+    min: 10.05
+    max: 16.05
+  - name: feature.weather.monthly.daily_median_median.06
+    min: 15.575
+    max: 21.475
+  - name: feature.weather.monthly.daily_median_median.07
+    min: 19.35
+    max: 25.0
+  - name: feature.weather.monthly.daily_median_median.08
+    min: 19.200000000000003
+    max: 23.35
+  - name: feature.weather.monthly.daily_median_median.09
+    min: 14.325
+    max: 20.1
+  - name: feature.weather.monthly.daily_median_median.10
+    min: 8.2
+    max: 15.6
+  - name: feature.weather.monthly.daily_median_median.11
+    min: 2.125
+    max: 10.85
+  - name: feature.weather.monthly.daily_median_median.12
+    min: -3.75
+    max: 5.05
+  - name: feature.weather.monthly.daily_min.01
+    min: -27.3
+    max: -8.3
+  - name: feature.weather.monthly.daily_min.02
+    min: -26.1
+    max: -7.3
+  - name: feature.weather.monthly.daily_min.03
+    min: -21.5
+    max: -1.2
+  - name: feature.weather.monthly.daily_min.04
+    min: -9.5
+    max: 2.9
+  - name: feature.weather.monthly.daily_min.05
+    min: -2.2
+    max: 7.7
+  - name: feature.weather.monthly.daily_min.06
+    min: 2.0
+    max: 12.6
+  - name: feature.weather.monthly.daily_min.07
+    min: 8.9
+    max: 16.6
+  - name: feature.weather.monthly.daily_min.08
+    min: 5.1
+    max: 17.6
+  - name: feature.weather.monthly.daily_min.09
+    min: -0.9
+    max: 13.7
+  - name: feature.weather.monthly.daily_min.10
+    min: -7.2
+    max: 6.4
+  - name: feature.weather.monthly.daily_min.11
+    min: -15.0
+    max: 2.5
+  - name: feature.weather.monthly.daily_min.12
+    min: -21.1
+    max: -3.3
+  - name: feature.weather.monthly.daily_min_median.01
+    min: -13.0
+    max: 2.2
+  - name: feature.weather.monthly.daily_min_median.02
+    min: -10.3
+    max: 1.6
+  - name: feature.weather.monthly.daily_min_median.03
+    min: -5.1
+    max: 2.7
+  - name: feature.weather.monthly.daily_min_median.04
+    min: 0.8500000000000001
+    max: 7.35
+  - name: feature.weather.monthly.daily_min_median.05
+    min: 5.0
+    max: 11.6
+  - name: feature.weather.monthly.daily_min_median.06
+    min: 11.25
+    max: 17.299999999999997
+  - name: feature.weather.monthly.daily_min_median.07
+    min: 14.4
+    max: 21.5
+  - name: feature.weather.monthly.daily_min_median.08
+    min: 13.3
+    max: 21.4
+  - name: feature.weather.monthly.daily_min_median.09
+    min: 8.35
+    max: 17.2
+  - name: feature.weather.monthly.daily_min_median.10
+    min: 2.0
+    max: 12.2
+  - name: feature.weather.monthly.daily_min_median.11
+    min: -3.05
+    max: 6.800000000000001
+  - name: feature.weather.monthly.daily_min_median.12
+    min: -6.7
+    max: 3.3
+  - name: feature.weather.monthly.daily_range_median.01
+    min: 2.7
+    max: 11.1
+  - name: feature.weather.monthly.daily_range_median.02
+    min: 3.25
+    max: 12.75
+  - name: feature.weather.monthly.daily_range_median.03
+    min: 3.0
+    max: 13.3
+  - name: feature.weather.monthly.daily_range_median.04
+    min: 2.45
+    max: 13.35
+  - name: feature.weather.monthly.daily_range_median.05
+    min: 3.1999999999999993
+    max: 16.1
+  - name: feature.weather.monthly.daily_range_median.06
+    min: 3.049999999999999
+    max: 14.399999999999999
+  - name: feature.weather.monthly.daily_range_median.07
+    min: 3.0
+    max: 13.7
+  - name: feature.weather.monthly.daily_range_median.08
+    min: 2.799999999999997
+    max: 13.3
+  - name: feature.weather.monthly.daily_range_median.09
+    min: 3.3000000000000007
+    max: 13.5
+  - name: feature.weather.monthly.daily_range_median.10
+    min: 3.9000000000000004
+    max: 15.0
+  - name: feature.weather.monthly.daily_range_median.11
+    min: 4.449999999999999
+    max: 11.15
+  - name: feature.weather.monthly.daily_range_median.12
+    min: 3.3999999999999995
+    max: 10.0
+  - name: feature.weather.monthly.dd_cooling.01
+    min: 0.0
+    max: 0.0
+  - name: feature.weather.monthly.dd_cooling.02
+    min: 0.0
+    max: 0.3333333333333333
+  - name: feature.weather.monthly.dd_cooling.03
+    min: 0.0
+    max: 0.041666666666666664
+  - name: feature.weather.monthly.dd_cooling.04
+    min: 0.0
+    max: 1.875
+  - name: feature.weather.monthly.dd_cooling.05
+    min: 0.0
+    max: 4.0
+  - name: feature.weather.monthly.dd_cooling.06
+    min: 0.0
+    max: 10.5
+  - name: feature.weather.monthly.dd_cooling.07
+    min: 2.5833333333333335
+    max: 19.958333333333332
+  - name: feature.weather.monthly.dd_cooling.08
+    min: 1.8333333333333333
+    max: 17.125
+  - name: feature.weather.monthly.dd_cooling.09
+    min: 0.0
+    max: 7.416666666666667
+  - name: feature.weather.monthly.dd_cooling.10
+    min: 0.0
+    max: 1.125
+  - name: feature.weather.monthly.dd_cooling.11
+    min: 0.0
+    max: 0.125
+  - name: feature.weather.monthly.dd_cooling.12
+    min: 0.0
+    max: 0.0
+  - name: feature.weather.monthly.dd_heating.01
+    min: 30.875
+    max: 31.0
+  - name: feature.weather.monthly.dd_heating.02
+    min: 27.5
+    max: 28.0
+  - name: feature.weather.monthly.dd_heating.03
+    min: 30.708333333333332
+    max: 31.0
+  - name: feature.weather.monthly.dd_heating.04
+    min: 25.75
+    max: 30.0
+  - name: feature.weather.monthly.dd_heating.05
+    min: 17.75
+    max: 31.0
+  - name: feature.weather.monthly.dd_heating.06
+    min: 8.041666666666666
+    max: 26.25
+  - name: feature.weather.monthly.dd_heating.07
+    min: 0.3333333333333333
+    max: 9.958333333333334
+  - name: feature.weather.monthly.dd_heating.08
+    min: 0.2916666666666667
+    max: 11.416666666666666
+  - name: feature.weather.monthly.dd_heating.09
+    min: 8.416666666666666
+    max: 25.25
+  - name: feature.weather.monthly.dd_heating.10
+    min: 24.541666666666668
+    max: 30.875
+  - name: feature.weather.monthly.dd_heating.11
+    min: 28.541666666666668
+    max: 30.0
+  - name: feature.weather.monthly.dd_heating.12
+    min: 30.666666666666668
+    max: 31.0
+  - name: feature.extra_spaces.basement.exists
+    values:
+      - "No"
+      - "Yes"
+  - name: feature.extra_spaces.basement.occupied
+    values:
+      - "No"
+      - "Yes"
+  - name: feature.extra_spaces.basement.conditioned
+    values:
+      - "No"
+      - "Yes"
+  - name: feature.extra_spaces.basement.use_fraction
+    min: 0.0
+    max: 0.5999880409406491
+  - name: feature.extra_spaces.attic.exists
+    values:
+      - "No"
+      - "Yes"
+  - name: feature.extra_spaces.attic.occupied
+    values:
+      - "No"
+      - "Yes"
+  - name: feature.extra_spaces.attic.conditioned
+    values:
+      - "No"
+      - "Yes"
+  - name: feature.extra_spaces.attic.use_fraction
+    min: 0.0
+    max: 0.5999822542489137

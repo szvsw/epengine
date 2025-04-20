@@ -78,7 +78,7 @@ if __name__ == "__main__":
         for i in range(100)
     ]
     specs = pd.DataFrame(specs)
-    experiment_id = "DELETE-simple-test-2025-jan"
+    experiment_id = "DELETE-simple-test-2025-mar"
 
     s3 = boto3.client("s3")
     bucket = "ml-for-bem"

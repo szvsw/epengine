@@ -1,7 +1,7 @@
 """Tests for the BaseSpec and LeafSpec classes."""
 
+import importlib.resources as resources
 import logging
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -42,11 +42,11 @@ def test_basespec_local_path():
     """Test the local_path method of BaseSpec."""
     spec = BaseSpec(experiment_id="test_experiment")
     uri = AnyUrl(url="http://example.com/path/to/file.txt")
-    expected_path = Path("/local_artifacts/test_experiment/path/to/file.txt")
+    epengine_path = resources.files("epengine").parent
+    expected_path = (
+        epengine_path / "cache" / "test_experiment" / "path" / "to" / "file.txt"
+    )
     local_path = spec.local_path(uri)
-    logger.error(uri)
-    logger.error(local_path)
-    logger.error(expected_path)
     assert local_path == expected_path
 
 
@@ -70,7 +70,10 @@ def test_basespec_fetch_uri():
     """Test the fetch_uri method of BaseSpec."""
     spec = BaseSpec(experiment_id="test_experiment")
     uri = AnyUrl(url="http://example.com/path/to/file.txt")
-    local_path = Path("/local_artifacts/test_experiment/path/to/file.txt")
+    epengine_path = resources.files("epengine").parent
+    local_path = (
+        epengine_path / "cache" / "test_experiment" / "path" / "to" / "file.txt"
+    )
     # Mock the fetch_uri function
     with patch("epengine.models.base.fetch_uri") as mock_fetch_uri:
         mock_fetch_uri.return_value = local_path
@@ -83,7 +86,10 @@ def test_basespec_fetch_uri_no_cache():
     """Test the fetch_uri method of BaseSpec with use_cache=False."""
     spec = BaseSpec(experiment_id="test_experiment")
     uri = AnyUrl(url="http://example.com/path/to/file.txt")
-    local_path = Path("/local_artifacts/test_experiment/path/to/file.txt")
+    epengine_path = resources.files("epengine").parent
+    local_path = (
+        epengine_path / "cache" / "test_experiment" / "path" / "to" / "file.txt"
+    )
     with patch("epengine.models.base.fetch_uri") as mock_fetch_uri:
         mock_fetch_uri.return_value = local_path
         result = spec.fetch_uri(uri, use_cache=False)
