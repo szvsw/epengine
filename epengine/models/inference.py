@@ -21,6 +21,7 @@ from epengine.models.sampling import (
     CopySampler,
     FixedValueSampler,
     MultiplyValueSampler,
+    PowerSampler,
     Prior,
     Priors,
     ProductValuesSampler,
@@ -458,6 +459,79 @@ class SBEMInferenceRequestSpec(BaseModel):
         )
         prior_dict["feature.geometry.f2f_height"] = f2f_height_prior
 
+        est_footprint_area = self.actual_conditioned_area_m2 / self.num_floors
+        modeled_footprint_area = self.short_edge * self.long_edge
+        footprint_area_ratio = est_footprint_area / modeled_footprint_area
+        uniform_scaling_factor = np.sqrt(footprint_area_ratio)
+
+        est_actual_footprint_area_prior = UnconditionalPrior(
+            sampler=FixedValueSampler(value=est_footprint_area)
+        )
+        prior_dict["feature.geometry.est_actual_footprint_area"] = (
+            est_actual_footprint_area_prior
+        )
+        est_fp_ratio_prior = UnconditionalPrior(
+            sampler=FixedValueSampler(value=footprint_area_ratio)
+        )
+        prior_dict["feature.geometry.est_fp_ratio"] = est_fp_ratio_prior
+
+        est_uniform_scaling_factor_prior = UnconditionalPrior(
+            sampler=FixedValueSampler(value=uniform_scaling_factor)
+        )
+        prior_dict["feature.geometry.est_uniform_scaling_factor"] = (
+            est_uniform_scaling_factor_prior
+        )
+
+        half_perimeter_prior = UnconditionalPrior(
+            sampler=SumValuesSampler(
+                features_to_sum=[
+                    "feature.geometry.short_edge",
+                    "feature.geometry.long_edge",
+                ]
+            )
+        )
+        prior_dict["feature.geometry.computed.half_perimeter"] = half_perimeter_prior
+        perimeter_prior = UnconditionalPrior(
+            sampler=MultiplyValueSampler(
+                feature_to_multiply="feature.geometry.computed.half_perimeter",
+                value_to_multiply=2,
+            )
+        )
+        prior_dict["feature.geometry.computed.perimeter"] = perimeter_prior
+
+        single_floor_facade_area_prior = UnconditionalPrior(
+            sampler=ProductValuesSampler(
+                features_to_multiply=[
+                    "feature.geometry.computed.perimeter",
+                    "feature.geometry.f2f_height",
+                ]
+            )
+        )
+        prior_dict["feature.geometry.computed.single_floor_facade_area"] = (
+            single_floor_facade_area_prior
+        )
+        whole_bldg_facade_area_prior = UnconditionalPrior(
+            sampler=ProductValuesSampler(
+                features_to_multiply=[
+                    "feature.geometry.computed.single_floor_facade_area",
+                    "feature.geometry.num_floors",
+                ]
+            )
+        )
+        prior_dict["feature.geometry.computed.whole_bldg_facade_area"] = (
+            whole_bldg_facade_area_prior
+        )
+
+        window_area_prior = UnconditionalPrior(
+            sampler=ProductValuesSampler(
+                features_to_multiply=[
+                    "feature.geometry.computed.whole_bldg_facade_area",
+                    "feature.geometry.wwr",
+                ]
+            )
+        )
+        prior_dict["feature.geometry.computed.window_area"] = window_area_prior
+
         attic_occupied_num = ConditionalPrior(
             source_feature="feature.extra_spaces.attic.occupied",
             fallback_prior=None,
@@ -548,6 +622,67 @@ class SBEMInferenceRequestSpec(BaseModel):
             )
         )
         prior_dict["feature.geometry.attic_height"] = attic_height_prior
+
+        attic_hypotenuse_a2_prior = UnconditionalPrior(
+            sampler=PowerSampler(
+                feature_to_power="feature.geometry.attic_height",
+                power=2,
+            )
+        )
+        prior_dict["feature.geometry.computed.attic_hypotenuse_a2"] = (
+            attic_hypotenuse_a2_prior
+        )
+        attic_hypotenuse_b2_prior = UnconditionalPrior(
+            sampler=PowerSampler(
+                feature_to_power="feature.extra_spaces.attic.run",
+                power=2,
+            )
+        )
+        prior_dict["feature.geometry.computed.attic_hypotenuse_b2"] = (
+            attic_hypotenuse_b2_prior
+        )
+        attic_hypotenuse_c2_prior = UnconditionalPrior(
+            sampler=SumValuesSampler(
+                features_to_sum=[
+                    "feature.geometry.computed.attic_hypotenuse_a2",
+                    "feature.geometry.computed.attic_hypotenuse_b2",
+                ]
+            )
+        )
+        prior_dict["feature.geometry.computed.attic_hypotenuse_c2"] = (
+            attic_hypotenuse_c2_prior
+        )
+        attic_hypotenuse_prior = UnconditionalPrior(
+            sampler=PowerSampler(
+                feature_to_power="feature.geometry.computed.attic_hypotenuse_c2",
+                power=0.5,
+            )
+        )
+        prior_dict["feature.geometry.computed.attic_hypotenuse"] = (
+            attic_hypotenuse_prior
+        )
+
+        half_roof_surface_area_prior = UnconditionalPrior(
+            sampler=ProductValuesSampler(
+                features_to_multiply=[
+                    "feature.geometry.computed.attic_hypotenuse",
+                    "feature.geometry.long_edge",
+                ]
+            )
+        )
+        prior_dict["feature.geometry.computed.half_roof_surface_area"] = (
+            half_roof_surface_area_prior
+        )
+
+        roof_surface_area_prior = UnconditionalPrior(
+            sampler=MultiplyValueSampler(
+                feature_to_multiply="feature.geometry.computed.half_roof_surface_area",
+                value_to_multiply=2,
+            )
+        )
+        prior_dict["feature.geometry.computed.roof_surface_area"] = (
+            roof_surface_area_prior
+        )
 
         attic_use_fraction_prior = ConditionalPrior(
             source_feature="feature.extra_spaces.attic.occupied",

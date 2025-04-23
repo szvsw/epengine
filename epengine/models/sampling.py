@@ -265,6 +265,24 @@ class InvertSampler(BaseModel):
         return {self.feature_to_invert}
 
 
+class PowerSampler(BaseModel):
+    """A deterministic sampler which generates a power of a feature."""
+
+    feature_to_power: str
+    power: float
+
+    def sample(
+        self, context: pd.DataFrame, n: int, generator: np.random.Generator
+    ) -> np.ndarray:
+        """Compute a power of a feature."""
+        return context[self.feature_to_power].to_numpy() ** self.power
+
+    @property
+    def depends_on(self) -> set[str]:
+        """The features that this sampler depends on."""
+        return {self.feature_to_power}
+
+
 class LogSampler(BaseModel):
     """A deterministic sampler which generates a log of a feature."""
 
@@ -340,6 +358,7 @@ PriorSampler = (
     | InvertSampler
     | LogSampler
     | ConcatenateFeaturesSampler
+    | PowerSampler
 )
 
 
