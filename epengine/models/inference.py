@@ -593,6 +593,37 @@ class SBEMInferenceRequestSpec(BaseModel):
         )
         prior_dict["feature.geometry.computed.footprint_area"] = footprint_area_prior
 
+        roof_is_attic = ConditionalPrior(
+            source_feature="feature.extra_spaces.attic.exists",
+            fallback_prior=None,
+            conditions=[
+                ConditionalPriorCondition(
+                    match_val="Yes",
+                    sampler=FixedValueSampler(value=1),
+                ),
+                ConditionalPriorCondition(
+                    match_val="No",
+                    sampler=FixedValueSampler(value=0),
+                ),
+            ],
+        )
+        prior_dict["feature.geometry.roof_is_attic.num"] = roof_is_attic
+        roof_is_flat = ConditionalPrior(
+            source_feature="feature.extra_spaces.attic.exists",
+            fallback_prior=None,
+            conditions=[
+                ConditionalPriorCondition(
+                    match_val="Yes",
+                    sampler=FixedValueSampler(value=0),
+                ),
+                ConditionalPriorCondition(
+                    match_val="No",
+                    sampler=FixedValueSampler(value=1),
+                ),
+            ],
+        )
+        prior_dict["feature.geometry.roof_is_flat.num"] = roof_is_flat
+
         attic_occupied_num = ConditionalPrior(
             source_feature="feature.extra_spaces.attic.occupied",
             fallback_prior=None,

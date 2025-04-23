@@ -39,6 +39,72 @@
             ]
         },
         {
+            "semantic_field": "RoofInsulation",
+            "initial": "InsulatedRoof",
+            "final": "HighlyInsulatedRoof",
+            "cost_factors": [
+                {
+                    "coefficient": 100,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.roof_surface_area",
+                        "feature.geometry.roof_is_flat.num",
+                        "feature.geometry.est_fp_ratio"
+                    ],
+                    "per": "roof surface area",
+                    "description": "",
+                    "source": ""
+                },
+                {
+                    "coefficient": 115,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.roof_surface_area",
+                        "feature.geometry.roof_is_attic.num",
+                        "feature.geometry.est_fp_ratio"
+                    ],
+                    "per": "roof surface area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "RoofInsulation",
+            "initial": "UninsulatedRoof",
+            "final": "HighlyInsulatedRoof",
+            "cost_factors": [
+                {
+                    "coefficient": 129.17,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.roof_surface_area",
+                        "feature.geometry.roof_is_flat.num",
+                        "feature.geometry.est_fp_ratio"
+                    ],
+                    "per": "roof surface area",
+                    "description": "",
+                    "source": ""
+                },
+                {
+                    "coefficient": 142.73,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.roof_surface_area",
+                        "feature.geometry.roof_is_attic.num",
+                        "feature.geometry.est_fp_ratio"
+                    ],
+                    "per": "roof surface area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
             "semantic_field": "Walls",
             "initial": "UninsulatedWalls",
             "final": "FullInsulationWallsCavity",
