@@ -1,0 +1,162 @@
+{
+    "$defs": {
+        "FixedCost": {
+            "description": "A cost that is a fixed amount.",
+            "properties": {
+                "amount": {
+                    "title": "Amount",
+                    "type": "number"
+                },
+                "error_scale": {
+                    "anyOf": [
+                        {
+                            "maximum": 1.0,
+                            "minimum": 0.0,
+                            "type": "number"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The expected error of the cost estimate.",
+                    "title": "Error Scale"
+                },
+                "description": {
+                    "description": "A description of the fixed cost (e.g. 'the cost of a new thermostat install').",
+                    "title": "Description",
+                    "type": "string"
+                },
+                "source": {
+                    "description": "The source of the fixed cost (e.g. 'ASHRAE Fundamentals').",
+                    "title": "Source",
+                    "type": "string"
+                }
+            },
+            "required": ["amount", "error_scale", "description", "source"],
+            "title": "FixedCost",
+            "type": "object"
+        },
+        "RetrofitCost": {
+            "description": "The cost of a retrofit intervention.",
+            "properties": {
+                "semantic_field": {
+                    "description": "The semantic field to retrofit.",
+                    "title": "Semantic Field",
+                    "type": "string"
+                },
+                "initial": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The initial value of the semantic field (`None` signifies any source).",
+                    "title": "Initial"
+                },
+                "final": {
+                    "description": "The final value of the semantic field.",
+                    "title": "Final",
+                    "type": "string"
+                },
+                "cost_factors": {
+                    "description": "The cost factors for the retrofit.",
+                    "items": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/$defs/VariableCost"
+                            },
+                            {
+                                "$ref": "#/$defs/FixedCost"
+                            }
+                        ]
+                    },
+                    "title": "Cost Factors",
+                    "type": "array"
+                }
+            },
+            "required": ["semantic_field", "initial", "final", "cost_factors"],
+            "title": "RetrofitCost",
+            "type": "object"
+        },
+        "VariableCost": {
+            "description": "A cost that is linear in the product of a set of indicator columns.",
+            "properties": {
+                "coefficient": {
+                    "description": "The factor to multiply a target by.",
+                    "exclusiveMinimum": 0.0,
+                    "title": "Coefficient",
+                    "type": "number"
+                },
+                "error_scale": {
+                    "anyOf": [
+                        {
+                            "maximum": 1.0,
+                            "minimum": 0.0,
+                            "type": "number"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The expected error of the cost estimate.",
+                    "title": "Error Scale"
+                },
+                "units": {
+                    "enum": ["$/m2", "$/m", "$/m3", "$/kW", "$/unknown"],
+                    "title": "Units",
+                    "type": "string"
+                },
+                "indicator_cols": {
+                    "description": "The column(s) in the source data that should be multiplied by the coefficient.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "title": "Indicator Cols",
+                    "type": "array"
+                },
+                "per": {
+                    "description": "A description of the cost factor's rate unit (e.g. 'total linear facade distance').",
+                    "title": "Per",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "An explanation of the cost factor (e.g. 'must walk the perimeter of each floor to punch holes for insulation.').",
+                    "title": "Description",
+                    "type": "string"
+                },
+                "source": {
+                    "description": "The source of the cost factor (e.g. 'ASHRAE Fundamentals').",
+                    "title": "Source",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "coefficient",
+                "error_scale",
+                "units",
+                "indicator_cols",
+                "per",
+                "description",
+                "source"
+            ],
+            "title": "VariableCost",
+            "type": "object"
+        }
+    },
+    "description": "The costs associated with each of the retrofit interventions.",
+    "properties": {
+        "costs": {
+            "items": {
+                "$ref": "#/$defs/RetrofitCost"
+            },
+            "title": "Costs",
+            "type": "array"
+        }
+    },
+    "required": ["costs"],
+    "title": "RetrofitCosts",
+    "type": "object"
+}

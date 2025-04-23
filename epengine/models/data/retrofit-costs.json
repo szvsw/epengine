@@ -1,0 +1,327 @@
+{
+    "costs": [
+        {
+            "semantic_field": "Weatherization",
+            "initial": "LeakyEnvelope",
+            "final": "TightEnvelope",
+            "cost_factors": [
+                {
+                    "coefficient": 8.83,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.energy_model_conditioned_area",
+                        "feature.geometry.est_fp_ratio"
+                    ],
+                    "per": "gross floor area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "Weatherization",
+            "initial": "SomewhatLeakyEnvelope",
+            "final": "TightEnvelope",
+            "cost_factors": [
+                {
+                    "coefficient": 6.35,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.energy_model_conditioned_area",
+                        "feature.geometry.est_fp_ratio"
+                    ],
+                    "per": "gross floor area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "Walls",
+            "initial": "UninsulatedWalls",
+            "final": "FullInsulationWallsCavity",
+            "cost_factors": [
+                {
+                    "coefficient": 7.21,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.whole_bldg_facade_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "per": "facade area",
+                    "description": "",
+                    "source": ""
+                },
+                {
+                    "coefficient": 30.76,
+                    "error_scale": 0.033,
+                    "units": "$/m",
+                    "indicator_cols": [
+                        "feature.geometry.computed.total_linear_facade_distance",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "per": "total linear facade distance",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "Walls",
+            "initial": "UninsulatedWalls",
+            "final": "FullInsulationWallsCavityExterior",
+            "cost_factors": [
+                {
+                    "coefficient": 188.9,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.whole_bldg_facade_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "per": "facade area",
+                    "description": "",
+                    "source": ""
+                },
+                {
+                    "coefficient": 30.76,
+                    "error_scale": 0.033,
+                    "units": "$/m",
+                    "indicator_cols": [
+                        "feature.geometry.computed.total_linear_facade_distance",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "per": "total linear facade distance",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "Walls",
+            "initial": "SomeInsulationWalls",
+            "final": "FullInsulationWallsCavity",
+            "cost_factors": [
+                {
+                    "coefficient": 14.42,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.whole_bldg_facade_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "per": "facade area",
+                    "description": "",
+                    "source": ""
+                },
+                {
+                    "coefficient": 61.52,
+                    "error_scale": 0.033,
+                    "units": "$/m",
+                    "indicator_cols": [
+                        "feature.geometry.computed.total_linear_facade_distance",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "per": "total linear facade distance",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "Walls",
+            "initial": "SomeInsulationWalls",
+            "final": "FullInsulationWallsCavityExterior",
+            "cost_factors": [
+                {
+                    "coefficient": 196.11,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.whole_bldg_facade_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "per": "facade area",
+                    "description": "",
+                    "source": ""
+                },
+                {
+                    "coefficient": 61.52,
+                    "error_scale": 0.033,
+                    "units": "$/m",
+                    "indicator_cols": [
+                        "feature.geometry.computed.total_linear_facade_distance",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "per": "total linear facade distance",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "Walls",
+            "initial": "FullInsulationWalls",
+            "final": "FullInsulationWallsCavityExterior",
+            "cost_factors": [
+                {
+                    "coefficient": 181.69,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.whole_bldg_facade_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "per": "facade area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "AtticFloorInsulation",
+            "initial": "NoInsulation",
+            "final": "HighlyInsulated",
+            "cost_factors": [
+                {
+                    "coefficient": 16.58,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.footprint_area",
+                        "feature.geometry.est_fp_ratio"
+                    ],
+                    "per": "footprint area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "AtticFloorInsulation",
+            "initial": "Insulated",
+            "final": "HighlyInsulated",
+            "cost_factors": [
+                {
+                    "coefficient": 9.58,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.footprint_area",
+                        "feature.geometry.est_fp_ratio"
+                    ],
+                    "per": "footprint area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "Windows",
+            "initial": null,
+            "final": "DoublePaneLowE",
+            "cost_factors": [
+                {
+                    "coefficient": 538.2,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.window_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "per": "window area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "Windows",
+            "initial": null,
+            "final": "TriplePaneLowE",
+            "cost_factors": [
+                {
+                    "coefficient": 645.83,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.window_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "per": "window area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "Thermostat",
+            "initial": null,
+            "final": "Controls",
+            "cost_factors": [
+                {
+                    "amount": 500.0,
+                    "error_scale": 0.033,
+                    "description": "<lorem>",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "Equipment",
+            "initial": null,
+            "final": "HighEfficiencyEquipment",
+            "cost_factors": [
+                {
+                    "amount": 4250.0,
+                    "error_scale": 0.033,
+                    "description": "<lorem>",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "DHW",
+            "initial": "ElectricResistanceDHW",
+            "final": "HPWH",
+            "cost_factors": [
+                {
+                    "amount": 3000.0,
+                    "error_scale": 0.033,
+                    "description": "<lorem>",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "DHW",
+            "initial": "NaturalGasDHW",
+            "final": "HPWH",
+            "cost_factors": [
+                {
+                    "amount": 3200.0,
+                    "error_scale": 0.033,
+                    "description": "<lorem>",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "DHW",
+            "initial": "NaturalGasDHWCombo",
+            "final": "HPWH",
+            "cost_factors": [
+                {
+                    "amount": 3200.0,
+                    "error_scale": 0.033,
+                    "description": "<lorem>",
+                    "source": ""
+                }
+            ]
+        }
+    ],
+    "$schema": "./retrofit-cost-schema.json"
+}

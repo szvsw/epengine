@@ -1,9 +1,11 @@
 """Inference request models."""
 
+import json
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 import boto3
 import geopandas as gpd
@@ -135,6 +137,43 @@ class SBEMDistributions:
             Disaggregation=disagg_dict,
             Total=totals_dict,
         )
+
+
+@dataclass
+class SBEMRetrofitDistributions:
+    """Costs and paybacks."""
+
+    costs: pd.DataFrame
+    paybacks: pd.Series
+    costs_summary: pd.DataFrame
+    paybacks_summary: pd.Series
+
+    @property
+    def serialized(self) -> BaseModel:
+        """Serialize the SBEMRetrofitDistributions dataframes into a SBEMRetrofitDistributionsSpec."""
+        field_specs = {}
+        field_datas = {}
+        percentile_mapper = {v[1]: v[0] for v in PERCENTILES.values()}
+        self.costs_summary.rename(index=percentile_mapper, inplace=True)
+        self.paybacks_summary.rename(index=percentile_mapper, inplace=True)
+
+        for col in self.costs_summary.columns:
+            col_name = col.split(".")[-1]
+            field_specs[col_name] = (SummarySpec, Field(title=col))
+            field_data = self.costs_summary.loc[:, col].to_dict()
+            field_data["units"] = "USD"
+            field_datas[col_name] = SummarySpec(**field_data)
+        field_specs["payback"] = (SummarySpec, Field(title="payback"))
+        payback_data = self.paybacks_summary.to_dict()
+        payback_data["units"] = "years"
+        field_datas["payback"] = SummarySpec(**payback_data)
+
+        model = create_model(
+            "RetrofitCostsSpec",
+            **field_specs,
+            __config__=ConfigDict(extra="forbid"),
+        )
+        return model.model_validate(field_datas)
 
 
 class SummarySpecBase(BaseModel, extra="forbid"):
@@ -462,7 +501,7 @@ class SBEMInferenceRequestSpec(BaseModel):
         est_footprint_area = self.actual_conditioned_area_m2 / self.num_floors
         modeled_footprint_area = self.short_edge * self.long_edge
         footprint_area_ratio = est_footprint_area / modeled_footprint_area
-        uniform_scaling_factor = np.sqrt(footprint_area_ratio)
+        uniform_linear_scaling_factor = np.sqrt(footprint_area_ratio)
 
         est_actual_footprint_area_prior = UnconditionalPrior(
             sampler=FixedValueSampler(value=est_footprint_area)
@@ -475,11 +514,11 @@ class SBEMInferenceRequestSpec(BaseModel):
         )
         prior_dict["feature.geometry.est_fp_ratio"] = est_fp_ratio_prior
 
-        est_uniform_scaling_factor_prior = UnconditionalPrior(
-            sampler=FixedValueSampler(value=uniform_scaling_factor)
+        est_uniform_linear_scaling_factor_prior = UnconditionalPrior(
+            sampler=FixedValueSampler(value=uniform_linear_scaling_factor)
         )
-        prior_dict["feature.geometry.est_uniform_scaling_factor"] = (
-            est_uniform_scaling_factor_prior
+        prior_dict["feature.geometry.est_uniform_linear_scaling_factor"] = (
+            est_uniform_linear_scaling_factor_prior
         )
 
         half_perimeter_prior = UnconditionalPrior(
@@ -522,6 +561,18 @@ class SBEMInferenceRequestSpec(BaseModel):
             whole_bldg_facade_area_prior
         )
 
+        total_linear_facade_distance = UnconditionalPrior(
+            sampler=ProductValuesSampler(
+                features_to_multiply=[
+                    "feature.geometry.computed.perimeter",
+                    "feature.geometry.num_floors",
+                ]
+            )
+        )
+        prior_dict["feature.geometry.computed.total_linear_facade_distance"] = (
+            total_linear_facade_distance
+        )
+
         window_area_prior = UnconditionalPrior(
             sampler=ProductValuesSampler(
                 features_to_multiply=[
@@ -531,6 +582,16 @@ class SBEMInferenceRequestSpec(BaseModel):
             )
         )
         prior_dict["feature.geometry.computed.window_area"] = window_area_prior
+
+        footprint_area_prior = UnconditionalPrior(
+            sampler=ProductValuesSampler(
+                features_to_multiply=[
+                    "feature.geometry.short_edge",
+                    "feature.geometry.long_edge",
+                ]
+            )
+        )
+        prior_dict["feature.geometry.computed.footprint_area"] = footprint_area_prior
 
         attic_occupied_num = ConditionalPrior(
             source_feature="feature.extra_spaces.attic.occupied",
@@ -1329,7 +1390,9 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
     original: SBEMInferenceRequestSpec
     upgraded_semantic_field_context: dict[str, float | str | int]
 
-    def run(self, n: int = 10000):
+    def run(
+        self, n: int = 10000
+    ) -> dict[str, SBEMDistributions | SBEMRetrofitDistributions]:
         """Run the inference for a savings problem.
 
         This function will ensure that the original and upgraded models keep aligned
@@ -1348,12 +1411,9 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         original_priors = self.original.make_priors()
 
         # first, we must compute which semantic features have changed.
-        changed_context_fields: dict[str, float | str | int] = {
-            f"feature.semantic.{f}": v
-            for f, v in self.upgraded_semantic_field_context.items()
-            if v != self.original.semantic_field_context[f]
-        }
-        changed_feature_names = set(changed_context_fields.keys())
+        changed_feature_fields, changed_context_fields = self.changed_context_fields
+
+        changed_feature_names = set(changed_feature_fields.keys())
 
         # then we will get the priors that must be re-run as they are downstream
         # of the changed features.
@@ -1364,7 +1424,7 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         # then we will take the original features and update the changed semantic
         # features.
         new_features = original_features.copy(deep=True)
-        for feature_name, value in changed_context_fields.items():
+        for feature_name, value in changed_feature_fields.items():
             new_features[feature_name] = value
 
         # then we compute the new features using the changed priors
@@ -1399,12 +1459,240 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             totals_summary=totals_delta_summary,
         )
 
+        cost_config = RetrofitCosts.Open(
+            Path(__file__).parent / "data" / "retrofit-costs.json"
+        )
+        retrofit_costs = self.compute_retrofit_costs(new_results.features, cost_config)
+        payback = self.compute_payback(retrofit_costs, delta_results)
+        retrofit_costs_summary = retrofit_costs.describe(
+            percentiles=list(PERCENTILES.keys())
+        ).drop(["count"])
+        payback_summary = payback.describe(percentiles=list(PERCENTILES.keys())).drop([
+            "count"
+        ])
+
+        cost_results = SBEMRetrofitDistributions(
+            costs=retrofit_costs,
+            paybacks=payback,
+            costs_summary=retrofit_costs_summary,
+            paybacks_summary=payback_summary,
+        )
+
         return {
             "original": original_results,
             "upgraded": new_results,
             "delta": delta_results,
+            "retrofit": cost_results,
         }
 
+    @property
+    def changed_context_fields(
+        self,
+    ) -> tuple[dict[str, float | str | int], dict[str, float | str | int]]:
+        """The changed context fields."""
+        return {
+            f"feature.semantic.{f}": v
+            for f, v in self.upgraded_semantic_field_context.items()
+            if v != self.original.semantic_field_context[f]
+        }, {
+            f: v
+            for f, v in self.upgraded_semantic_field_context.items()
+            if v != self.original.semantic_field_context[f]
+        }
+
+    def select_cost_entities(self, costs: "RetrofitCosts") -> "RetrofitCosts":
+        """Select the cost entities that are relevant to the changed context fields."""
+        _changed_feature_fields, changed_context_fields = self.changed_context_fields
+        cost_entities: list[RetrofitCost] = []
+        for context_field, context_value in changed_context_fields.items():
+            original_value = self.original.semantic_field_context[context_field]
+            retrofit_cost_candidates: list[RetrofitCost] = []
+            for cost in costs.costs:
+                if cost.semantic_field != context_field:
+                    continue
+                if cost.final != context_value:
+                    continue
+                if cost.initial is None or cost.initial == original_value:
+                    retrofit_cost_candidates.append(cost)
+            if len(retrofit_cost_candidates) == 0:
+                msg = f"No retrofit cost found for {context_field} = {original_value} -> {context_value}"
+                print(msg)
+            elif len(retrofit_cost_candidates) > 1:
+                msg = f"Multiple retrofit costs found for {context_field} = {original_value} -> {context_value}:\n {retrofit_cost_candidates}"
+                raise ValueError(msg)
+            else:
+                cost_entities.append(retrofit_cost_candidates[0])
+        return RetrofitCosts(costs=cost_entities)
+
+    def compute_retrofit_costs(
+        self, features: pd.DataFrame, all_costs: "RetrofitCosts"
+    ) -> pd.DataFrame:
+        """Compute the retrofit costs for the changed context fields."""
+        cost_entities = self.select_cost_entities(all_costs)
+        costs_df = cost_entities.compute(features)
+        for feature in all_costs.all_semantic_features:
+            col_name = f"cost.{feature}"
+            if col_name not in costs_df.columns:
+                costs_df[col_name] = 0
+        return costs_df
+
+    def compute_payback(
+        self, costs_df: pd.DataFrame, delta_results: SBEMDistributions
+    ) -> pd.Series:
+        """Compute the payback for the changed context fields."""
+        total_costs = costs_df["cost.Total"]
+        total_savings = delta_results.totals.Gross.FuelCost
+        payback: pd.Series = total_costs / np.clip(total_savings, 1, np.inf)
+        # if the savings are negative, set the payback to infinity
+        payback[payback <= 0] = np.inf
+
+        return payback
+
+
+class Cost(ABC):
+    """An abstract base class for all costs."""
+
+    @abstractmethod
+    def compute(self, features: pd.DataFrame) -> pd.Series:
+        """Compute the cost for a given feature."""
+        pass
+
+
+class VariableCost(BaseModel, Cost):
+    """A cost that is linear in the product of a set of indicator columns."""
+
+    coefficient: float = Field(
+        ..., description="The factor to multiply a target by.", gt=0
+    )
+    error_scale: float | None = Field(
+        ...,
+        description="The expected error of the cost estimate.",
+        ge=0,
+        le=1,
+    )
+    units: Literal["$/m2", "$/m", "$/m3", "$/kW", "$/unknown"]
+    indicator_cols: list[str] = Field(
+        ...,
+        description="The column(s) in the source data that should be multiplied by the coefficient.",
+    )
+    per: str = Field(
+        ...,
+        description="A description of the cost factor's rate unit (e.g. 'total linear facade distance').",
+    )
+    description: str = Field(
+        ...,
+        description="An explanation of the cost factor (e.g. 'must walk the perimeter of each floor to punch holes for insulation.').",
+    )
+    source: str = Field(
+        ...,
+        description="The source of the cost factor (e.g. 'ASHRAE Fundamentals').",
+    )
+
+    def compute(self, features: pd.DataFrame) -> pd.Series:
+        """Compute the cost for a given feature."""
+        base = features[self.indicator_cols].product(axis=1)
+        if self.error_scale is None:
+            return self.coefficient * base
+        else:
+            coefficient = np.random.normal(
+                self.coefficient,
+                self.coefficient * self.error_scale,
+                len(features),
+            ).clip(min=0)
+            return base * pd.Series(coefficient, index=base.index)
+
+
+class FixedCost(BaseModel, Cost):
+    """A cost that is a fixed amount."""
+
+    amount: float
+    error_scale: float | None = Field(
+        ...,
+        description="The expected error of the cost estimate.",
+        ge=0,
+        le=1,
+    )
+    description: str = Field(
+        ...,
+        description="A description of the fixed cost (e.g. 'the cost of a new thermostat install').",
+    )
+    source: str = Field(
+        ...,
+        description="The source of the fixed cost (e.g. 'ASHRAE Fundamentals').",
+    )
+
+    def compute(self, features: pd.DataFrame) -> pd.Series:
+        """Compute the cost for a given feature."""
+        if self.error_scale is None:
+            return pd.Series(
+                np.full(len(features), self.amount),
+                index=features.index,
+            )
+        else:
+            return pd.Series(
+                np.random.normal(
+                    self.amount, self.amount * self.error_scale, len(features)
+                ).clip(min=0),
+                index=features.index,
+            )
+
+
+class RetrofitCost(BaseModel):
+    """The cost of a retrofit intervention."""
+
+    semantic_field: str = Field(..., description="The semantic field to retrofit.")
+    initial: str | None = Field(
+        ...,
+        description="The initial value of the semantic field (`None` signifies any source).",
+    )
+    final: str = Field(..., description="The final value of the semantic field.")
+    cost_factors: list[VariableCost | FixedCost] = Field(
+        ..., description="The cost factors for the retrofit."
+    )
+
+    def compute(self, features: pd.DataFrame) -> pd.Series:
+        """Compute the cost for a given feature."""
+        if len(self.cost_factors) == 0:
+            print(
+                f"No cost factors found for {self.semantic_field} = {self.initial} -> {self.final}"
+            )
+        columns = [cost.compute(features) for cost in self.cost_factors]
+        return (
+            pd.concat(columns, axis=1).sum(axis=1).rename(f"cost.{self.semantic_field}")
+        )
+
+
+class RetrofitCosts(BaseModel):
+    """The costs associated with each of the retrofit interventions."""
+
+    costs: list[RetrofitCost]
+
+    @property
+    def all_semantic_features(self) -> list[str]:
+        """The list of all features that are used in the costs."""
+        return list({cost.semantic_field for cost in self.costs})
+
+    def compute(self, features: pd.DataFrame) -> pd.DataFrame:
+        """Compute the cost for a given feature."""
+        costs = pd.concat([cost.compute(features) for cost in self.costs], axis=1)
+        total = costs.sum(axis=1).rename("cost.Total")
+        data = pd.concat([costs, total], axis=1)
+        return data
+
+    @classmethod
+    def Open(cls, path: Path) -> "RetrofitCosts":
+        """Open a retrofit costs file."""
+        if path in RETROFIT_COST_CACHE:
+            return RETROFIT_COST_CACHE[path]
+        else:
+            with open(path) as f:
+                data = json.load(f)
+            retrofit_costs = RetrofitCosts.model_validate(data)
+            RETROFIT_COST_CACHE[path] = retrofit_costs
+            return retrofit_costs
+
+
+RETROFIT_COST_CACHE: dict[Path, RetrofitCosts] = {}
 
 # provided features
 """
