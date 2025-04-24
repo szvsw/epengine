@@ -44,25 +44,12 @@
             "final": "HighlyInsulatedRoof",
             "cost_factors": [
                 {
-                    "coefficient": 100,
+                    "coefficient": 129.17,
                     "error_scale": 0.033,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.roof_surface_area",
                         "feature.geometry.roof_is_flat.num",
-                        "feature.geometry.est_fp_ratio"
-                    ],
-                    "per": "roof surface area",
-                    "description": "",
-                    "source": ""
-                },
-                {
-                    "coefficient": 115,
-                    "error_scale": 0.033,
-                    "units": "$/m2",
-                    "indicator_cols": [
-                        "feature.geometry.computed.roof_surface_area",
-                        "feature.geometry.roof_is_attic.num",
                         "feature.geometry.est_fp_ratio"
                     ],
                     "per": "roof surface area",
@@ -394,7 +381,7 @@
             "final": "ASHPHeating",
             "cost_factors": [
                 {
-                    "amount": 18000.0,
+                    "amount": 15000.0,
                     "error_scale": 0.033,
                     "description": "<lorem>",
                     "source": ""
@@ -407,7 +394,7 @@
             "final": "GSHPHeating",
             "cost_factors": [
                 {
-                    "amount": 18000.0,
+                    "amount": 30000.0,
                     "error_scale": 0.033,
                     "description": "<lorem>",
                     "source": ""
@@ -420,7 +407,7 @@
             "final": "ASHPCooling",
             "cost_factors": [
                 {
-                    "amount": 18000.0,
+                    "amount": 15000.0,
                     "error_scale": 0.033,
                     "description": "<lorem>",
                     "source": ""
@@ -433,7 +420,7 @@
             "final": "GSHPCooling",
             "cost_factors": [
                 {
-                    "amount": 18000.0,
+                    "amount": 30000.0,
                     "error_scale": 0.033,
                     "description": "<lorem>",
                     "source": ""
@@ -462,25 +449,6 @@
         {
             "semantic_field": "Distribution",
             "initial": "AirDuctsUninsulated",
-            "final": "AirDuctsInsulated",
-            "cost_factors": [
-                {
-                    "coefficient": 32.29,
-                    "error_scale": 0.033,
-                    "units": "$/m2",
-                    "indicator_cols": [
-                        "feature.geometry.computed.footprint_area",
-                        "feature.geometry.est_fp_ratio"
-                    ],
-                    "per": "footprint area",
-                    "description": "",
-                    "source": ""
-                }
-            ]
-        },
-        {
-            "semantic_field": "Distribution",
-            "initial": "AirDuctsConditionedUninsulated",
             "final": "AirDuctsInsulated",
             "cost_factors": [
                 {
