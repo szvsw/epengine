@@ -1573,9 +1573,10 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         """Compute the payback for the changed context fields."""
         total_costs = costs_df["cost.Total"]
         total_savings = delta_results.totals.Gross.FuelCost
-        payback: pd.Series = total_costs / np.clip(total_savings, 1, np.inf)
-        # if the savings are negative, set the payback to infinity
-        payback[payback <= 0] = np.inf
+        #  TODO: when savings are negative, we are still going to show a very large payback
+        # despite the fact that it should be "never".
+        payback: pd.Series = total_costs / np.clip(total_savings, 0.01, np.inf)
+        payback[payback < 0] = np.inf
 
         return payback
 
@@ -1705,10 +1706,13 @@ class RetrofitCosts(BaseModel):
 
     def compute(self, features: pd.DataFrame) -> pd.DataFrame:
         """Compute the cost for a given feature."""
-        costs = pd.concat([cost.compute(features) for cost in self.costs], axis=1)
-        total = costs.sum(axis=1).rename("cost.Total")
-        data = pd.concat([costs, total], axis=1)
-        return data
+        if self.costs:
+            costs = pd.concat([cost.compute(features) for cost in self.costs], axis=1)
+            total = costs.sum(axis=1).rename("cost.Total")
+            data = pd.concat([costs, total], axis=1)
+            return data
+        else:
+            return pd.DataFrame({"cost.Total": [0] * len(features)})
 
     @classmethod
     def Open(cls, path: Path) -> "RetrofitCosts":
