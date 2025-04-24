@@ -7,7 +7,7 @@
             "cost_factors": [
                 {
                     "coefficient": 8.83,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.energy_model_conditioned_area",
@@ -26,7 +26,7 @@
             "cost_factors": [
                 {
                     "coefficient": 6.35,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.energy_model_conditioned_area",
@@ -45,7 +45,7 @@
             "cost_factors": [
                 {
                     "coefficient": 129.17,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.roof_surface_area",
@@ -65,7 +65,7 @@
             "cost_factors": [
                 {
                     "coefficient": 129.17,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.roof_surface_area",
@@ -78,7 +78,7 @@
                 },
                 {
                     "coefficient": 142.73,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.roof_surface_area",
@@ -98,7 +98,7 @@
             "cost_factors": [
                 {
                     "coefficient": 7.21,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.whole_bldg_facade_area"
@@ -109,7 +109,7 @@
                 },
                 {
                     "coefficient": 30.76,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m",
                     "indicator_cols": [
                         "feature.geometry.computed.total_linear_facade_distance"
@@ -127,7 +127,7 @@
             "cost_factors": [
                 {
                     "coefficient": 188.9,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.whole_bldg_facade_area"
@@ -138,7 +138,7 @@
                 },
                 {
                     "coefficient": 30.76,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m",
                     "indicator_cols": [
                         "feature.geometry.computed.total_linear_facade_distance"
@@ -156,7 +156,7 @@
             "cost_factors": [
                 {
                     "coefficient": 14.42,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.whole_bldg_facade_area"
@@ -167,7 +167,7 @@
                 },
                 {
                     "coefficient": 61.52,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m",
                     "indicator_cols": [
                         "feature.geometry.computed.total_linear_facade_distance"
@@ -185,7 +185,7 @@
             "cost_factors": [
                 {
                     "coefficient": 196.11,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.whole_bldg_facade_area"
@@ -196,7 +196,7 @@
                 },
                 {
                     "coefficient": 61.52,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m",
                     "indicator_cols": [
                         "feature.geometry.computed.total_linear_facade_distance"
@@ -214,7 +214,7 @@
             "cost_factors": [
                 {
                     "coefficient": 181.69,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.whole_bldg_facade_area"
@@ -232,7 +232,7 @@
             "cost_factors": [
                 {
                     "coefficient": 16.58,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.footprint_area",
@@ -251,7 +251,7 @@
             "cost_factors": [
                 {
                     "coefficient": 9.58,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.footprint_area",
@@ -270,7 +270,7 @@
             "cost_factors": [
                 {
                     "coefficient": 538.2,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": ["feature.geometry.computed.window_area"],
                     "per": "window area",
@@ -286,7 +286,7 @@
             "cost_factors": [
                 {
                     "coefficient": 645.83,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": ["feature.geometry.computed.window_area"],
                     "per": "window area",
@@ -302,7 +302,7 @@
             "cost_factors": [
                 {
                     "amount": 500.0,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "description": "<lorem>",
                     "source": ""
                 }
@@ -315,7 +315,7 @@
             "cost_factors": [
                 {
                     "amount": 4250.0,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "description": "<lorem>",
                     "source": ""
                 }
@@ -328,7 +328,7 @@
             "cost_factors": [
                 {
                     "amount": 3000.0,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "description": "<lorem>",
                     "source": ""
                 }
@@ -341,7 +341,7 @@
             "cost_factors": [
                 {
                     "amount": 3200.0,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "description": "<lorem>",
                     "source": ""
                 }
@@ -354,7 +354,7 @@
             "cost_factors": [
                 {
                     "amount": 3200.0,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "description": "<lorem>",
                     "source": ""
                 }
@@ -367,7 +367,7 @@
             "cost_factors": [
                 {
                     "amount": 15000.0,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "description": "<lorem>",
                     "source": ""
                 }
@@ -380,7 +380,7 @@
             "cost_factors": [
                 {
                     "amount": 30000.0,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "description": "<lorem>",
                     "source": ""
                 }
@@ -393,7 +393,7 @@
             "cost_factors": [
                 {
                     "amount": 15000.0,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "description": "<lorem>",
                     "source": ""
                 }
@@ -406,7 +406,7 @@
             "cost_factors": [
                 {
                     "amount": 30000.0,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "description": "<lorem>",
                     "source": ""
                 }
@@ -419,7 +419,7 @@
             "cost_factors": [
                 {
                     "coefficient": 6.46,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.footprint_area",
@@ -438,7 +438,7 @@
             "cost_factors": [
                 {
                     "coefficient": 32.29,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.footprint_area",
@@ -457,7 +457,7 @@
             "cost_factors": [
                 {
                     "coefficient": 11.48,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m",
                     "indicator_cols": [
                         "feature.geometry.computed.perimeter",
@@ -470,7 +470,7 @@
                 },
                 {
                     "coefficient": 32.2917,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.footprint_area",
@@ -491,7 +491,7 @@
             "cost_factors": [
                 {
                     "coefficient": 199.16,
-                    "error_scale": 0.033,
+                    "error_scale": 0.05,
                     "units": "$/m",
                     "indicator_cols": [
                         "feature.geometry.computed.perimeter",
