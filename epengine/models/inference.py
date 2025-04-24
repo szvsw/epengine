@@ -1204,7 +1204,15 @@ class SBEMInferenceRequestSpec(BaseModel):
             axis=1,
         )
         df = priors.sample(df, n, self.generator)
+        original_cooling = None
+        mask = None
+        if "feature.semantic.Cooling" in df.columns:
+            mask = df["feature.semantic.Cooling"] == "none"
+            original_cooling = df["feature.semantic.Cooling"].copy()
+            df.loc[mask, "feature.semantic.Cooling"] = "ACCentral"
         df_t = self.source_feature_transform.transform(df)
+        if original_cooling is not None and mask is not None:
+            df.loc[mask, "feature.semantic.Cooling"] = original_cooling.loc[mask]
         return df, df_t
 
     def predict(self, df_transformed: pd.DataFrame) -> pd.DataFrame:
@@ -1514,9 +1522,19 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         )
 
         # then we run traditional inference on the new features
+        mask = None
+        original_cooling = None
+        if "feature.semantic.Cooling" in new_features.columns:
+            original_cooling = new_features["feature.semantic.Cooling"].copy()
+            mask = new_features["feature.semantic.Cooling"] == "none"
+            new_features.loc[mask, "feature.semantic.Cooling"] = "ACCentral"
         new_transformed_features = self.original.source_feature_transform.transform(
             new_features
         )
+        if mask is not None and original_cooling is not None:
+            new_features.loc[mask, "feature.semantic.Cooling"] = original_cooling.loc[
+                mask
+            ]
         new_results_raw = self.original.predict(new_transformed_features)
         new_results = self.original.compute_distributions(new_features, new_results_raw)
 
