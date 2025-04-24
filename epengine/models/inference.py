@@ -606,6 +606,10 @@ class SBEMInferenceRequestSpec(BaseModel):
                     match_val="GSHPHeating",
                     sampler=UniformSampler(min=2.9, max=4.8),
                 ),
+                ConditionalPriorCondition(
+                    match_val="MiniSplitASHP",
+                    sampler=UniformSampler(min=2.3, max=4.3),
+                ),
             ],
         )
         heat_distribution_prior = ConditionalPrior(
@@ -667,7 +671,53 @@ class SBEMInferenceRequestSpec(BaseModel):
                     match_val="GSHPHeating",
                     sampler=FixedValueSampler(value="Electricity"),
                 ),
+                ConditionalPriorCondition(
+                    match_val="MiniSplitASHP",
+                    sampler=FixedValueSampler(value="Electricity"),
+                ),
             ],
+        )
+
+        heat_is_distributed_prior = ConditionalPrior(
+            source_feature="feature.semantic.Heating",
+            fallback_prior=None,
+            conditions=[
+                ConditionalPriorCondition(
+                    match_val="none",
+                    sampler=FixedValueSampler(value=True),
+                ),
+                ConditionalPriorCondition(
+                    match_val="ElectricResistance",
+                    sampler=FixedValueSampler(value=True),
+                ),
+                ConditionalPriorCondition(
+                    match_val="OilHeating",
+                    sampler=FixedValueSampler(value=True),
+                ),
+                ConditionalPriorCondition(
+                    match_val="NaturalGasHeating",
+                    sampler=FixedValueSampler(value=True),
+                ),
+                ConditionalPriorCondition(
+                    match_val="NaturalGasCondensingHeating",
+                    sampler=FixedValueSampler(value=True),
+                ),
+                ConditionalPriorCondition(
+                    match_val="ASHPHeating",
+                    sampler=FixedValueSampler(value=True),
+                ),
+                ConditionalPriorCondition(
+                    match_val="GSHPHeating",
+                    sampler=FixedValueSampler(value=True),
+                ),
+                ConditionalPriorCondition(
+                    match_val="MiniSplitASHP",
+                    sampler=FixedValueSampler(value=False),
+                ),
+            ],
+        )
+        prior_dict["feature.factors.system.heat.is_distributed"] = (
+            heat_is_distributed_prior
         )
         prior_dict["feature.factors.system.heat.cop"] = heat_cop_prior
         prior_dict["feature.factors.system.heat.distribution"] = heat_distribution_prior
@@ -701,6 +751,10 @@ class SBEMInferenceRequestSpec(BaseModel):
                     match_val="GSHPCooling",
                     sampler=UniformSampler(min=3.8, max=5),
                 ),
+                ConditionalPriorCondition(
+                    match_val="MiniSplitASHP",
+                    sampler=UniformSampler(min=3.5, max=4.5),
+                ),
             ],
         )
 
@@ -731,6 +785,10 @@ class SBEMInferenceRequestSpec(BaseModel):
                 ConditionalPriorCondition(
                     match_val="GSHPCooling",
                     sampler=FixedValueSampler(value=True),
+                ),
+                ConditionalPriorCondition(
+                    match_val="MiniSplitASHP",
+                    sampler=FixedValueSampler(value=False),
                 ),
             ],
         )
