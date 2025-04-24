@@ -101,8 +101,7 @@
                     "error_scale": 0.033,
                     "units": "$/m2",
                     "indicator_cols": [
-                        "feature.geometry.computed.whole_bldg_facade_area",
-                        "feature.geometry.est_uniform_linear_scaling_factor"
+                        "feature.geometry.computed.whole_bldg_facade_area"
                     ],
                     "per": "facade area",
                     "description": "",
@@ -113,8 +112,7 @@
                     "error_scale": 0.033,
                     "units": "$/m",
                     "indicator_cols": [
-                        "feature.geometry.computed.total_linear_facade_distance",
-                        "feature.geometry.est_uniform_linear_scaling_factor"
+                        "feature.geometry.computed.total_linear_facade_distance"
                     ],
                     "per": "total linear facade distance",
                     "description": "",
@@ -132,8 +130,7 @@
                     "error_scale": 0.033,
                     "units": "$/m2",
                     "indicator_cols": [
-                        "feature.geometry.computed.whole_bldg_facade_area",
-                        "feature.geometry.est_uniform_linear_scaling_factor"
+                        "feature.geometry.computed.whole_bldg_facade_area"
                     ],
                     "per": "facade area",
                     "description": "",
@@ -144,8 +141,7 @@
                     "error_scale": 0.033,
                     "units": "$/m",
                     "indicator_cols": [
-                        "feature.geometry.computed.total_linear_facade_distance",
-                        "feature.geometry.est_uniform_linear_scaling_factor"
+                        "feature.geometry.computed.total_linear_facade_distance"
                     ],
                     "per": "total linear facade distance",
                     "description": "",
@@ -163,8 +159,7 @@
                     "error_scale": 0.033,
                     "units": "$/m2",
                     "indicator_cols": [
-                        "feature.geometry.computed.whole_bldg_facade_area",
-                        "feature.geometry.est_uniform_linear_scaling_factor"
+                        "feature.geometry.computed.whole_bldg_facade_area"
                     ],
                     "per": "facade area",
                     "description": "",
@@ -175,8 +170,7 @@
                     "error_scale": 0.033,
                     "units": "$/m",
                     "indicator_cols": [
-                        "feature.geometry.computed.total_linear_facade_distance",
-                        "feature.geometry.est_uniform_linear_scaling_factor"
+                        "feature.geometry.computed.total_linear_facade_distance"
                     ],
                     "per": "total linear facade distance",
                     "description": "",
@@ -194,8 +188,7 @@
                     "error_scale": 0.033,
                     "units": "$/m2",
                     "indicator_cols": [
-                        "feature.geometry.computed.whole_bldg_facade_area",
-                        "feature.geometry.est_uniform_linear_scaling_factor"
+                        "feature.geometry.computed.whole_bldg_facade_area"
                     ],
                     "per": "facade area",
                     "description": "",
@@ -206,8 +199,7 @@
                     "error_scale": 0.033,
                     "units": "$/m",
                     "indicator_cols": [
-                        "feature.geometry.computed.total_linear_facade_distance",
-                        "feature.geometry.est_uniform_linear_scaling_factor"
+                        "feature.geometry.computed.total_linear_facade_distance"
                     ],
                     "per": "total linear facade distance",
                     "description": "",
@@ -225,8 +217,7 @@
                     "error_scale": 0.033,
                     "units": "$/m2",
                     "indicator_cols": [
-                        "feature.geometry.computed.whole_bldg_facade_area",
-                        "feature.geometry.est_uniform_linear_scaling_factor"
+                        "feature.geometry.computed.whole_bldg_facade_area"
                     ],
                     "per": "facade area",
                     "description": "",
@@ -281,10 +272,7 @@
                     "coefficient": 538.2,
                     "error_scale": 0.033,
                     "units": "$/m2",
-                    "indicator_cols": [
-                        "feature.geometry.computed.window_area",
-                        "feature.geometry.est_uniform_linear_scaling_factor"
-                    ],
+                    "indicator_cols": ["feature.geometry.computed.window_area"],
                     "per": "window area",
                     "description": "",
                     "source": ""
@@ -300,10 +288,7 @@
                     "coefficient": 645.83,
                     "error_scale": 0.033,
                     "units": "$/m2",
-                    "indicator_cols": [
-                        "feature.geometry.computed.window_area",
-                        "feature.geometry.est_uniform_linear_scaling_factor"
-                    ],
+                    "indicator_cols": ["feature.geometry.computed.window_area"],
                     "per": "window area",
                     "description": "",
                     "source": ""
@@ -460,6 +445,60 @@
                         "feature.geometry.est_fp_ratio"
                     ],
                     "per": "footprint area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "BasementCeilingInsulation",
+            "initial": "UninsulatedCeiling",
+            "final": "InsulatedCeiling",
+            "cost_factors": [
+                {
+                    "coefficient": 11.48,
+                    "error_scale": 0.033,
+                    "units": "$/m",
+                    "indicator_cols": [
+                        "feature.geometry.computed.perimeter",
+                        "feature.extra_spaces.basement.exists.num",
+                        "feature.extra_spaces.basement.not_occupied.num"
+                    ],
+                    "per": "perimeter",
+                    "description": "",
+                    "source": ""
+                },
+                {
+                    "coefficient": 32.2917,
+                    "error_scale": 0.033,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.computed.footprint_area",
+                        "feature.geometry.est_fp_ratio",
+                        "feature.extra_spaces.basement.exists.num",
+                        "feature.extra_spaces.basement.not_occupied.num"
+                    ],
+                    "per": "footprint area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "BasementWallsInsulation",
+            "initial": "UninsulatedWalls",
+            "final": "InsulatedWalls",
+            "cost_factors": [
+                {
+                    "coefficient": 199.16,
+                    "error_scale": 0.033,
+                    "units": "$/m",
+                    "indicator_cols": [
+                        "feature.geometry.computed.perimeter",
+                        "feature.extra_spaces.basement.occupied.num",
+                        "feature.extra_spaces.basement.exists.num"
+                    ],
+                    "per": "perimeter",
                     "description": "",
                     "source": ""
                 }

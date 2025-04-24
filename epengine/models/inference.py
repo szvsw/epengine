@@ -800,6 +800,56 @@ class SBEMInferenceRequestSpec(BaseModel):
                 ),
             ],
         )
+        basement_is_occupied_num = ConditionalPrior(
+            source_feature="feature.extra_spaces.basement.occupied",
+            fallback_prior=None,
+            conditions=[
+                ConditionalPriorCondition(
+                    match_val="Yes",
+                    sampler=FixedValueSampler(value=1),
+                ),
+                ConditionalPriorCondition(
+                    match_val="No",
+                    sampler=FixedValueSampler(value=0),
+                ),
+            ],
+        )
+        basement_exists_num = ConditionalPrior(
+            source_feature="feature.extra_spaces.basement.exists",
+            fallback_prior=None,
+            conditions=[
+                ConditionalPriorCondition(
+                    match_val="Yes",
+                    sampler=FixedValueSampler(value=1),
+                ),
+                ConditionalPriorCondition(
+                    match_val="No",
+                    sampler=FixedValueSampler(value=0),
+                ),
+            ],
+        )
+        prior_dict["feature.extra_spaces.basement.exists.num"] = basement_exists_num
+
+        basement_is_not_occupied_num = ConditionalPrior(
+            source_feature="feature.extra_spaces.basement.occupied",
+            fallback_prior=None,
+            conditions=[
+                ConditionalPriorCondition(
+                    match_val="Yes",
+                    sampler=FixedValueSampler(value=0),
+                ),
+                ConditionalPriorCondition(
+                    match_val="No",
+                    sampler=FixedValueSampler(value=1),
+                ),
+            ],
+        )
+        prior_dict["feature.extra_spaces.basement.occupied.num"] = (
+            basement_is_occupied_num
+        )
+        prior_dict["feature.extra_spaces.basement.not_occupied.num"] = (
+            basement_is_not_occupied_num
+        )
         prior_dict["feature.extra_spaces.attic.use_fraction"] = attic_use_fraction_prior
         prior_dict["feature.extra_spaces.basement.use_fraction"] = (
             basement_use_fraction_prior
