@@ -101,7 +101,8 @@
                     "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
-                        "feature.geometry.computed.whole_bldg_facade_area"
+                        "feature.geometry.computed.whole_bldg_facade_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
                     "per": "facade area",
                     "description": "",
@@ -112,7 +113,8 @@
                     "error_scale": 0.05,
                     "units": "$/m",
                     "indicator_cols": [
-                        "feature.geometry.computed.total_linear_facade_distance"
+                        "feature.geometry.computed.total_linear_facade_distance",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
                     "per": "total linear facade distance",
                     "description": "",
@@ -130,7 +132,8 @@
                     "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
-                        "feature.geometry.computed.whole_bldg_facade_area"
+                        "feature.geometry.computed.whole_bldg_facade_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
                     "per": "facade area",
                     "description": "",
@@ -141,7 +144,8 @@
                     "error_scale": 0.05,
                     "units": "$/m",
                     "indicator_cols": [
-                        "feature.geometry.computed.total_linear_facade_distance"
+                        "feature.geometry.computed.total_linear_facade_distance",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
                     "per": "total linear facade distance",
                     "description": "",
@@ -159,7 +163,8 @@
                     "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
-                        "feature.geometry.computed.whole_bldg_facade_area"
+                        "feature.geometry.computed.whole_bldg_facade_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
                     "per": "facade area",
                     "description": "",
@@ -170,7 +175,8 @@
                     "error_scale": 0.05,
                     "units": "$/m",
                     "indicator_cols": [
-                        "feature.geometry.computed.total_linear_facade_distance"
+                        "feature.geometry.computed.total_linear_facade_distance",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
                     "per": "total linear facade distance",
                     "description": "",
@@ -188,7 +194,8 @@
                     "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
-                        "feature.geometry.computed.whole_bldg_facade_area"
+                        "feature.geometry.computed.whole_bldg_facade_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
                     "per": "facade area",
                     "description": "",
@@ -199,7 +206,8 @@
                     "error_scale": 0.05,
                     "units": "$/m",
                     "indicator_cols": [
-                        "feature.geometry.computed.total_linear_facade_distance"
+                        "feature.geometry.computed.total_linear_facade_distance",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
                     "per": "total linear facade distance",
                     "description": "",
@@ -217,7 +225,8 @@
                     "error_scale": 0.05,
                     "units": "$/m2",
                     "indicator_cols": [
-                        "feature.geometry.computed.whole_bldg_facade_area"
+                        "feature.geometry.computed.whole_bldg_facade_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
                     "per": "facade area",
                     "description": "",
@@ -272,7 +281,10 @@
                     "coefficient": 538.2,
                     "error_scale": 0.05,
                     "units": "$/m2",
-                    "indicator_cols": ["feature.geometry.computed.window_area"],
+                    "indicator_cols": [
+                        "feature.geometry.computed.window_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
                     "per": "window area",
                     "description": "",
                     "source": ""
@@ -288,7 +300,10 @@
                     "coefficient": 645.83,
                     "error_scale": 0.05,
                     "units": "$/m2",
-                    "indicator_cols": ["feature.geometry.computed.window_area"],
+                    "indicator_cols": [
+                        "feature.geometry.computed.window_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
                     "per": "window area",
                     "description": "",
                     "source": ""
@@ -462,7 +477,8 @@
                     "indicator_cols": [
                         "feature.geometry.computed.perimeter",
                         "feature.extra_spaces.basement.exists.num",
-                        "feature.extra_spaces.basement.not_occupied.num"
+                        "feature.extra_spaces.basement.not_occupied.num",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
                     "per": "perimeter",
                     "description": "",
@@ -496,7 +512,8 @@
                     "indicator_cols": [
                         "feature.geometry.computed.perimeter",
                         "feature.extra_spaces.basement.occupied.num",
-                        "feature.extra_spaces.basement.exists.num"
+                        "feature.extra_spaces.basement.exists.num",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
                     "per": "perimeter",
                     "description": "",
