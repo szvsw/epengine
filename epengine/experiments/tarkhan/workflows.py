@@ -29,7 +29,7 @@ s3 = boto3.client("s3")
 @hatchet.workflow(
     name="tarkhan",
     version="0.0.1",
-    timeout="20m",
+    timeout="30m",
     schedule_timeout="300m",
 )
 class TarkhanWorkflow:
@@ -37,7 +37,7 @@ class TarkhanWorkflow:
 
     @hatchet.step(
         name="simulate",
-        timeout="20m",
+        timeout="30m",
         retries=0,
     )
     async def simulate(self, context: Context):
