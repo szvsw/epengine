@@ -29,7 +29,7 @@ s3 = boto3.client("s3")
 @hatchet.workflow(
     name="tarkhan",
     version="0.0.1",
-    timeout="4m",
+    timeout="20m",
     schedule_timeout="300m",
 )
 class TarkhanWorkflow:
@@ -37,8 +37,8 @@ class TarkhanWorkflow:
 
     @hatchet.step(
         name="simulate",
-        timeout="4m",
-        retries=2,
+        timeout="20m",
+        retries=0,
     )
     async def simulate(self, context: Context):
         """Simulate the Tarkhan experiments."""
@@ -49,7 +49,7 @@ class TarkhanWorkflow:
         return results
 
 
-def make_experiment_specs(
+def make_experiment_specs(  # noqa: C901
     cases_zipfolder: Path,
     experiment_id: str,
     s3: S3Client,
@@ -62,13 +62,16 @@ def make_experiment_specs(
         msg = f"Cases zip folder {cases_zipfolder} is not a zip file"
         raise ValueError(msg)
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    temp_dir = Path("local_artifacts").parent / "temp"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=temp_dir) as tempdir:
         tempdir = Path(temp_dir)
         cases_folder = tempdir / cases_zipfolder.stem
         # unzip the cases_zipfolder
         print("Unzipping cases...")
-        with zipfile.ZipFile(cases_zipfolder, "r") as zip_ref:
-            zip_ref.extractall(cases_folder)
+        if not cases_folder.exists():
+            with zipfile.ZipFile(cases_zipfolder, "r") as zip_ref:
+                zip_ref.extractall(cases_folder)
         print("Done unzipping cases.")
 
         # create a reg ex to confirm that it matches the pattern C[some number of digits]_[some number of any characters]_G[some number of digits]
@@ -84,7 +87,9 @@ def make_experiment_specs(
         all_specs: list[TarkhanSpec] = []
         files_to_upload: list[tuple[str, str, str]] = []
 
-        for subfolder in tqdm(matching_subfolders, desc="Subfolders"):
+        for subfolder in tqdm(
+            matching_subfolders, desc="Subfolders", total=len(matching_subfolders)
+        ):
             match = regex.match(subfolder.name)
             if match:
                 case_id = match.group(1)
@@ -112,14 +117,16 @@ def make_experiment_specs(
                 file_type = climate_matches.group(2)
                 climate_key = f"{epw_city}_{file_type}"
                 idfs = list(subfolder.glob("*.idf"))
-                for idf in tqdm(idfs, desc="IDFs"):
+                for idf in idfs:
                     idf_name = idf.stem
                     idf_key = f"{scoped_prefix}/{idf_name}.idf"
                     idf_uri = f"s3://{bucket}/{idf_key}"
                     epw_key = f"{scoped_prefix}/{epw.name}"
                     epw_uri = f"s3://{bucket}/{epw_key}"
-                    files_to_upload.append((idf.as_posix(), bucket, idf_key))
-                    files_to_upload.append((epw.as_posix(), bucket, epw_key))
+                    if (idf.as_posix(), bucket, idf_key) not in files_to_upload:
+                        files_to_upload.append((idf.as_posix(), bucket, idf_key))
+                    if (epw.as_posix(), bucket, epw_key) not in files_to_upload:
+                        files_to_upload.append((epw.as_posix(), bucket, epw_key))
                     spec = TarkhanSpec(
                         sort_index=0,
                         experiment_id=experiment_id,
@@ -138,7 +145,7 @@ def make_experiment_specs(
         buckets = [bucket] * len(keys)
         filenames = [filename for filename, _, _ in files_to_upload]
         with ThreadPoolExecutor(max_workers=10) as executor:
-            tqdm(
+            for _ in tqdm(
                 executor.map(
                     s3.upload_file,
                     filenames,
@@ -147,23 +154,27 @@ def make_experiment_specs(
                 ),
                 desc="Uploading files",
                 total=len(files_to_upload),
-            )
+            ):
+                pass
         return df
 
 
 if __name__ == "__main__":
+    import asyncio
+
     from hatchet_sdk import new_client
 
     client = new_client()
-    experiment_id = "tarkhan/alignment-test"
+    experiment_id = "tarkhan/benchmark-simplified-shading-full-upload"
     bucket = "ml-for-bem"
     bucket_prefix = "hatchet"
     recursion_map = {
-        "factor": 2,
+        "factor": 3,
         "max_depth": 1,
     }
-    cases_zipfolder = Path(__file__).parent / "Cases.zip"
-    cases_zipfolder = Path("C:/users/szvsw/downloads/Cases.zip")
+    # cases_zipfolder = Path(__file__).parent / "Cases.zip"
+    # cases_zipfolder = Path("C:/users/szvsw/downloads/Cases.zip")
+    cases_zipfolder = Path("local_artifacts") / "Cases.zip"
     res = make_experiment_specs(
         cases_zipfolder,
         experiment_id=experiment_id,
@@ -171,9 +182,7 @@ if __name__ == "__main__":
         bucket=bucket,
         bucket_prefix=bucket_prefix,
     )
-
-    # res = pd.concat([res.iloc[0:1]] * 200)
-    # res["building_name"] = [f"Building {i}" for i in range(len(res))]
+    res = res.sample(n=200)
     specs_key = f"{bucket_prefix}/{experiment_id}/specs.parquet"
     specs_uri = f"s3://{bucket}/{specs_key}"
     with tempfile.TemporaryDirectory() as temp_dir:

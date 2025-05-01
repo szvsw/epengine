@@ -10,6 +10,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
+import numpy as np
 import pandas as pd
 from eppy.bunch_subclass import BadEPFieldError
 from eppy.modeleditor import IDF
@@ -154,6 +155,31 @@ class TarkhanSpec(LeafSpec):
         # Mutate the IDF
         update_idf_version(idf, "24.2")
         add_temp_humidity_outputs(idf)
+        idf, els_for_azimuth = simplify_shading(idf)
+        # building_coords: list[np.ndarray] = []
+        # for key in idf.idfobjects:
+        #     if "buildingsurface" in key.lower():
+        #         for obj in idf.idfobjects[key]:
+        #             if hasattr(obj, "coords"):
+        #                 building_coords.append(np.array(obj.coords)[:, :2])
+        # buliding_centroid = np.concatenate(building_coords).mean(axis=0)
+
+        # n_removed = 0
+        # n_kept = 0
+        # for key in idf.idfobjects:
+        #     if "shading" in key.lower() and idf.idfobjects[key]:
+        #         for obj in idf.idfobjects[key]:
+        #             # remove the object from the idf
+        #             if hasattr(obj, "coords"):
+        #                 obj_coords = np.array(obj.coords)[:, :2]
+        #                 obj_centroid = obj_coords.mean(axis=0)
+        #                 if np.linalg.norm(obj_centroid - buliding_centroid) > (50):
+        #                     idf.removeidfobject(obj)
+        #                     n_removed += 1
+        #                 else:
+        #                     n_kept += 1
+        # print(f"Removed {n_removed} shading surfaces")
+        # print(f"Kept {n_kept} shading srfs")
 
         # extract metadata from the IDF
         zone_metadata: pd.DataFrame = self.create_zone_data(idf)
@@ -199,6 +225,8 @@ class TarkhanSpec(LeafSpec):
         summary = compute_summary_stats(hourly_results)
         for key, value in consecutive_hours.items():
             summary[key] = value
+        for azimuth, max_elevation in els_for_azimuth.items():
+            summary[f"AZ_{azimuth}_max_elevation"] = float(max_elevation)
 
         return (summary, zone_metadata, hourly_results)
 
@@ -396,22 +424,39 @@ def compute_summary_stats(hourly_df: pd.DataFrame) -> pd.Series:
         pd.Series: A series of the summary stats.
     """
     temp_cols = [c for c in hourly_df.columns if "temperature" in c.lower()]
+    rh_cols = [c for c in hourly_df.columns if "relative humidity" in c.lower()]
 
     if not temp_cols:
         return pd.Series({
             "peak_temp": None,
+            "peak_temp_avg": None,
             "coldest_temp": None,
             "overheat_hours": None,
             "cold_hours": None,
             "avg_overheat_per_zone": None,  # new
             "hottest_zone": None,  # new
+            "OH_26": None,
+            "OH_30": None,
+            "OH_35": None,
+            "CH_10": None,
+            "CH_5": None,
+            "edh": None,
+            "edh_hot": None,
+            "edh_cold": None,
+            "hi_extreme_danger": None,
+            "hi_danger": None,
+            "hi_extreme_caution": None,
+            "hi_caution": None,
+            "hi_normal": None,
         })
 
+    hi_counts = heat_index_hourly_summary(hourly_df, temp_cols, rh_cols)
     hourly_df["max_T"] = hourly_df[temp_cols].max(axis=1)
     hourly_df["min_T"] = hourly_df[temp_cols].min(axis=1)
 
     # Basic stats
     peak_temp = hourly_df["max_T"].max()
+    peak_temp_avg = hourly_df[temp_cols].max().mean()
     coldest_temp = hourly_df["min_T"].min()
     overheat_hours = (hourly_df["max_T"] > 26).sum()
     extreme_overheat_hours = (hourly_df["max_T"] > 30).sum()
@@ -424,8 +469,19 @@ def compute_summary_stats(hourly_df: pd.DataFrame) -> pd.Series:
     avg_oh_per_zone = sum(zone_oh_counts) / len(temp_cols) if temp_cols else None
     hottest_zone_oh = max(zone_oh_counts) if temp_cols else None
 
+    rep_zone_col = temp_cols[0]
+    subset_df = cast(pd.DataFrame, hourly_df[[rep_zone_col]].copy())
+    subset_df = subset_df.rename(columns={rep_zone_col: "Zone Air Temperature [C]"})
+    if rh_cols:
+        subset_df["Zone Air Relative Humidity [%]"] = hourly_df[rh_cols[0]]
+    else:
+        subset_df["Zone Air Relative Humidity [%]"] = 50.0
+
+    total_edh_fixed, hot_edh_fixed, cold_edh_fixed = calculate_edh(hourly_df)
+
     return pd.Series({
         "peak_temp": round(peak_temp, 2),
+        "peak_temp_avg": round(peak_temp_avg, 2),
         "coldest_temp": round(coldest_temp, 2),
         "avg_overheat_per_zone": round(avg_oh_per_zone, 2)
         if avg_oh_per_zone
@@ -436,6 +492,14 @@ def compute_summary_stats(hourly_df: pd.DataFrame) -> pd.Series:
         "OH_35": int(extreme_extreme_overheat_hours),
         "CH_10": int(cold_hours),
         "CH_5": int(extreme_cold_hours),
+        "edh": round(total_edh_fixed, 2),
+        "edh_hot": round(hot_edh_fixed, 2),
+        "edh_cold": round(cold_edh_fixed, 2),
+        "hi_extreme_danger": hi_counts["Extreme Danger"],
+        "hi_danger": hi_counts["Danger"],
+        "hi_extreme_caution": hi_counts["Extreme Caution"],
+        "hi_caution": hi_counts["Caution"],
+        "hi_normal": hi_counts["Normal"],
     })
 
 
@@ -521,3 +585,303 @@ def compute_longest_consecutive_duration(
     absolute_worst_case = max(worst_cases_per_col.values())
 
     return absolute_worst_case
+
+
+def calculate_edh(df, met=1.1, clo=0.5, v=0.1, comfort_bounds=(22, 27)):
+    """Calculates Exceedance Degree Hours (EDH) using fixed comfort bounds and separates hot and cold contributions.
+
+    Parameters:
+    - df: DataFrame with columns 'Zone Air Temperature [C]' and 'Zone Air Relative Humidity [%]'
+    - met, clo, v: metabolic rate, clothing insulation, air speed
+    - comfort_bounds: (lower, upper) SET range considered comfortable
+
+    Returns:
+    - total_edh, hot_edh, cold_edh (all rounded to 2 decimals)
+    """
+    from pythermalcomfort.models import set_tmp
+
+    print("Calculating EDH with comfort range:", comfort_bounds)
+
+    hot_edh = 0.0
+    cold_edh = 0.0
+
+    for _, row in df.iterrows():
+        ta = row.get("Zone Air Temperature [C]", None)
+        rh = row.get("Zone Air Relative Humidity [%]", 50.0)
+        if ta is None:
+            continue
+
+        try:
+            set_val = set_tmp(tdb=ta, tr=ta, rh=rh, v=v, met=met, clo=clo)["set"]
+            lower, upper = comfort_bounds
+
+            if set_val > upper:
+                edh = set_val - upper
+                hot_edh += edh
+                print(f" HOT: SET={set_val:.2f} > {upper} → +{edh:.2f}")
+            elif set_val < lower:
+                edh = lower - set_val
+                cold_edh += edh
+                print(f"COLD: SET={set_val:.2f} < {lower} → +{edh:.2f}")
+            # no else nee ded; if in comfort band → edh = 0
+
+        except Exception as e:
+            print(f" Error computing SET (TA={ta}, RH={rh}): {e}")
+            continue
+
+    total_edh = hot_edh + cold_edh
+    return round(total_edh, 2), round(hot_edh, 2), round(cold_edh, 2)
+
+
+def heat_index_hourly_summary(df, temp_cols, rh_cols):
+    """Computes average heat index per hour across all zones and bins into 5 categories (sum = 8760).
+
+    Uses Rothfusz regression and NOAA categories:
+      - Extreme Danger: ≥130°F
+      - Danger: 105 to 129°F
+      - Extreme Caution: 90 to 104°F
+      - Caution: 80 to 89°F
+      - Normal: <80°F
+    """
+
+    def compute_category(temp_c, rh):
+        # Convert to Fahrenheit
+        temp_f = temp_c * 9 / 5 + 32
+        hi_f = (
+            -42.379
+            + 2.04901523 * temp_f
+            + 10.14333127 * rh
+            - 0.22475541 * temp_f * rh
+            - 6.83783e-3 * temp_f**2
+            - 5.481717e-2 * rh**2
+            + 1.22874e-3 * temp_f**2 * rh
+            + 8.5282e-4 * temp_f * rh**2
+            - 1.99e-6 * temp_f**2 * rh**2
+        )
+
+        if hi_f >= 130:
+            return "Extreme Danger"
+        elif 105 <= hi_f < 130:
+            return "Danger"
+        elif 90 <= hi_f < 105:
+            return "Extreme Caution"
+        elif 80 <= hi_f < 90:
+            return "Caution"
+        else:
+            return "Normal"
+
+    hi_hourly = []
+    for t_col, rh_col in zip(temp_cols, rh_cols, strict=False):
+        hi_zone = df[[t_col, rh_col]].apply(
+            lambda row: compute_category(row[t_col], row[rh_col]),  # noqa: B023
+            axis=1,
+        )
+        hi_hourly.append(hi_zone)
+
+    # Get average category per hour by majority vote (or use first if tied)
+    hi_avg = pd.concat(hi_hourly, axis=1).mode(axis=1)[0]
+    counts = hi_avg.value_counts().to_dict()
+
+    # Ensure all categories are present
+    all_cats = ["Extreme Danger", "Danger", "Extreme Caution", "Caution", "Normal"]
+    for cat in all_cats:
+        counts.setdefault(cat, 0)
+
+    return counts
+
+
+def extract_surfaces(idf: IDF, filter_text: str = "shading") -> list[np.ndarray]:
+    """Extract all surface coordinates from the IDF for the specified filter text."""
+    all_coords = []
+    for key in idf.idfobjects:
+        if filter_text in key.lower() and idf.idfobjects[key]:
+            for obj in idf.idfobjects[key]:
+                coords = obj.coords
+                all_coords.append(np.array(coords))
+    return all_coords
+
+
+def all_coords_to_pts(all_coords: list[np.ndarray]) -> np.ndarray:
+    """Convert a list of geometry coordinates to a flattened list of points."""
+    all_segments = []
+    for coord in all_coords:
+        for i in range(len(coord)):
+            start = coord[i]
+            end = coord[(i + 1) % len(coord)]
+            midpoint = (start + end) / 2
+            all_segments.append(np.array([start, midpoint, end]))
+    return np.array(all_segments).reshape(-1, 3)
+
+
+def get_azimuth_and_elevation(
+    points: np.ndarray, source_point: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """Compute the azimuth and elevational angle of a segment which ends at each point and starts from a single point.
+
+    Args:
+        points (np.ndarray): shape is (N, 3), and represents terminus of a segment
+        source_point (np.ndarray): shape is (3,), and represents the source point
+
+    Returns:
+        azimuth (np.ndarray): shape is (N,), and represents the azimuth of the segment
+        elevation (np.ndarray): shape is (N,), and represents the angle of the segment
+    """
+    # Compute the azimuth and elevational angle of a segment which ends at each point and starts from a single point.
+    azimuth = np.arctan2(points[:, 1] - source_point[1], points[:, 0] - source_point[0])
+    elevation = np.arctan2(
+        points[:, 2] - source_point[2],
+        np.linalg.norm(points[:, :2] - source_point[:2], axis=1),
+    )
+    return azimuth, elevation
+
+
+def round_azimuths_to_nearest(azimuths: np.ndarray, n_divs: float = 15) -> np.ndarray:
+    """Round azimuths to the nearest multiple of an angle determined by the number of divisions."""
+    rads_per_div = 2 * np.pi / (n_divs)
+    return np.round(azimuths / rads_per_div) * rads_per_div
+
+
+def compute_perimeter_of_regular_polygon(n_sides: int, apothem: float) -> float:
+    """Compute the perimeter of a regular polygon with n_sides sides and a distance from the source point to the midpoint of the base edge of each vertical rectangle."""
+    half_central_angle = np.pi / n_sides  # π / n
+    perimeter = 2 * n_sides * apothem * np.tan(half_central_angle)  # 2 n a tan(π/n)
+
+    return perimeter
+
+
+def construct_shading_fence_coords(
+    els_for_azimuth: pd.Series, source_point: np.ndarray, distance: float = 100
+):
+    """Construct a list of coordinates for rectangular surfaces which form a shading face in a circle around the source point.
+
+    To construct each vertical rectangle in the shading fence, we start by moving the source point to a distance `distance` in the direction of the azimuth;
+    this location now is the midpoint of the base edge of a surface which will be perpendicular to the azimuth and will extend the appropriate height verticallyfor the specified shading angle.
+
+
+    Args:
+        els_for_azimuth (pd.Series): shape is (N,), and represents the maximum elevation angle for each azimuth, where the azimuth is in the index.
+        source_point (np.ndarray): shape is (3,), and represents the source point.
+        distance (float): the distance from the source point to the midpoint of the base edge of each vertical rectangle; also necessary to determine the height of the vertical rectangles according to the specified elevation angle.
+
+    Returns:
+        coords (list[np.ndarray]): a list of coordinates for the vertices of the rectangular surfaces which form the shading fence; each array is of shape (4,3) and represents the coordinates of the vertices of a rectangle.
+    """
+    azimuths: np.ndarray = cast(np.ndarray, els_for_azimuth.index)
+    elevation_angles: np.ndarray = cast(np.ndarray, els_for_azimuth.values)
+    n_azimuths = len(azimuths)
+    # compute the edge length for a regular polygon with n_azimuths sides and with distance from the source point to the midpoint of the base edge of each vertical rectangle
+    edge_length = (
+        compute_perimeter_of_regular_polygon(n_azimuths, distance) / n_azimuths
+    )
+
+    elevation_heights = distance * np.tan(elevation_angles)
+
+    translated_source_points = (
+        source_point
+        + distance
+        * np.array([np.cos(azimuths), np.sin(azimuths), np.zeros(len(azimuths))]).T
+    )
+
+    coords = []
+    for azimuth, translated_source_point, elevation_height in zip(
+        azimuths, translated_source_points, elevation_heights, strict=False
+    ):
+        perp_to_azimuth = np.array([
+            -np.sin(azimuth),
+            np.cos(azimuth),
+            0,
+        ])
+        lower_left = translated_source_point + perp_to_azimuth * edge_length / 2
+        lower_right = translated_source_point - perp_to_azimuth * edge_length / 2
+        upper_left = lower_left + np.array([0, 0, elevation_height])
+        upper_right = lower_right + np.array([0, 0, elevation_height])
+
+        coords.append(np.array([lower_left, lower_right, upper_right, upper_left]))
+
+    return coords
+
+
+def create_shading_fence_coords(
+    main_geo_coords: list[np.ndarray],
+    shading_surface_coords: list[np.ndarray],
+    n_divs: int = 36,
+    distance: float = 100,
+):
+    """Create a list of coordinates for the vertices of the rectangular surfaces which form the shading fence.
+
+    Args:
+        main_geo_coords (list[np.ndarray]): a list of coordinates for the vertices of the main geometry.
+        shading_surface_coords (list[np.ndarray]): a list of coordinates for the vertices of the shading surfaces.
+        n_divs (int): the number of divisions to use for the azimuth.
+        distance (float): the distance from the source point to the midpoint of the base edge of each vertical rectangle.
+
+    Returns:
+        coords (list[np.ndarray]): a list of coordinates for the vertices of the rectangular surfaces which form the shading fence.
+        els_for_azimuth (pd.Series): shape is (N,), and represents the maximum elevation angle for each azimuth, where the azimuth is in the index.
+    """
+    all_main_pts = all_coords_to_pts(main_geo_coords)
+    source_point = all_main_pts.mean(axis=0)
+    source_point[-1] = 0
+
+    all_shading_pts = all_coords_to_pts(shading_surface_coords)
+    azimuth, el_angles = get_azimuth_and_elevation(all_shading_pts, source_point)
+    azimuth_rounded = round_azimuths_to_nearest(azimuth, n_divs=n_divs)
+    els_for_azimuth = (
+        pd.DataFrame({
+            "azimuth": azimuth,
+            "azimuth_rounded": ((azimuth_rounded * 180 / np.pi) % 360) * np.pi / 180,
+            "elevation": el_angles,
+            "elevation_degrees": el_angles,
+        })
+        .groupby("azimuth_rounded")["elevation"]
+        .max()
+    )
+
+    shading_fence_coords = construct_shading_fence_coords(
+        cast(pd.Series, els_for_azimuth), source_point, distance=distance
+    )
+    return shading_fence_coords, els_for_azimuth
+
+
+def remove_surfaces_from_idf(idf: IDF, filter_text: str = "shading"):
+    """Remove all surfaces from the IDF which match the specified filter text."""
+    for key in idf.idfobjects:
+        if filter_text in key.lower() and idf.idfobjects[key]:
+            for obj in idf.idfobjects[key]:
+                idf.removeidfobject(obj)
+
+
+def add_shading_fence_to_idf(idf: IDF, coords: list[np.ndarray]):
+    """Add a list of coordinates for the vertices of the rectangular surfaces which form the shading fence to the IDF."""
+    for i, coord in enumerate(coords):
+        data = {
+            "Name": f"Shading_Fence_{i:03d}",
+            **{
+                f"Vertex_{j}_Xcoordinate": float(coord[j % len(coord), 0])
+                for j in range(len(coord) + 1)
+            },
+            **{
+                f"Vertex_{j}_Ycoordinate": float(coord[j % len(coord), 1])
+                for j in range(len(coord) + 1)
+            },
+            **{
+                f"Vertex_{j}_Zcoordinate": float(coord[j % len(coord), 2])
+                for j in range(len(coord) + 1)
+            },
+        }
+        idf.newidfobject(
+            "SHADING:SITE:DETAILED",
+            **data,
+        )
+
+
+def simplify_shading(idf: IDF, n_divs: int = 36, distance: float = 100):
+    """Simplify the shading in the IDF by removing the shading and replacing it with a shading fence."""
+    shading_coords = extract_surfaces(idf, filter_text="shading")
+    main_coords = extract_surfaces(idf, filter_text="buildingsurface")
+    shading_fence_coords, els_for_azimuth = create_shading_fence_coords(
+        main_coords, shading_coords, n_divs=n_divs, distance=distance
+    )
+    remove_surfaces_from_idf(idf, filter_text="shading")
+    add_shading_fence_to_idf(idf, shading_fence_coords)
+    return idf, els_for_azimuth
