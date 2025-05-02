@@ -165,11 +165,11 @@ if __name__ == "__main__":
     from hatchet_sdk import new_client
 
     client = new_client()
-    experiment_id = "tarkhan/benchmark-simplified-shading-full-upload"
+    experiment_id = "tarkhan/full-run"
     bucket = "ml-for-bem"
     bucket_prefix = "hatchet"
     recursion_map = {
-        "factor": 3,
+        "factor": 100,
         "max_depth": 1,
     }
     # cases_zipfolder = Path(__file__).parent / "Cases.zip"
@@ -182,7 +182,7 @@ if __name__ == "__main__":
         bucket=bucket,
         bucket_prefix=bucket_prefix,
     )
-    res = res.sample(n=200)
+    # res = res.sample(n=200)
     specs_key = f"{bucket_prefix}/{experiment_id}/specs.parquet"
     specs_uri = f"s3://{bucket}/{specs_key}"
     with tempfile.TemporaryDirectory() as temp_dir:
