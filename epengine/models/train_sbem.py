@@ -569,21 +569,43 @@ class TrainFoldSpec(LeafSpec):
     @cached_property
     def data(self) -> pd.DataFrame:
         """The data."""
-        df = pd.read_parquet(self.data_path)["Raw"]
-        df = cast(
+        df_all = pd.read_parquet(self.data_path)
+        df_energy: pd.DataFrame = cast(pd.DataFrame, df_all["Energy"]["Raw"])
+        df_energy = cast(
             pd.DataFrame,
             (
-                df.T.groupby(
-                    level=[lev for lev in df.columns.names if lev.lower() != "month"]
+                df_energy.T.groupby(
+                    level=[
+                        lev for lev in df_energy.columns.names if lev.lower() != "month"
+                    ]
                 )
                 .sum()
                 .T
             ),
         )
+        df_peaks: pd.DataFrame = cast(pd.DataFrame, df_all["Peak"]["Raw"])
+        df_peaks = cast(
+            pd.DataFrame,
+            (
+                df_peaks.T.groupby(
+                    level=[
+                        lev for lev in df_peaks.columns.names if lev.lower() != "month"
+                    ]
+                )
+                .max()
+                .T
+            ),
+        )
+        df_all_annual = pd.concat(
+            [df_energy, df_peaks],
+            axis=1,
+            keys=["Energy", "Peak"],
+            names=["Measurement"],
+        )
         # TODO: should we assume they are shuffled already?
         # shuffle the order of the rows
-        df = df.sample(frac=1, random_state=42, replace=False)
-        return df
+        df_all_annual = df_all_annual.sample(frac=1, random_state=42, replace=False)
+        return df_all_annual
 
     @cached_property
     def dparams(self) -> pd.DataFrame:
@@ -816,7 +838,7 @@ class TrainFoldSpec(LeafSpec):
             },
         )
         metrics.columns.names = ["metric"]
-        metrics.index.names = ["target"]
+        metrics.index.names = ["measurement", "target"]
         return metrics
 
     def compute_metrics(self, preds: pd.DataFrame, targets: pd.DataFrame):
@@ -915,7 +937,12 @@ class TrainFoldSpec(LeafSpec):
                 name=col,
             )
             if s3_client is not None:
-                model_key = self.format_model_key(f"{col}.lgb")
+                model_name = (
+                    f"{col}.lgb"
+                    if not isinstance(col, tuple)
+                    else f"{'.'.join(col)}.lgb"
+                )
+                model_key = self.format_model_key(model_name)
                 model_str = model.model_to_string()
                 s3_client.put_object(Bucket=self.bucket, Key=model_key, Body=model_str)
 
@@ -1062,7 +1089,10 @@ class TrainWithCVSpec(StageSpec):
                 "test",
                 level="split_segment",
                 axis=1,
-            ).mean(axis=0),
+            )
+            .groupby(level="measurement")
+            .mean()
+            .unstack(level="measurement"),
         )
         with tempfile.TemporaryDirectory() as tempdir:
             fold_averages_path = Path(tempdir) / "fold-averaged-errors.pq"
@@ -1079,7 +1109,7 @@ class TrainWithCVSpec(StageSpec):
             convergence_monitor_segment_and_target,
             convergence,
         ) = self.progressive_training_spec.convergence_criteria.check_convergence(
-            fold_averages
+            fold_averages.xs("Energy", level="measurement")
         )
 
         return convergence_all, convergence

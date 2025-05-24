@@ -13,7 +13,7 @@ requires-poetry = ">=2.0"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
-epinterface = {git = "https://github.com/szvsw/epinterface", branch = "main"}
+epinterface = {git = "https://github.com/szvsw/epinterface", branch = "feature/add-peak-loads"}
 hatchet-sdk = "^0.47"
 pydantic = "^2.9.2"
 boto3 = "^1.34.145"
@@ -80,6 +80,8 @@ pyright = "^1.1.392"
 boto3-stubs = {extras = ["essential"], version = "^1.35.23"}
 pyinstrument = "^5.0.1"
 supabase = "^2.15.1"
+plotly = "^6.0.1"
+pvlib = "^0.12.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.4.2"

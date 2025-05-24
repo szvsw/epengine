@@ -762,7 +762,7 @@ if __name__ == "__main__":
     print(f"Execution time: {e - s:.2f} seconds")
     print("----")
     print(
-        results.reset_index(drop=True)["Raw"]
+        cast(pd.DataFrame, results.reset_index(drop=True)["Energy"]["Raw"])
         .stack(level="Month", future_stack=True)
         .sum()
     )
