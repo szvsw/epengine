@@ -228,13 +228,19 @@ if __name__ == "__main__":
 
     experiment_id = f"ma-webapp/test/v1-{current_time}"
     experiment_id = f"ma-webapp/v1-{current_time}"
-    max_iters = 6
-    n_per_iter = 20_000
-    n_init = 100_000
+    experiment_id = f"ma-webapp/test/v2-{current_time}"
+    experiment_id = f"ma-webapp/v2-{current_time}"
+    experiment_id = f"ma-webapp/test/v2-{current_time}-boston-only"
+    experiment_id = f"ma-webapp/test/v3-{current_time}-boston-only"
+    max_iters = 1
+    n_per_iter = 50_000
+    n_init = 50_000
     min_per_stratum = 300
-    recursion_factor = 2
-    recursion_max_depth = 4
-    input_gis_file = "./artifacts/ma-geometry-no-smalls.pq"
+    recursion_factor = 40
+    recursion_max_depth = 1
+    input_gis_file = (
+        "./artifacts/ma-geometry-no-smalls-boston-residential-style-only.pq"
+    )
     yml_dir = "E:/repos/epinterface/tests/data"
     input_component_map_file = f"{yml_dir}/component-map-ma.yml"
     input_semantic_fields_file = f"{yml_dir}/semantic-fields-ma.yml"
