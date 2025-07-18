@@ -1,58 +1,59 @@
 .PHONY: install
 install: ## Install the poetry environment and install the pre-commit hooks
-	@echo "🚀 Creating virtual environment using pyenv and poetry"
-	@poetry install --all-groups --all-extras
-	@poetry run pre-commit install
-	@poetry shell
-	@epi prisma generate
+	@echo "🚀 Creating virtual environment using uv"
+	@uv sync --all-groups --all-extras
+	@uv run pre-commit install
+	@uv run epi prisma generate
 
 .PHONY: clean-env
-clean-env: ## Clean the poetry environment
-	@poetry env remove --all
+clean-env: ## Clean the uv environment
+	@echo "🚀 Removing .venv directory created by uv (if exists)"
+	@rm -rf .venv
 
 .PHONY: check
 check: ## Run code quality tools.
-	@echo "🚀 Checking Poetry lock file consistency with 'pyproject.toml': Running poetry check --lock"
-	@poetry check --lock
+	@echo "🚀 Checking lock file consistency with 'pyproject.toml'"
+	@uv lock --locked
 	@echo "🚀 Linting code: Running pre-commit"
-	@poetry run pre-commit run -a
+	@uv run pre-commit run -a
+	@echo "🚀 Static type checking: Running pyright"
+	@uv run pyright
 
 .PHONY: test
 test: ## Test the code with pytest
 	@echo "🚀 Testing code: Running pytest"
-	@poetry run pytest --cov --cov-config=pyproject.toml --cov-report=xml
+	@uv run pytest --cov --cov-config=pyproject.toml --cov-report=xml
+
 
 .PHONY: build
-build: clean-build ## Build wheel file using poetry
+build: clean-build ## Build wheel file
 	@echo "🚀 Creating wheel file"
-	@poetry build
+	@uvx --from build pyproject-build --installer uv
 
 .PHONY: clean-build
-clean-build: ## clean build artifacts
-	@rm -rf dist
+clean-build: ## Clean build artifacts
+	@echo "🚀 Removing build artifacts"
+	@uv run python -c "import shutil; import os; shutil.rmtree('dist') if os.path.exists('dist') else None"
 
 .PHONY: publish
-publish: ## publish a release to pypi.
-	@echo "🚀 Publishing: Dry run."
-	@poetry config pypi-token.pypi $(PYPI_TOKEN)
-	@poetry publish --dry-run
+publish: ## Publish a release to PyPI.
 	@echo "🚀 Publishing."
-	@poetry publish
+	@uvx twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 
 .PHONY: build-and-publish
 build-and-publish: build publish ## Build and publish.
 
 .PHONY: docs-test
 docs-test: ## Test if documentation can be built without warnings or errors
-	@poetry run mkdocs build -s
+	@uv run mkdocs build -s
 
 .PHONY: docs
 docs: ## Build and serve the documentation
-	@poetry run mkdocs serve
+	@uv run mkdocs serve
 
 .PHONY: docs-deploy
 docs-deploy: ## Build and serve the documentation
-	@poetry run mkdocs gh-deploy
+	@uv run mkdocs gh-deploy
 
 .PHONY: down
 down: ## Stop the docker-compose services
@@ -117,7 +118,8 @@ dozzle: ## run the dozzle logs container
 
 .PHONY: help
 help:
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@uv run python -c "import re; \
+	[[print(f'\033[36m{m[0]:<20}\033[0m {m[1]}') for m in re.findall(r'^([a-zA-Z_-]+):.*?## (.*)$$', open(makefile).read(), re.M)] for makefile in ('$(MAKEFILE_LIST)').strip().split()]"
 
 .PHONY: create-copilot-app
 create-copilot-app: ## Create the entire stack with copilot
@@ -126,4 +128,5 @@ create-copilot-app: ## Create the entire stack with copilot
 	@copilot env deploy --name prod
 	@copilot secret init --name HATCHET_CLIENT_TOKEN
 	@copilot deploy --init-wkld --env prod --all
+
 .DEFAULT_GOAL := help
