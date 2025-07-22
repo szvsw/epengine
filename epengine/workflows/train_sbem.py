@@ -4,7 +4,7 @@ import asyncio
 from typing import cast
 
 import boto3
-from hatchet_sdk import Context
+from hatchet_sdk.v0 import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.outputs import URIResponse
@@ -220,7 +220,7 @@ class TrainRegressorWithCVFold:
 if __name__ == "__main__":
     from datetime import datetime
 
-    from hatchet_sdk import new_client
+    from hatchet_sdk.v0 import new_client
 
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 

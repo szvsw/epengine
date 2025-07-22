@@ -9,7 +9,7 @@ requires-python =">=3.10,<3.13"
 readme = "README.md"
 dependencies = [
     "epinterface",
-    "hatchet-sdk~=0.47",
+    "hatchet-sdk>=1,<2",
     "pydantic>=2.9.2,<3.0",
     "boto3>=1.35,<2.0",
     "pandas>=2.2.2,<2.3",
@@ -23,6 +23,7 @@ dependencies = [
     "fastparquet~=2024.11.0",
     "pyarrow~=19.0.1",
     "pythermalcomfort~=3.0.1",
+    "scythe-engine>=0.0.1",
 ]
 
 [project.scripts]

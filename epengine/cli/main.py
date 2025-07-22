@@ -235,7 +235,7 @@ def status():
 )
 def get(workflow_run_id: str, output_path: Path | str):
     """Get the results of a workflow run."""
-    from hatchet_sdk.client import new_client
+    from hatchet_sdk.v0.client import new_client
 
     from epengine.utils.filesys import fetch_uri
 

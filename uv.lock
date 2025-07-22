@@ -1177,6 +1177,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pythermalcomfort" },
     { name = "scipy" },
+    { name = "scythe-engine" },
     { name = "tables", version = "3.10.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "tables", version = "3.10.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "tqdm" },
@@ -1229,7 +1230,7 @@ requires-dist = [
     { name = "epinterface", git = "https://github.com/szvsw/epinterface?branch=feature%2Fuv" },
     { name = "fastparquet", specifier = "~=2024.11.0" },
     { name = "geopandas", specifier = "~=1.0.1" },
-    { name = "hatchet-sdk", specifier = "~=0.47" },
+    { name = "hatchet-sdk", specifier = ">=1,<2" },
     { name = "ladybug-core", specifier = ">=0.43,<1.0" },
     { name = "lightgbm", marker = "extra == 'ml'", specifier = ">=4.6,<5.0" },
     { name = "numpy", specifier = ">=2.2,<2.3" },
@@ -1239,6 +1240,7 @@ requires-dist = [
     { name = "pythermalcomfort", specifier = "~=3.0.1" },
     { name = "scikit-learn", marker = "extra == 'ml'", specifier = ">=1.6,<2.0" },
     { name = "scipy", specifier = ">=1.14,<1.15" },
+    { name = "scythe-engine", specifier = ">=0.0.1" },
     { name = "streamlit", marker = "extra == 'ui'", specifier = ">=1.44,<2.0" },
     { name = "tables", specifier = ">=3.9,<4.0" },
     { name = "tqdm", specifier = ">=4.66,<5.0" },
@@ -1787,7 +1789,7 @@ wheels = [
 
 [[package]]
 name = "hatchet-sdk"
-version = "0.47.1"
+version = "1.16.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1796,19 +1798,17 @@ dependencies = [
     { name = "cel-python" },
     { name = "grpcio" },
     { name = "grpcio-tools" },
-    { name = "nest-asyncio" },
     { name = "prometheus-client" },
     { name = "protobuf" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "python-dateutil" },
-    { name = "python-dotenv" },
-    { name = "pyyaml" },
     { name = "tenacity" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f4/f0/72341911b93f8ac5a652539124e7790ba83effe4001be88eda835ee33efe/hatchet_sdk-0.47.1.tar.gz", hash = "sha256:f1d6c29a1796ceb1c70d742b4ac5db3d9341bbc8bb0056a10f80546d215a1da4", size = 150397, upload_time = "2025-03-21T17:33:55.944Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b9/a8/b57114213b03b624c1635d1bce234d7c29d195ac8aeef13e24c51e80dea7/hatchet_sdk-1.16.1.tar.gz", hash = "sha256:c2f7c8da5be4c416475b462389bad8997ce9e7da1489aa9ac6a1d38fd6c991a3", size = 335804, upload_time = "2025-07-21T02:55:35.631Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/ad/e5805f32ede449d3b0e7d750f2a1f13157fb0050b5322d5cc9efea45880e/hatchet_sdk-0.47.1-py3-none-any.whl", hash = "sha256:8081af681a1764666e8a61f10c0dc3286379c0aea6124bbb6fd189e45cd3a375", size = 365576, upload_time = "2025-03-21T17:33:54.197Z" },
+    { url = "https://files.pythonhosted.org/packages/7e/35/dad6753677b42ff96a8738319ffc7b120ccc0af4da1bf4f1077eb43e4134/hatchet_sdk-1.16.1-py3-none-any.whl", hash = "sha256:ec202b835c522711493eadd7efe441526f63f7566309e1eb7b69f8eab6e51704", size = 826076, upload_time = "2025-07-21T02:55:33.838Z" },
 ]
 
 [[package]]
@@ -4612,6 +4612,27 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/8e/ee/8a26858ca517e9c64f84b4c7734b89bda8e63bec85c3d2f432d225bb1886/scipy-1.14.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8f9ea80f2e65bdaa0b7627fb00cbeb2daf163caa015e59b7516395fe3bd1e066", size = 40849331, upload_time = "2024-08-21T00:05:47.53Z" },
     { url = "https://files.pythonhosted.org/packages/a5/cd/06f72bc9187840f1c99e1a8750aad4216fc7dfdd7df46e6280add14b4822/scipy-1.14.1-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:edaf02b82cd7639db00dbff629995ef185c8df4c3ffa71a5562a595765a06ce1", size = 42544049, upload_time = "2024-08-21T00:05:59.294Z" },
     { url = "https://files.pythonhosted.org/packages/aa/7d/43ab67228ef98c6b5dd42ab386eae2d7877036970a0d7e3dd3eb47a0d530/scipy-1.14.1-cp312-cp312-win_amd64.whl", hash = "sha256:2ff38e22128e6c03ff73b6bb0f85f897d2362f8c052e3b8ad00532198fbdae3f", size = 44521212, upload_time = "2024-08-21T00:06:06.521Z" },
+]
+
+[[package]]
+name = "scythe-engine"
+version = "0.0.13"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "boto3" },
+    { name = "fastparquet" },
+    { name = "hatchet-sdk" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pyarrow" },
+    { name = "pydantic" },
+    { name = "tables", version = "3.10.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "tables", version = "3.10.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e7/7c/c0f7fccabc69a777d95ffe684f9cd05fc3d32411baec9be7f6a77714832d/scythe_engine-0.0.13.tar.gz", hash = "sha256:2272e8f562b23ee9b41245c52c166e9c6874cb43107376746f55a053bcbfb05d", size = 183530, upload_time = "2025-07-21T18:39:37.439Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a4/66/4dc38880e075da79cfe58678e0d35978595870a7e47f17f9f64e677c5f14/scythe_engine-0.0.13-py3-none-any.whl", hash = "sha256:497223a16c9f2338d620c4b305d444495ccfb190fc304a4c97f1766b5053a90a", size = 16038, upload_time = "2025-07-21T18:39:36.217Z" },
 ]
 
 [[package]]

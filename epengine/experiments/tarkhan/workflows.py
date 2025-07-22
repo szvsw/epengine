@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 import boto3
 import pandas as pd
-from hatchet_sdk import Context
+from hatchet_sdk.v0 import Context
 from pydantic import AnyUrl
 from tqdm.autonotebook import tqdm
 
@@ -162,7 +162,7 @@ def make_experiment_specs(  # noqa: C901
 if __name__ == "__main__":
     import asyncio
 
-    from hatchet_sdk import new_client
+    from hatchet_sdk.v0 import new_client
 
     client = new_client()
     experiment_id = "tarkhan/full-run"

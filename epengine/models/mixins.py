@@ -1,6 +1,6 @@
 """Mixin Classes for working with the epengine models."""
 
-from hatchet_sdk import Context
+from hatchet_sdk.v0 import Context
 from pydantic import BaseModel, Field
 
 

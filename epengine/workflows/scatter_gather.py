@@ -6,8 +6,8 @@ from typing import Any, Generic
 
 import boto3
 import pandas as pd
-from hatchet_sdk import Context
-from hatchet_sdk.workflow_run import WorkflowRunRef
+from hatchet_sdk.v0 import Context
+from hatchet_sdk.v0.workflow_run import WorkflowRunRef
 from pydantic import AnyUrl, BaseModel, Field
 
 from epengine.hatchet import hatchet
