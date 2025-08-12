@@ -36,6 +36,9 @@ geopandas = "1.0.1"
 fastparquet = "^2024.11.0"
 pyarrow = "^19.0.1"
 pythermalcomfort = "^3.0.1"
+torch = {version = "^2.5.1+cu118", optional = true, source = 'torch118'}
+pymoo = {version = "^0.6.1.5", optional = true}
+
 
 [tool.poetry.extras]
 ml = [
@@ -50,6 +53,14 @@ coiled = [
     "coiled",
     "dask"
 ]
+cuda = ["torch"]
+calibration = ["torch", "pymoo"]
+
+
+[[tool.poetry.source]]
+name = "torch118"
+url = "https://download.pytorch.org/whl/cu118"
+priority = "explicit"
 
 
 [tool.poetry.group.dev]
