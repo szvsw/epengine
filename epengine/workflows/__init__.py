@@ -3,6 +3,7 @@
 from .sbem_inference import SBEMInferenceSavingsWorkflow, SBEMInferenceWorkflow
 from .scatter_gather import ScatterGatherRecursiveWorkflow, ScatterGatherWorkflow
 from .shoebox import SimulateShoebox
+from .shoebox_flat import SimulateFlatShoebox
 from .shoebox_sbem import SimulateSBEMShoebox
 from .simple import SimpleTest
 from .simulate import Simulate
@@ -20,6 +21,7 @@ __all__ = [
     "ScatterGatherWorkflow",
     "SimpleTest",
     "Simulate",
+    "SimulateFlatShoebox",
     "SimulateSBEMShoebox",
     "SimulateShoebox",
     "TrainRegressorWithCV",

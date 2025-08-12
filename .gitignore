@@ -189,3 +189,5 @@ temp/
 local_artifacts/C**/
 local_artifacts/old-artifacts/
 sim-out**.csv
+copilot_old/
+notebooks/**/*.png
