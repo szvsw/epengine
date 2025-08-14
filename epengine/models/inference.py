@@ -1252,7 +1252,11 @@ class SBEMInferenceRequestSpec(BaseModel):
         for model_name, model in self.lgb_models.items():
             pred = cast(np.ndarray, model.predict(df_transformed))
             results.append(pd.Series(pred, name=model_name))
-        return pd.concat(results, axis=1)
+        # TODO: separate the results into dicts of dfs by splitting on '.'
+        # then reconcatenating using pd.concat to create a multi index.
+        data = pd.concat(results, axis=1)
+        data.columns = data.columns.str.split(".", expand=True)
+        return data
 
     def apply_cops(
         self, *, df_features: pd.DataFrame, df_raw: pd.DataFrame
@@ -1428,7 +1432,9 @@ class SBEMInferenceRequestSpec(BaseModel):
         """
         features, features_transformed = self.make_features(n=n)
         results_raw = self.predict(features_transformed)
-        return self.compute_distributions(features, results_raw)
+        _results_peak = cast(pd.DataFrame, results_raw["Peak"])
+        results_energy = cast(pd.DataFrame, results_raw["Energy"])
+        return self.compute_distributions(features, results_energy)
 
     def compute_distributions(self, features: pd.DataFrame, results_raw: pd.DataFrame):
         """Compute the distributions for each metric."""
@@ -1560,7 +1566,11 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
                 mask
             ]
         new_results_raw = self.original.predict(new_transformed_features)
-        new_results = self.original.compute_distributions(new_features, new_results_raw)
+        _new_results_peak = cast(pd.DataFrame, new_results_raw["Peak"])
+        new_results_energy = cast(pd.DataFrame, new_results_raw["Energy"])
+        new_results = self.original.compute_distributions(
+            new_features, new_results_energy
+        )
 
         # finally, we compute the deltas and the corresponding summary
         # statistics.

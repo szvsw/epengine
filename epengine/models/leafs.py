@@ -7,6 +7,7 @@ from pydantic import AnyUrl, Field
 
 from epengine.experiments.tarkhan.models import TarkhanSpec
 from epengine.models.base import LeafSpec
+from epengine.models.flat_shoebox import FlatShoeboxSimulationSpec
 from epengine.models.shoebox import ShoeboxSimulationSpec
 from epengine.models.shoebox_sbem import SBEMSimulationSpec
 from epengine.models.train_sbem import TrainFoldSpec
@@ -68,6 +69,7 @@ WorkflowName = Literal[
     "simulate_sbem_shoebox",
     "train_regressor_with_cv_fold",
     "tarkhan",
+    "simulate_flat_shoebox",
 ]
 
 AvailableWorkflowSpecs: dict[WorkflowName, type[LeafSpec]] = {
@@ -77,4 +79,5 @@ AvailableWorkflowSpecs: dict[WorkflowName, type[LeafSpec]] = {
     "simulate_sbem_shoebox": SBEMSimulationSpec,
     "train_regressor_with_cv_fold": TrainFoldSpec,
     "tarkhan": TarkhanSpec,
+    "simulate_flat_shoebox": FlatShoeboxSimulationSpec,
 }

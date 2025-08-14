@@ -3,3 +3,9 @@
 .pytest_cache/
 structurizr/
 notebooks/
+copilot/
+temp/
+tests/
+site/
+local_artifacts/
+cache/

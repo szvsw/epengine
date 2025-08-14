@@ -14,6 +14,7 @@ from epengine.workflows import (
     ScatterGatherWorkflow,
     SimpleTest,
     Simulate,
+    SimulateFlatShoebox,
     SimulateSBEMShoebox,
     SimulateShoebox,
     TrainRegressorWithCV,
@@ -123,6 +124,7 @@ class SimWorkerSettings(BaseSettings):
             worker.register_workflow(Simulate())
             worker.register_workflow(SimulateShoebox())
             worker.register_workflow(SimulateSBEMShoebox())
+            worker.register_workflow(SimulateFlatShoebox())
             worker.register_workflow(TarkhanWorkflow())
 
         if self.DOES_TRAIN:

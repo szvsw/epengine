@@ -184,3 +184,10 @@ artifacts/**/*.parquet
 
 minimal_multi_level_test.py
 cache/
+
+temp/
+local_artifacts/C**/
+local_artifacts/old-artifacts/
+sim-out**.csv
+copilot_old/
+notebooks/**/*.png
