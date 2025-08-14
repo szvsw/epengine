@@ -9,3 +9,7 @@ tests/
 site/
 local_artifacts/
 cache/
+
+
+# sst
+.sst
