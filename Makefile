@@ -62,12 +62,12 @@ down: ## Stop the docker-compose services
 .PHONY: worker
 worker: ## Start the worker
 	@make down
-	@docker compose -f docker-compose.yml up -d worker --build
+	@docker compose -f docker-compose.yml up -d worker --build --remove-orphans
 
 .PHONY: workers
 workers: ## Start the workers with replicas
 	@make down
-	@docker compose -f docker-compose.yml -f docker-compose.replicas.yml up -d worker --build
+	@docker compose -f docker-compose.yml -f docker-compose.replicas.yml up -d worker --build --remove-orphans
 
 .PHONY: worker-push
 worker-push: ## Push the worker to the workers

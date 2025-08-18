@@ -1,7 +1,7 @@
 """CLI commands for epengine."""
 
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import click
 import pandas as pd
@@ -510,7 +510,8 @@ def sbembox(  # noqa: C901
 
     click.echo("---")
     annual_results = (
-        results.reset_index(drop=True)
+        cast(pd.DataFrame, results["Energy"])
+        .reset_index(drop=True)
         .iloc[0]
         .groupby(["Aggregation", "Meter"])
         .sum()
@@ -521,7 +522,7 @@ def sbembox(  # noqa: C901
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-    monthly_end_uses = results.iloc[0]["End Uses"].unstack(level="Meter")
+    monthly_end_uses = results.iloc[0]["Energy"]["End Uses"].unstack(level="Meter")
     annual_results["End Uses"].plot(kind="bar", ax=ax[0])
     monthly_end_uses.plot(kind="bar", ax=ax[1])
     ax[0].set_title("Annual End Uses")
