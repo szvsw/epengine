@@ -122,8 +122,8 @@ export default $config({
       cluster,
       loadBalancer: undefined,
 
-      cpu: "4 vCPU",
-      memory: "16 GB",
+      cpu: "8 vCPU",
+      memory: "32 GB",
       capacity: "spot",
       scaling: {
         min: trainCount,
