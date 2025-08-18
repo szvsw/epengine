@@ -14,6 +14,7 @@ RUN mkdir -p /energyplus-local && \
     cp -r * /energyplus-local/
 
 FROM python:${PYTHON_VERSION}-slim-bookworm AS main
+COPY --from=ghcr.io/astral-sh/uv:0.6.16 /uv /uvx /bin/
 
 
 # Install dependencies for running energy models
@@ -22,6 +23,7 @@ RUN apt-get update && \
     apt-get install --no-install-recommends -y ca-certificates libx11-6 libexpat1 \
     libgomp1 libcurl4-openssl-dev libssl-dev libxml2-dev gfortran \
     curl tk python3-tk \
+    git \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy EnergyPlus from the first stage to the second stage
@@ -40,22 +42,14 @@ RUN EP_VERSION_DASH=$(echo "${EP_VERSION}" | tr '.' '-') && \
     ln -s /usr/local/EnergyPlus-${EP_VERSION_DASH}/PreProcess/GrndTempCalc/Slab /usr/local/bin/Slab
 
 # PYTHON etc setup ...
-ARG POETRY_VERSION=2.1.2
-ENV POETRY_VERSION=$POETRY_VERSION \
-    POETRY_VIRTUALENVS_CREATE=false
-
-RUN pip install "poetry==$POETRY_VERSION"
-
 WORKDIR /code
-COPY poetry.lock pyproject.toml /code/
+COPY uv.lock pyproject.toml README.md /code/
 
-ARG POETRY_EXTRAS="-E ml"
-RUN poetry config virtualenvs.in-project true && poetry install --no-interaction --no-ansi --no-root --only main ${POETRY_EXTRAS}
+ARG UV_EXTRAS="--extra ml"
+RUN uv sync --locked --no-install-project ${UV_EXTRAS}
 
-RUN epinterface prisma generate
-
-ENV PYTHONPATH=/code
+RUN uv run --no-sync epinterface prisma generate
 
 COPY epengine /code/epengine/
 
-CMD [ "python", "epengine/worker/main.py"]
+CMD [ "uv", "run", "worker"]
