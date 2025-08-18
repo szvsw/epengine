@@ -102,8 +102,8 @@ class SampleAndSimulate:
 
 @hatchet.workflow(
     name="train_regressor_with_cv",
-    timeout="20m",
-    schedule_timeout="20m",
+    timeout="60m",
+    schedule_timeout="60m",
     version="0.1",
 )
 class TrainRegressorWithCV:
@@ -197,8 +197,8 @@ class TrainRegressorWithCV:
 
 @hatchet.workflow(
     name="train_regressor_with_cv_fold",
-    timeout="20m",
-    schedule_timeout="20m",
+    timeout="60m",
+    schedule_timeout="60m",
     version="0.1",
 )
 class TrainRegressorWithCVFold:
@@ -228,12 +228,19 @@ if __name__ == "__main__":
 
     experiment_id = f"ma-webapp/test/v1-{current_time}"
     experiment_id = f"ma-webapp/v1-{current_time}"
-    max_iters = 6
-    n_per_iter = 20_000
-    n_init = 100_000
-    min_per_stratum = 300
-    recursion_factor = 2
-    recursion_max_depth = 4
+    experiment_id = f"ma-webapp/test/v2-{current_time}"
+    experiment_id = f"ma-webapp/v2-{current_time}"
+    experiment_id = f"ma-webapp/test/v3-{current_time}-boston-only"
+    experiment_id = f"ma-webapp/v3-{current_time}"
+    experiment_id = f"ma-webapp/v4-{current_time}"
+
+    max_iters = 4
+    n_per_iter = 100_000
+    n_init = 50_000
+    min_per_stratum = 500
+    recursion_factor = 35
+    recursion_max_depth = 1
+
     input_gis_file = "./artifacts/ma-geometry-no-smalls.pq"
     yml_dir = "E:/repos/epinterface/tests/data"
     input_component_map_file = f"{yml_dir}/component-map-ma.yml"
@@ -280,11 +287,11 @@ if __name__ == "__main__":
             min_per_stratum=min_per_stratum,
         ),
         convergence_criteria=ConvergenceThresholds(
-            mae=3,
-            rmse=5,
-            mape=0.05,
-            r2=0.95,
-            cvrmse=0.05,
+            mae=1,
+            rmse=1,
+            mape=0.025,
+            r2=0.97,
+            cvrmse=0.01,
         ),
         bucket=bucket,
         experiment_id=experiment_id,

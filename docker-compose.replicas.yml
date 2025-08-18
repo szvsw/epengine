@@ -2,4 +2,4 @@ services:
   worker:
     deploy:
       mode: replicated
-      replicas: 8
+      replicas: 4
