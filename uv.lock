@@ -1226,7 +1226,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.35,<2.0" },
     { name = "coiled", marker = "extra == 'coiled'", specifier = ">=1.36,<2.0" },
     { name = "dask", extras = ["complete"], marker = "extra == 'coiled'", specifier = ">=2024.7,<2025.0" },
-    { name = "epinterface", git = "https://github.com/szvsw/epinterface?branch=feature%2Fuv" },
+    { name = "epinterface", git = "https://github.com/szvsw/epinterface?branch=main" },
     { name = "fastparquet", specifier = "~=2024.11.0" },
     { name = "geopandas", specifier = "~=1.0.1" },
     { name = "hatchet-sdk", specifier = "~=0.47" },
@@ -1273,7 +1273,7 @@ docs = [
 [[package]]
 name = "epinterface"
 version = "1.0.0"
-source = { git = "https://github.com/szvsw/epinterface?branch=feature%2Fuv#2d94f821915b05fe290c67a683b61040cfc5559b" }
+source = { git = "https://github.com/szvsw/epinterface?branch=main#6704bea847caebac88b68d6e5610a8afef331fb1" }
 dependencies = [
     { name = "archetypal" },
     { name = "click" },

@@ -71,7 +71,7 @@ api = [
 
 
 [tool.uv.sources]
-epinterface = {git = "https://github.com/szvsw/epinterface", branch = "feature/uv"}
+epinterface = {git = "https://github.com/szvsw/epinterface", branch = "main"}
 
 [build-system]
 requires = ["hatchling"]
