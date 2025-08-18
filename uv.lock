@@ -1273,7 +1273,7 @@ docs = [
 [[package]]
 name = "epinterface"
 version = "1.0.0"
-source = { git = "https://github.com/szvsw/epinterface?branch=feature%2Fuv#aedf355564e45cc6590e72d9c0db0b46954828b9" }
+source = { git = "https://github.com/szvsw/epinterface?branch=feature%2Fuv#2d94f821915b05fe290c67a683b61040cfc5559b" }
 dependencies = [
     { name = "archetypal" },
     { name = "click" },
