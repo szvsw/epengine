@@ -40,7 +40,7 @@ export default $config({
       include: [
         sst.aws.permission({
           actions: ["s3:*"],
-          resources: [bucket.arn],
+          resources: [bucket.arn, $interpolate`${bucket.arn}/*`],
         }),
       ],
     }));
@@ -57,6 +57,9 @@ export default $config({
       PYTHON_VERSION: "3.12",
       POETRY_VERSION: "2.1.2",
     };
+    const simCount = 0;
+    const fanCount = 0;
+    const trainCount = 0;
     const simService = new sst.aws.Service("Simulations", {
       cluster,
       loadBalancer: undefined,
@@ -65,8 +68,8 @@ export default $config({
       memory: "8 GB",
       capacity: "spot",
       scaling: {
-        min: 10,
-        max: 10,
+        min: simCount,
+        max: simCount,
       },
       image: {
         dockerfile: "epengine/worker/Dockerfile",
@@ -94,8 +97,8 @@ export default $config({
       memory: "16 GB",
       capacity: "spot",
       scaling: {
-        min: 15,
-        max: 15,
+        min: fanCount,
+        max: fanCount,
       },
       image: {
         dockerfile: "epengine/worker/Dockerfile",
@@ -123,8 +126,8 @@ export default $config({
       memory: "16 GB",
       capacity: "spot",
       scaling: {
-        min: 6,
-        max: 6,
+        min: trainCount,
+        max: trainCount,
       },
       image: {
         dockerfile: "epengine/worker/Dockerfile",
