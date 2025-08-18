@@ -2289,8 +2289,8 @@ pydantic = "^2.9.2"
 [package.source]
 type = "git"
 url = "https://github.com/szvsw/epinterface"
-reference = "feature/add-peak-loads"
-resolved_reference = "3a3c436983c19a3dd76adb4ebc2788bf04bd9f2f"
+reference = "main"
+resolved_reference = "7ce9f1d2325f29fb97320e11d1b6fafca0d31239"
 
 [[package]]
 name = "eppy"
@@ -9904,4 +9904,4 @@ ui = ["streamlit"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "94c518dbd552bbd21cb6e631df33721bf48a7f16fae9505d3e90c5d53707eba1"
+content-hash = "ced9b9c1d8de86e4f2ab42cb51cdaf9cecd7ee56a603d52e4819f2c9a960a36b"
