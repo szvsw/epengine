@@ -23,6 +23,7 @@ dependencies = [
     "fastparquet~=2024.11.0",
     "pyarrow~=19.0.1",
     "pythermalcomfort~=3.0.1",
+    "s3fs>=2025.7.0",
 ]
 
 [project.scripts]
@@ -56,6 +57,8 @@ dev = [
     "boto3-stubs[essential]>=1.35,<2.0",
     "pyinstrument~=5.0.1",
     "supabase>=2.15,<3.0",
+    "pvlib>=0.13.0",
+    "plotly>=6.3.0",
 ]
 docs = [
     "mkdocs>=1.4,<2.0",
@@ -136,7 +139,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]
-"*.ipynb" = ["E402", "D103"]
+"*.ipynb" = ["E402", "D103", "S101", "B018"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
