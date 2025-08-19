@@ -26,7 +26,7 @@ runs:
         cache-suffix: ${{ matrix.python-version }}
 
     - name: Install Python dependencies
-      run: uv sync --frozen --all-extras --all-groups
+      run: uv sync --frozen --all-extras --all-groups --no-extra cu128
       shell: bash
 
     - name: Generate prisma client
