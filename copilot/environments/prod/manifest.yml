@@ -7,18 +7,25 @@ name: prod
 type: Environment
 
 # Import your own VPC and subnets or configure how they should be created.
-# network:
-#   vpc:
-#     id:
+network:
+  vpc:
+    id: '' # masked id 
+    subnets:
+      private: # masked private id 
+        - id: ''
+        - id: ''
 
 # Configure the load balancers in your environment, once created.
+# Configuring internal load balancer instead.
 http:
-  public:
-    certificates: [${CERTIFICATE_ARN}]
+  private: # masked private subnets id 
+    subnets: ['', ''] 
+    ingress:
+      vpc: true  # Enable incoming traffic within the VPC to the internal load balancer.
 
 # http:
-#   public:
-#   private:
+  # public:
+    # certificates: [${CERTIFICATE_ARN}]
 
 # Configure observability for your environment resources.
 observability:

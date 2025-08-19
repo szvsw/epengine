@@ -4,13 +4,13 @@
 
 # Your service name will be used in naming your resources like log groups, ECS services, etc.
 name: hatchet-api
-type: Load Balanced Web Service
+type: Backend Service
+
 
 # Distribute traffic to your service.
 http:
   # Requests to this path will be forwarded to your service.
   # To match all requests you can use the "/" path.
-  alias: ${API_DOMAIN}
   path: '/'
   # You can specify a custom health check path. The default is "/".
   # healthcheck: '/'
@@ -18,7 +18,6 @@ http:
   target_port: 80
   additional_rules:
     - path: 'api'
-      alias: ${API_DOMAIN}
       healthcheck: '/api/ready'
       target_container: hatchet-api
       target_port: 8080
@@ -36,8 +35,9 @@ count: 1       # Number of tasks that should be running in your service.
 exec: true     # Enable running commands in your container.
 
 network:
-  connect: true # Enable Service Connect for intra-environment traffic between services.
+  connect: false # Enable Service Connect for intra-environment traffic between services.
   vpc:
+    placement: private
     security_groups:
       - from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetdbSecurityGroup
       - from_cfn: ${COPILOT_APPLICATION_NAME}-${COPILOT_ENVIRONMENT_NAME}-hatchetbrokerSecurityGroup
@@ -52,11 +52,10 @@ storage:
       read_only: false
       path: /hatchet-appdata
       efs:
-        id: ${FS_ID}
+        id: # masked efs id 
         auth:
           iam: true
-          access_point_id: ${FSAP_ID}
-
+          access_point_id: # masked efs access_point_id
 
 sidecars:
   hatchet-frontend:
