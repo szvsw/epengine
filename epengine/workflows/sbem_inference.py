@@ -2,7 +2,7 @@
 
 import asyncio
 
-from hatchet_sdk import Context
+from hatchet_sdk.v0 import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.inference import (

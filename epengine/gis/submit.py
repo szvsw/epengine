@@ -11,7 +11,7 @@ import geopandas as gpd
 import pandas as pd
 import yaml
 from epinterface.sbem.fields.spec import CategoricalFieldSpec, SemanticModelFields
-from hatchet_sdk import new_client
+from hatchet_sdk.v0 import new_client
 from shapely import to_wkt
 
 from epengine.gis.data.epw_metadata import closest_epw

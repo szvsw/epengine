@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 from archetypal import IDF
 from archetypal.idfclass.sql import Sql
-from hatchet_sdk import Context
+from hatchet_sdk.v0 import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.ddy_injector import DDYSizingSpec
