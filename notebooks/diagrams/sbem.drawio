@@ -1,0 +1,301 @@
+<mxfile host="65bd71144e">
+    <diagram id="rFit8IbVoxN9LdHmkrKL" name="Page-1">
+        <mxGraphModel dx="1069" dy="1283" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="22" style="edgeStyle=none;html=1;targetPerimeterSpacing=12;sourcePerimeterSpacing=12;" parent="1" source="19" target="21" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="19" value="&lt;font face=&quot;acumin pro&quot;&gt;raw data&lt;/font&gt;" style="whiteSpace=wrap;html=1;rounded=1;strokeColor=#6c8ebf;fontFamily=acumin pro thin;fontSize=12;fillColor=#dae8fc;align=left;verticalAlign=bottom;spacingLeft=10;spacingBottom=10;" parent="1" vertex="1">
+                    <mxGeometry x="180" y="120" width="180" height="390" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="GIS Datasets" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="200" y="145" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" value="GIS Datasets" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="210" y="155" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" value="&lt;font face=&quot;acumin pro light&quot;&gt;GIS datasets&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="165" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" value="Public databases" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="200" y="265" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="Public databases" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="210" y="275" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" value="public databases" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="285" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="15" value="Satellite &amp;amp; streetview CV extraction" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="200" y="385" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="16" value="Satellite &amp;amp; streetview CV extraction" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="210" y="395" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="17" value="Satellite &amp;amp; streetview CV extraction" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="405" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="52" style="edgeStyle=none;shape=connector;rounded=1;html=1;labelBackgroundColor=default;strokeColor=default;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;endArrow=classic;sourcePerimeterSpacing=12;targetPerimeterSpacing=20;" parent="1" source="21" target="42" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" value="&lt;i style=&quot;&quot;&gt;&lt;font style=&quot;color: rgb(255, 255, 255);&quot;&gt;extract&lt;/font&gt;&lt;/i&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#000000;fontColor=#FFFFFF;fontFamily=acumin pro;" parent="1" vertex="1">
+                    <mxGeometry x="480" y="275" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="40" style="edgeStyle=none;shape=connector;rounded=1;html=1;labelBackgroundColor=default;strokeColor=default;fontFamily=Helvetica;fontSize=11;fontColor=default;endArrow=classic;sourcePerimeterSpacing=12;targetPerimeterSpacing=12;" parent="1" source="24" target="39" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="950" y="725"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="24" value="&lt;font face=&quot;acumin pro&quot;&gt;component library&lt;/font&gt;" style="whiteSpace=wrap;html=1;rounded=1;strokeColor=#d6b656;fontFamily=acumin pro thin;fontSize=12;fillColor=#fff2cc;align=left;verticalAlign=bottom;spacingLeft=10;spacingBottom=10;" parent="1" vertex="1">
+                    <mxGeometry x="180" y="530" width="180" height="390" as="geometry"/>
+                </mxCell>
+                <mxCell id="25" value="GIS Datasets" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="200" y="555" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="26" value="GIS Datasets" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="210" y="565" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="27" value="Space uses" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="575" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="28" value="Public databases" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="200" y="675" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="29" value="Public databases" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="210" y="685" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="30" value="Envelopes" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="695" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="31" value="Satellite &amp;amp; streetview CV extraction" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="200" y="795" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="32" value="Satellite &amp;amp; streetview CV extraction" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1" vertex="1">
+                    <mxGeometry x="210" y="805" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="33" value="HVAC systems" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="815" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="51" style="edgeStyle=none;shape=connector;rounded=1;html=1;labelBackgroundColor=default;strokeColor=default;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;endArrow=classic;sourcePerimeterSpacing=12;targetPerimeterSpacing=20;" parent="1" source="39" target="49" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="39" value="&lt;i style=&quot;&quot;&gt;&lt;font style=&quot;color: rgb(255, 255, 255);&quot;&gt;semantic mapping&lt;/font&gt;&lt;/i&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#000000;fontColor=#FFFFFF;fontFamily=acumin pro;" parent="1" vertex="1">
+                    <mxGeometry x="910" y="480" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="44" value="" style="group" parent="1" vertex="1" connectable="0">
+                    <mxGeometry x="660" y="190" width="140" height="250" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" value="Semantic building description layer" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;fillColor=#d5e8d4;strokeColor=#82b366;" parent="44" vertex="1">
+                    <mxGeometry width="120" height="237.80487804878052" as="geometry"/>
+                </mxCell>
+                <mxCell id="42" value="Semantic building description layer" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;fillColor=#d5e8d4;strokeColor=#82b366;" parent="44" vertex="1">
+                    <mxGeometry x="10" y="6.097560975609757" width="120" height="237.80487804878052" as="geometry"/>
+                </mxCell>
+                <mxCell id="43" value="&lt;font face=&quot;acumin pro light&quot;&gt;semantic building description layer&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;fillColor=#d5e8d4;strokeColor=#82b366;" parent="44" vertex="1">
+                    <mxGeometry x="20" y="12.195121951219514" width="120" height="237.80487804878052" as="geometry"/>
+                </mxCell>
+                <mxCell id="46" style="edgeStyle=none;shape=connector;rounded=1;html=1;labelBackgroundColor=default;strokeColor=default;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;endArrow=classic;sourcePerimeterSpacing=12;targetPerimeterSpacing=12;" parent="1" source="43" target="39" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="950" y="320"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="47" value="" style="group" parent="1" vertex="1" connectable="0">
+                    <mxGeometry x="1100" y="400" width="140" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="48" value="Semantic building description layer" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="47" vertex="1">
+                    <mxGeometry width="120" height="228.2926829268293" as="geometry"/>
+                </mxCell>
+                <mxCell id="49" value="Semantic building description layer" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="47" vertex="1">
+                    <mxGeometry x="10" y="5.853658536585367" width="120" height="228.2926829268293" as="geometry"/>
+                </mxCell>
+                <mxCell id="50" value="&lt;font face=&quot;acumin pro light&quot;&gt;building energy models&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="47" vertex="1">
+                    <mxGeometry x="20" y="11.707317073170733" width="120" height="228.2926829268293" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram name="Copy of Page-1" id="KTR6ZwAw6bZWpo1VLeyl">
+        <mxGraphModel dx="1242" dy="898" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-0"/>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-1" parent="1zCjTBYqCX4gn50-9DtT-0"/>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-2" style="edgeStyle=none;html=1;targetPerimeterSpacing=12;sourcePerimeterSpacing=12;" parent="1zCjTBYqCX4gn50-9DtT-1" source="1zCjTBYqCX4gn50-9DtT-3" target="1zCjTBYqCX4gn50-9DtT-14" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-3" value="&lt;font face=&quot;acumin pro&quot;&gt;raw data&lt;/font&gt;" style="whiteSpace=wrap;html=1;rounded=1;strokeColor=#6c8ebf;fontFamily=acumin pro thin;fontSize=12;fillColor=#dae8fc;align=left;verticalAlign=bottom;spacingLeft=10;spacingBottom=10;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="180" y="120" width="180" height="390" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-4" value="GIS Datasets" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="200" y="145" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-5" value="GIS Datasets" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="210" y="155" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-6" value="&lt;font face=&quot;acumin pro light&quot;&gt;GIS datasets&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="220" y="165" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-7" value="Public databases" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="200" y="265" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-8" value="Public databases" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="210" y="275" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-9" value="public databases" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="220" y="285" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-10" value="Satellite &amp;amp; streetview CV extraction" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="200" y="385" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-11" value="Satellite &amp;amp; streetview CV extraction" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="210" y="395" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-12" value="satellite &amp;amp; streetview" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="220" y="405" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-13" style="edgeStyle=none;shape=connector;rounded=1;html=1;labelBackgroundColor=default;strokeColor=default;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;endArrow=classic;sourcePerimeterSpacing=12;targetPerimeterSpacing=20;" parent="1zCjTBYqCX4gn50-9DtT-1" source="1zCjTBYqCX4gn50-9DtT-14" target="1zCjTBYqCX4gn50-9DtT-30" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-14" value="&lt;i style=&quot;&quot;&gt;&lt;font style=&quot;color: rgb(255, 255, 255);&quot;&gt;transform&lt;/font&gt;&lt;/i&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#000000;fontColor=#FFFFFF;fontFamily=acumin pro;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="480" y="275" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-15" style="edgeStyle=none;shape=connector;rounded=1;html=1;labelBackgroundColor=default;strokeColor=default;fontFamily=Helvetica;fontSize=11;fontColor=default;endArrow=classic;sourcePerimeterSpacing=12;targetPerimeterSpacing=12;" parent="1zCjTBYqCX4gn50-9DtT-1" source="1zCjTBYqCX4gn50-9DtT-16" target="1zCjTBYqCX4gn50-9DtT-27" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="950" y="725"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-16" value="&lt;font face=&quot;acumin pro&quot;&gt;component library&lt;/font&gt;" style="whiteSpace=wrap;html=1;rounded=1;strokeColor=#d6b656;fontFamily=acumin pro thin;fontSize=12;fillColor=#fff2cc;align=left;verticalAlign=bottom;spacingLeft=10;spacingBottom=10;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="180" y="530" width="180" height="390" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-17" value="GIS Datasets" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="200" y="555" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-18" value="GIS Datasets" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="210" y="565" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-19" value="space uses" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="220" y="575" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-20" value="Public databases" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="200" y="675" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-21" value="Public databases" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="210" y="685" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-22" value="envelopes" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="220" y="695" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-23" value="Satellite &amp;amp; streetview CV extraction" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="200" y="795" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-24" value="Satellite &amp;amp; streetview CV extraction" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="210" y="805" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-25" value="HVAC systems" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="220" y="815" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-26" style="edgeStyle=none;shape=connector;rounded=1;html=1;labelBackgroundColor=default;strokeColor=default;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;endArrow=classic;sourcePerimeterSpacing=12;targetPerimeterSpacing=20;" parent="1zCjTBYqCX4gn50-9DtT-1" source="1zCjTBYqCX4gn50-9DtT-27" target="1zCjTBYqCX4gn50-9DtT-35" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-27" value="&lt;i style=&quot;&quot;&gt;&lt;font style=&quot;color: rgb(255, 255, 255);&quot;&gt;compile&lt;/font&gt;&lt;/i&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#000000;fontColor=#FFFFFF;fontFamily=acumin pro;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="910" y="480" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-33" value="" style="group" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1" connectable="0">
+                    <mxGeometry x="1100" y="400" width="140" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-34" value="Semantic building description layer" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1zCjTBYqCX4gn50-9DtT-33" vertex="1">
+                    <mxGeometry width="120" height="228.2926829268293" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-35" value="Semantic building description layer" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1zCjTBYqCX4gn50-9DtT-33" vertex="1">
+                    <mxGeometry x="10" y="5.853658536585367" width="120" height="228.2926829268293" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-36" value="&lt;font face=&quot;acumin pro light&quot;&gt;building energy models&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1zCjTBYqCX4gn50-9DtT-33" vertex="1">
+                    <mxGeometry x="20" y="11.707317073170733" width="120" height="228.2926829268293" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-1" style="edgeStyle=none;html=1;rounded=1;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;labelBackgroundColor=default;endArrow=classic;sourcePerimeterSpacing=12;targetPerimeterSpacing=12;" parent="1zCjTBYqCX4gn50-9DtT-1" source="r4gKTr8h2b6_fTNK254v-0" target="1zCjTBYqCX4gn50-9DtT-27" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-0" value="semantic mapping rules" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="700" y="490" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-10" style="edgeStyle=none;html=1;rounded=1;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;labelBackgroundColor=default;endArrow=classic;sourcePerimeterSpacing=12;targetPerimeterSpacing=12;" parent="1zCjTBYqCX4gn50-9DtT-1" source="r4gKTr8h2b6_fTNK254v-3" target="r4gKTr8h2b6_fTNK254v-9" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-3" value="&lt;i style=&quot;&quot;&gt;&lt;font style=&quot;color: rgb(255, 255, 255);&quot;&gt;execute&lt;/font&gt;&lt;/i&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#000000;fontColor=#FFFFFF;fontFamily=acumin pro;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="1320" y="480" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-5" style="edgeStyle=none;html=1;rounded=1;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;labelBackgroundColor=default;endArrow=classic;sourcePerimeterSpacing=20;targetPerimeterSpacing=12;" parent="1zCjTBYqCX4gn50-9DtT-1" source="1zCjTBYqCX4gn50-9DtT-35" target="r4gKTr8h2b6_fTNK254v-3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-9" value="results database" style="shape=datastore;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="1480" y="455" width="80" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-13" style="edgeStyle=none;html=1;rounded=1;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=#FFFFFF;labelBackgroundColor=default;endArrow=classic;sourcePerimeterSpacing=12;targetPerimeterSpacing=12;" parent="1zCjTBYqCX4gn50-9DtT-1" source="r4gKTr8h2b6_fTNK254v-11" target="1zCjTBYqCX4gn50-9DtT-14" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-11" value="feature extraction&lt;div&gt;rules &amp;amp; methods&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="460" y="120" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-29" value="Semantic building description layer" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="660" y="170" width="120" height="270" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-28" style="edgeStyle=none;shape=connector;rounded=1;html=1;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=classic;sourcePerimeterSpacing=24;targetPerimeterSpacing=12;" parent="1zCjTBYqCX4gn50-9DtT-1" source="1zCjTBYqCX4gn50-9DtT-30" target="1zCjTBYqCX4gn50-9DtT-27" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="950" y="315"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-30" value="Semantic building description layer" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="670" y="180" width="120" height="270" as="geometry"/>
+                </mxCell>
+                <mxCell id="1zCjTBYqCX4gn50-9DtT-31" value="&lt;font face=&quot;acumin pro light&quot;&gt;semantic building description layer&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=bottom;spacingLeft=10;spacingBottom=10;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="680" y="190" width="120" height="270" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-14" value="" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="1000" y="840" width="40" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-15" value="GIS team" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="985" y="880" width="70" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-16" value="" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="1100" y="840" width="40" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-17" value="Constructions team" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="1055" y="880" width="130" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-18" value="" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro light;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="1200" y="840" width="40" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-19" value="SWE team" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="1180" y="880" width="80" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-20" value="&lt;font face=&quot;acumin pro light&quot;&gt;geometry&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="700" y="205" width="80" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-21" value="&lt;font face=&quot;acumin pro light&quot;&gt;typology&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="700" y="240" width="80" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-22" value="&lt;font face=&quot;acumin pro light&quot;&gt;program&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="700" y="275" width="80" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-23" value="&lt;font face=&quot;acumin pro light&quot;&gt;age&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="700" y="310" width="80" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-24" value="&lt;font face=&quot;acumin pro light&quot;&gt;fuel source&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="700" y="345" width="80" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4gKTr8h2b6_fTNK254v-25" value="&lt;font face=&quot;acumin pro light&quot;&gt;...&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=acumin pro thin;dashed=1;" parent="1zCjTBYqCX4gn50-9DtT-1" vertex="1">
+                    <mxGeometry x="700" y="380" width="80" height="25" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
