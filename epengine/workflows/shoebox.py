@@ -2,7 +2,7 @@
 
 import logging
 
-from hatchet_sdk import Context
+from hatchet_sdk.v0 import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.mixins import WithHContext
@@ -52,7 +52,7 @@ class SimulateShoebox:
 
 
 if __name__ == "__main__":
-    from hatchet_sdk import new_client
+    from hatchet_sdk.v0 import new_client
     from pydantic import AnyUrl
 
     spec = ShoeboxSimulationSpec(

@@ -3,7 +3,7 @@
 import asyncio
 import logging
 
-from hatchet_sdk import Context
+from hatchet_sdk.v0 import Context
 
 from epengine.hatchet import hatchet
 from epengine.models.flat_shoebox import FlatShoeboxSimulationSpec

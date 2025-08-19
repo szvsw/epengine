@@ -1229,7 +1229,7 @@ requires-dist = [
     { name = "epinterface", git = "https://github.com/szvsw/epinterface?branch=main" },
     { name = "fastparquet", specifier = "~=2024.11.0" },
     { name = "geopandas", specifier = "~=1.0.1" },
-    { name = "hatchet-sdk", specifier = "~=0.47" },
+    { name = "hatchet-sdk", specifier = ">=1,<1.17" },
     { name = "ladybug-core", specifier = ">=0.43,<1.0" },
     { name = "lightgbm", marker = "extra == 'ml'", specifier = ">=4.6,<5.0" },
     { name = "numpy", specifier = ">=2.2,<2.3" },
@@ -1787,7 +1787,7 @@ wheels = [
 
 [[package]]
 name = "hatchet-sdk"
-version = "0.47.1"
+version = "1.16.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1796,19 +1796,17 @@ dependencies = [
     { name = "cel-python" },
     { name = "grpcio" },
     { name = "grpcio-tools" },
-    { name = "nest-asyncio" },
     { name = "prometheus-client" },
     { name = "protobuf" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "python-dateutil" },
-    { name = "python-dotenv" },
-    { name = "pyyaml" },
     { name = "tenacity" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f4/f0/72341911b93f8ac5a652539124e7790ba83effe4001be88eda835ee33efe/hatchet_sdk-0.47.1.tar.gz", hash = "sha256:f1d6c29a1796ceb1c70d742b4ac5db3d9341bbc8bb0056a10f80546d215a1da4", size = 150397, upload_time = "2025-03-21T17:33:55.944Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/45/68/a5db9b7477287ea6f80052e5e4e285558990e7292b67f9b4b72e40ecc3ea/hatchet_sdk-1.16.5.tar.gz", hash = "sha256:c00e85a3a9b1789b85679e528deddd12a6d70ba321e16de9ec07e3fd1d373fb8", size = 342692, upload_time = "2025-08-06T22:28:03.457Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/ad/e5805f32ede449d3b0e7d750f2a1f13157fb0050b5322d5cc9efea45880e/hatchet_sdk-0.47.1-py3-none-any.whl", hash = "sha256:8081af681a1764666e8a61f10c0dc3286379c0aea6124bbb6fd189e45cd3a375", size = 365576, upload_time = "2025-03-21T17:33:54.197Z" },
+    { url = "https://files.pythonhosted.org/packages/40/0c/4413d54b0d94b84933545855918a01f9acdd33cdac8fa8980b68833030ac/hatchet_sdk-1.16.5-py3-none-any.whl", hash = "sha256:3a21edf4d5f1655facaea3dcfabb7b00dafc35a0a593ff088cbe21d1eb7b4db8", size = 855234, upload_time = "2025-08-06T22:28:02.04Z" },
 ]
 
 [[package]]
@@ -5124,20 +5122,20 @@ wheels = [
 
 [[package]]
 name = "types-python-dateutil"
-version = "2.9.0.20250708"
+version = "2.9.0.20250809"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c9/95/6bdde7607da2e1e99ec1c1672a759d42f26644bbacf939916e086db34870/types_python_dateutil-2.9.0.20250708.tar.gz", hash = "sha256:ccdbd75dab2d6c9696c350579f34cffe2c281e4c5f27a585b2a2438dd1d5c8ab", size = 15834, upload_time = "2025-07-08T03:14:03.382Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a3/53/07dac71db45fb6b3c71c2fd29a87cada2239eac7ecfb318e6ebc7da00a3b/types_python_dateutil-2.9.0.20250809.tar.gz", hash = "sha256:69cbf8d15ef7a75c3801d65d63466e46ac25a0baa678d89d0a137fc31a608cc1", size = 15820, upload_time = "2025-08-09T03:14:14.109Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/72/52/43e70a8e57fefb172c22a21000b03ebcc15e47e97f5cb8495b9c2832efb4/types_python_dateutil-2.9.0.20250708-py3-none-any.whl", hash = "sha256:4d6d0cc1cc4d24a2dc3816024e502564094497b713f7befda4d5bc7a8e3fd21f", size = 17724, upload_time = "2025-07-08T03:14:02.593Z" },
+    { url = "https://files.pythonhosted.org/packages/43/5e/67312e679f612218d07fcdbd14017e6d571ce240a5ba1ad734f15a8523cc/types_python_dateutil-2.9.0.20250809-py3-none-any.whl", hash = "sha256:768890cac4f2d7fd9e0feb6f3217fce2abbfdfc0cadd38d11fba325a815e4b9f", size = 17707, upload_time = "2025-08-09T03:14:13.314Z" },
 ]
 
 [[package]]
 name = "types-pyyaml"
-version = "6.0.12.20250516"
+version = "6.0.12.20250809"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4e/22/59e2aeb48ceeee1f7cd4537db9568df80d62bdb44a7f9e743502ea8aab9c/types_pyyaml-6.0.12.20250516.tar.gz", hash = "sha256:9f21a70216fc0fa1b216a8176db5f9e0af6eb35d2f2932acb87689d03a5bf6ba", size = 17378, upload_time = "2025-05-16T03:08:04.897Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/36/21/52ffdbddea3c826bc2758d811ccd7f766912de009c5cf096bd5ebba44680/types_pyyaml-6.0.12.20250809.tar.gz", hash = "sha256:af4a1aca028f18e75297da2ee0da465f799627370d74073e96fee876524f61b5", size = 17385, upload_time = "2025-08-09T03:14:34.867Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/99/5f/e0af6f7f6a260d9af67e1db4f54d732abad514252a7a378a6c4d17dd1036/types_pyyaml-6.0.12.20250516-py3-none-any.whl", hash = "sha256:8478208feaeb53a34cb5d970c56a7cd76b72659442e733e268a94dc72b2d0530", size = 20312, upload_time = "2025-05-16T03:08:04.019Z" },
+    { url = "https://files.pythonhosted.org/packages/35/3e/0346d09d6e338401ebf406f12eaf9d0b54b315b86f1ec29e34f1a0aedae9/types_pyyaml-6.0.12.20250809-py3-none-any.whl", hash = "sha256:032b6003b798e7de1a1ddfeefee32fac6486bdfe4845e0ae0e7fb3ee4512b52f", size = 20277, upload_time = "2025-08-09T03:14:34.055Z" },
 ]
 
 [[package]]

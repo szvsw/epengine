@@ -12,7 +12,7 @@ import boto3
 import pandas as pd
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
-from hatchet_sdk import new_client
+from hatchet_sdk.v0 import new_client
 from tqdm import tqdm
 
 from epengine.models.branches import BranchesSpec
