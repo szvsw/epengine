@@ -157,12 +157,33 @@ class SBEMRetrofitDistributions:
         self.costs_summary.rename(index=percentile_mapper, inplace=True)
         self.paybacks_summary.rename(index=percentile_mapper, inplace=True)
 
-        for col in self.costs_summary.columns:
+        # Process all columns in the costs dataframe
+        for col in self.costs.columns:
             col_name = col.split(".")[-1]
             field_specs[col_name] = (SummarySpec, Field(title=col))
-            field_data = self.costs_summary.loc[:, col].to_dict()
-            field_data["units"] = "USD"
+
+            # Get summary data for this column
+            if col in self.costs_summary.columns:
+                field_data = self.costs_summary.loc[:, col].to_dict()
+            else:
+                # If column not in summary, create a summary
+                col_summary = (
+                    self.costs[col]
+                    .describe(percentiles=list(PERCENTILES.keys()))
+                    .drop(["count"])
+                )
+                field_data = col_summary.to_dict()
+            if (
+                col.startswith("cost.")
+                or col.startswith("incentive.")
+                or col.startswith("net_cost.")
+            ):
+                field_data["units"] = "USD"
+            else:
+                field_data["units"] = "USD"
+
             field_datas[col_name] = SummarySpec(**field_data)
+
         field_specs["payback"] = (SummarySpec, Field(title="payback"))
         payback_data = self.paybacks_summary.to_dict()
         payback_data["units"] = "years"
@@ -1571,20 +1592,90 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         cost_config = RetrofitCosts.Open(
             Path(__file__).parent / "data" / "retrofit-costs.json"
         )
+        incentive_config = RetrofitIncentives.Open(
+            Path(__file__).parent / "data" / "incentives_format.json"
+        )
         retrofit_costs = self.compute_retrofit_costs(new_results.features, cost_config)
-        payback = self.compute_payback(retrofit_costs, delta_results)
+
+        # Compute incentives for both income levels
+        all_customers_incentives, income_eligible_incentives = self.compute_incentives(
+            new_results.features, incentive_config, retrofit_costs
+        )
+
+        # Compute net costs after incentives
+        all_customers_net_costs, income_eligible_net_costs = self.compute_net_costs(
+            retrofit_costs, all_customers_incentives, income_eligible_incentives
+        )
+
+        # Compute paybacks
+        payback_no_incentives = self.compute_payback(retrofit_costs, delta_results)
+        # TODO: decide what paybacks to show in outputs
+        payback_with_incentives_all = self.compute_payback_with_incentives(
+            all_customers_net_costs, delta_results
+        )
+        payback_with_incentives_income = self.compute_payback_with_incentives(
+            income_eligible_net_costs, delta_results
+        )
+
+        # Combine all cost and incentive data
+        all_costs_data = pd.concat(
+            [
+                retrofit_costs,
+                all_customers_incentives,
+                income_eligible_incentives,
+                all_customers_net_costs,
+                income_eligible_net_costs,
+            ],
+            axis=1,
+        )
+
+        # Create summary statistics
         retrofit_costs_summary = retrofit_costs.describe(
             percentiles=list(PERCENTILES.keys())
         ).drop(["count"])
-        payback_summary = payback.describe(percentiles=list(PERCENTILES.keys())).drop([
-            "count"
-        ])
+        # included incentives summary in case interesting to build distributions off it
+        # all_customers_incentives_summary = all_customers_incentives.describe(
+        #     percentiles=list(PERCENTILES.keys())
+        # ).drop(["count"])
+        # income_eligible_incentives_summary = income_eligible_incentives.describe(
+        #     percentiles=list(PERCENTILES.keys())
+        # ).drop(["count"])
+        all_customers_net_costs_summary = all_customers_net_costs.describe(
+            percentiles=list(PERCENTILES.keys())
+        ).drop(["count"])
+        income_eligible_net_costs_summary = income_eligible_net_costs.describe(
+            percentiles=list(PERCENTILES.keys())
+        ).drop(["count"])
+
+        payback_no_incentives_summary = payback_no_incentives.describe(
+            percentiles=list(PERCENTILES.keys())
+        ).drop(["count"])
+        payback_with_incentives_all_summary = payback_with_incentives_all.describe(
+            percentiles=list(PERCENTILES.keys())
+        ).drop(["count"])
+        payback_with_incentives_income_summary = (
+            payback_with_incentives_income.describe(
+                percentiles=list(PERCENTILES.keys())
+            ).drop(["count"])
+        )
 
         cost_results = SBEMRetrofitDistributions(
-            costs=retrofit_costs,
-            paybacks=payback,
+            costs=all_costs_data,
+            paybacks=payback_no_incentives,
             costs_summary=retrofit_costs_summary,
-            paybacks_summary=payback_summary,
+            paybacks_summary=payback_no_incentives_summary,
+        )
+        cost_results_with_incentives = SBEMRetrofitDistributions(
+            costs=all_costs_data,
+            paybacks=payback_with_incentives_all,
+            costs_summary=all_customers_net_costs_summary,
+            paybacks_summary=payback_with_incentives_all_summary,
+        )
+        cost_results_with_incentives_income_eligible = SBEMRetrofitDistributions(
+            costs=all_costs_data,
+            paybacks=payback_with_incentives_income,
+            costs_summary=income_eligible_net_costs_summary,
+            paybacks_summary=payback_with_incentives_income_summary,
         )
 
         return {
@@ -1592,6 +1683,8 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             "upgraded": new_results,
             "delta": delta_results,
             "retrofit": cost_results,
+            "retrofit_with_incentives_all": cost_results_with_incentives,
+            "retrofit_with_incentives_income_eligible": cost_results_with_incentives_income_eligible,
         }
 
     @property
@@ -1633,6 +1726,116 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
                 cost_entities.append(retrofit_cost_candidates[0])
         return RetrofitCosts(costs=cost_entities)
 
+    def select_incentive_entities(
+        self, incentives: "RetrofitIncentives", income_level: str = "All_customers"
+    ) -> "RetrofitIncentives":
+        """Select the incentive entities that are relevant to the changed context fields and eligibility criteria."""
+        _changed_feature_fields, changed_context_fields = self.changed_context_fields
+        incentive_entities: list[RetrofitIncentive] = []
+
+        for context_field, context_value in changed_context_fields.items():
+            original_value = self.original.semantic_field_context[context_field]
+            retrofit_incentive_candidates: list[RetrofitIncentive] = []
+
+            for incentive in incentives.incentives:
+                # Check if incentive matches the semantic field and final value
+                if incentive.semantic_field != context_field:
+                    continue
+                if incentive.final != context_value:
+                    continue
+                if (
+                    incentive.initial is not None
+                    and incentive.initial != original_value
+                ):
+                    continue
+
+                # Check eligibility criteria
+                if not self._check_eligibility(incentive, income_level):
+                    continue
+
+                retrofit_incentive_candidates.append(incentive)
+
+            if len(retrofit_incentive_candidates) == 0:
+                msg = f"No retrofit incentive found for {context_field} = {original_value} -> {context_value} (income: {income_level})"
+                print(msg)
+            elif len(retrofit_incentive_candidates) > 1:
+                msg = f"Multiple retrofit incentives found for {context_field} = {original_value} -> {context_value} (income: {income_level}):\n {retrofit_incentive_candidates}"
+                print(f"Warning: {msg}")
+                # Take the first one for now, could be enhanced to select based on program priority
+                incentive_entities.append(retrofit_incentive_candidates[0])
+            else:
+                incentive_entities.append(retrofit_incentive_candidates[0])
+
+        return RetrofitIncentives(incentives=incentive_entities)
+
+    def _check_eligibility(
+        self, incentive: "RetrofitIncentive", income_level: str
+    ) -> bool:
+        """Check if the incentive is eligible based on semantic field context."""
+        eligibility = incentive.eligibility
+
+        # Check region (default to MA if not specified)
+        if "region" in eligibility:
+            region = self.original.semantic_field_context.get("Region", "MA")
+            if region not in eligibility["region"]:
+                return False
+
+        # Check income level
+        if "income" in eligibility and income_level not in eligibility["income"]:
+            return False
+
+        # Check semantic field eligibility criteria
+        for field_name, allowed_values in eligibility.items():
+            if field_name in ["region", "income"]:
+                continue
+
+            # Get the current value for this semantic field
+            current_value = self.original.semantic_field_context.get(field_name)
+            if current_value is None:
+                # If field not present, treat as non-matching
+                print(
+                    f"Warning: Semantic field '{field_name}' not found in context for incentive {incentive.program}"
+                )
+                return False
+
+            if current_value not in allowed_values:
+                return False
+
+        return True
+
+    def _check_window_wall_eligibility(
+        self, features: pd.DataFrame, changed_context_fields: dict
+    ) -> bool:
+        """Check if window incentives are eligible based on wall insulation upgrades."""
+        # Check if there's a window upgrade to Double or Triple pane
+        window_upgrade = False
+        if "Windows" in changed_context_fields:
+            final_window = changed_context_fields["Windows"]
+            if final_window in ["DoublePaneLowE", "TriplePaneLowE"]:
+                window_upgrade = True
+
+        # Check if there's a wall insulation upgrade
+        wall_upgrade = False
+        if "Walls" in changed_context_fields:
+            final_walls = changed_context_fields["Walls"]
+            if final_walls in [
+                "FullInsulationWallsCavity",
+                "FullInsulationWallsCavityExterior",
+            ]:
+                wall_upgrade = True
+
+        return window_upgrade and wall_upgrade
+
+    def compute_heating_capacity_kw(
+        self, _new_results_peak: pd.DataFrame, df_features: pd.DataFrame
+    ) -> pd.Series:
+        """Compute heating capacity in kW based on peak heating load."""
+        heating_peaks = _new_results_peak.totals.Gross.Heating
+        heat_cop = df_features["feature.factors.system.heat.effective_cop"]
+        heating_capacity_kw = heating_peaks.div(heat_cop, axis=0)
+        # use the COP vals
+        return heating_capacity_kw
+
     def compute_retrofit_costs(
         self, features: pd.DataFrame, all_costs: "RetrofitCosts"
     ) -> pd.DataFrame:
@@ -1645,6 +1848,72 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
                 costs_df[col_name] = 0
         return costs_df
 
+    def compute_incentives(
+        self,
+        features: pd.DataFrame,
+        all_incentives: "RetrofitIncentives",
+        costs_df: pd.DataFrame,
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Compute the incentives for the changed context fields."""
+        # Compute incentives for both income levels
+        all_customers_incentives = self.select_incentive_entities(
+            all_incentives, "All_customers"
+        )
+        income_eligible_incentives = self.select_incentive_entities(
+            all_incentives, "Income_eligible"
+        )
+
+        all_customers_df = all_customers_incentives.compute(features, costs_df)
+        income_eligible_df = income_eligible_incentives.compute(features, costs_df)
+
+        for feature in all_incentives.all_semantic_features:
+            col_name = f"incentive.{feature}"
+            if col_name not in all_customers_df.columns:
+                all_customers_df[col_name] = 0
+            if col_name not in income_eligible_df.columns:
+                income_eligible_df[col_name] = 0
+
+        return all_customers_df, income_eligible_df
+
+    def _compute_net_costs_for_incentives(
+        self, costs_df: pd.DataFrame, incentives_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """Helper method to compute net costs for a given incentive dataframe."""
+        net_costs = costs_df.copy()
+        for col in incentives_df.columns:
+            if col.startswith("incentive."):
+                semantic_field = col.split(".")[1]
+                cost_col = f"cost.{semantic_field}"
+                if cost_col in net_costs.columns:
+                    net_col = f"net_cost.{semantic_field}"
+                    net_costs[net_col] = net_costs[cost_col] - incentives_df[col]
+
+        # Add total net cost
+        net_cost_cols = [
+            col for col in net_costs.columns if col.startswith("net_cost.")
+        ]
+        if net_cost_cols:
+            net_costs["net_cost.Total"] = net_costs[net_cost_cols].sum(axis=1)
+        else:
+            net_costs["net_cost.Total"] = net_costs["cost.Total"]
+
+        return net_costs
+
+    def compute_net_costs(
+        self,
+        costs_df: pd.DataFrame,
+        all_customers_incentives_df: pd.DataFrame,
+        income_eligible_incentives_df: pd.DataFrame,
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Compute net costs after incentives for both income levels."""
+        all_customers_net = self._compute_net_costs_for_incentives(
+            costs_df, all_customers_incentives_df
+        )
+        income_eligible_net = self._compute_net_costs_for_incentives(
+            costs_df, income_eligible_incentives_df
+        )
+        return all_customers_net, income_eligible_net
+
     def compute_payback(
         self, costs_df: pd.DataFrame, delta_results: SBEMDistributions
     ) -> pd.Series:
@@ -1654,6 +1923,19 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         #  TODO: when savings are negative, we are still going to show a very large payback
         # despite the fact that it should be "never".
         payback: pd.Series = total_costs / np.clip(total_savings, 0.01, np.inf)
+        payback[payback < 0] = np.inf
+
+        return payback
+
+    def compute_payback_with_incentives(
+        self, net_costs_df: pd.DataFrame, delta_results: SBEMDistributions
+    ) -> pd.Series:
+        """Compute the payback for the changed context fields with incentives applied."""
+        total_net_costs = net_costs_df["net_cost.Total"]
+        total_savings = delta_results.totals.Gross.FuelCost
+        #  TODO: when savings are negative, we are still going to show a very large payback
+        # despite the fact that it should be "never".
+        payback: pd.Series = total_net_costs / np.clip(total_savings, 0.01, np.inf)
         payback[payback < 0] = np.inf
 
         return payback
@@ -1669,22 +1951,48 @@ class Cost(ABC):
 
 
 class VariableCost(BaseModel, Cost):
-    """A cost that is linear in the product of a set of indicator columns."""
+    """A cost that can be based on building features, calculated values, and conditional factors."""
 
-    coefficient: float = Field(
-        ..., description="The factor to multiply a target by.", gt=0
+    # Fixed intercept amount (same for all buildings)
+    intercept: float = Field(
+        default=0.0,
+        description="Fixed amount to add to every building's cost calculation.",
     )
+
+    # Feature-based components
+    feature_components: list[dict] = Field(
+        default_factory=list,
+        description="List of feature-based cost components with coefficients and indicator columns.",
+    )
+
+    # Calculated components
+    calculated_components: list[dict] = Field(
+        default_factory=list,
+        description="List of calculated cost components with coefficients and calculation methods.",
+    )
+
+    # Conditional adjustments
+    conditional_factors: dict[str, dict[str, float]] | None = Field(
+        None,
+        description="Conditional factors to apply based on building characteristics.",
+    )
+
+    # Legacy support for simple coefficient-based costs
+    coefficient: float | None = Field(
+        None, description="Legacy coefficient for backward compatibility.", gt=0
+    )
+    indicator_cols: list[str] | None = Field(
+        None,
+        description="Legacy indicator columns for backward compatibility.",
+    )
+
     error_scale: float | None = Field(
         ...,
         description="The expected error of the cost estimate.",
         ge=0,
         le=1,
     )
-    units: Literal["$/m2", "$/m", "$/m3", "$/kW", "$/unknown"]
-    indicator_cols: list[str] = Field(
-        ...,
-        description="The column(s) in the source data that should be multiplied by the coefficient.",
-    )
+    units: str = Field(..., description="Final units after all calculations.")
     per: str = Field(
         ...,
         description="A description of the cost factor's rate unit (e.g. 'total linear facade distance').",
@@ -1700,16 +2008,122 @@ class VariableCost(BaseModel, Cost):
 
     def compute(self, features: pd.DataFrame) -> pd.Series:
         """Compute the cost for a given feature."""
-        base = features[self.indicator_cols].product(axis=1)
-        if self.error_scale is None:
-            return self.coefficient * base
+        # Start with intercept for new-style costs, or 1 for legacy coefficient-based costs
+        if self.coefficient is not None and self.indicator_cols is not None:
+            # Legacy coefficient-based costs: start with 1, then multiply by coefficient
+            result = pd.Series(1.0, index=features.index)
         else:
-            coefficient = np.random.normal(
-                self.coefficient,
-                self.coefficient * self.error_scale,
-                len(features),
-            ).clip(min=0)
-            return base * pd.Series(coefficient, index=base.index)
+            # New-style costs: start with intercept
+            result = pd.Series(self.intercept, index=features.index)
+
+        # Handle legacy coefficient-based costs (multiplicative)
+        if self.coefficient is not None and self.indicator_cols is not None:
+            base = features[self.indicator_cols].product(axis=1)
+            result = result * self.coefficient * base
+
+        # Apply feature-based components (additive)
+        for component in self.feature_components:
+            coeff = component["coefficient"]
+            cols = component["indicator_cols"]
+            component_result = features[cols].product(axis=1) * coeff
+            result = result + component_result
+
+        # Apply calculated components (additive)
+        for component in self.calculated_components:
+            coeff = component["coefficient"]
+            calc_method = component["calculation"]
+            calculated_value = self._compute_calculated_feature(calc_method, features)
+            component_result = calculated_value * coeff
+            result = result + component_result
+
+        # Apply conditional factors (additive)
+        if self.conditional_factors:
+            result = self._apply_conditional_factors(result, features)
+
+        # Apply error scaling (multiplicative)
+        if self.error_scale is not None:
+            error_factor = np.random.normal(1.0, self.error_scale, len(features)).clip(
+                min=0
+            )
+            result = result * pd.Series(error_factor, index=features.index)
+
+        return result
+
+    def _compute_calculated_feature(self, calc_method: str, features: pd.DataFrame):
+        """Compute calculated features like heating capacity."""
+        # TODO: Implement this method
+        raise NotImplementedError
+
+    def _apply_conditional_factors(
+        self, result: pd.Series, features: pd.DataFrame
+    ) -> pd.Series:
+        """Apply conditional factors based on building characteristics."""
+        if not self.conditional_factors:
+            return result
+
+        for factor_name, factor_values in self.conditional_factors.items():
+            if factor_name == "county":
+                result = self._apply_county_factors(result, features, factor_values)
+            elif factor_name == "has_gas":
+                result = self._apply_gas_factors(result, features, factor_values)
+            elif factor_name == "has_cooling":
+                result = self._apply_cooling_factors(result, features, factor_values)
+
+        return result
+
+    def _apply_county_factors(
+        self, result: pd.Series, features: pd.DataFrame, factor_values: dict
+    ) -> pd.Series:
+        """Apply county-based conditional factors."""
+        county_col = self._find_county_column(features)
+        if county_col is not None:
+            for county, value in factor_values.items():
+                mask = features[county_col] == county
+                result[mask] = result[mask] + value
+        return result
+
+    def _find_county_column(self, features: pd.DataFrame) -> str | None:
+        """Find the county column in features."""
+        for col in features.columns:
+            if "county" in col.lower():
+                return col
+        return None
+
+    def _apply_gas_factors(
+        self, result: pd.Series, features: pd.DataFrame, factor_values: dict
+    ) -> pd.Series:
+        """Apply gas-based conditional factors."""
+        gas_heating_systems = ["NaturalGasHeating", "NaturalGasCondensingHeating"]
+
+        for gas_status, value in factor_values.items():
+            has_gas = gas_status == "true"
+            mask = features["feature.semantic.Heating"].isin(gas_heating_systems)
+            if not has_gas:
+                mask = ~mask
+            result[mask] = result[mask] + value
+
+        return result
+
+    def _apply_cooling_factors(
+        self, result: pd.Series, features: pd.DataFrame, factor_values: dict
+    ) -> pd.Series:
+        """Apply cooling-based conditional factors."""
+        cooling_systems = [
+            "ACWindow",
+            "ACCentral",
+            "WindowASHP",
+            "ASHPCooling",
+            "GSHPCooling",
+        ]
+
+        for cooling_status, value in factor_values.items():
+            has_cooling = cooling_status == "true"
+            mask = features["feature.semantic.Cooling"].isin(cooling_systems)
+            if not has_cooling:
+                mask = ~mask
+            result[mask] = result[mask] + value
+
+        return result
 
 
 class FixedCost(BaseModel, Cost):
@@ -1785,7 +2199,21 @@ class RetrofitCosts(BaseModel):
     def compute(self, features: pd.DataFrame) -> pd.DataFrame:
         """Compute the cost for a given feature."""
         if self.costs:
-            costs = pd.concat([cost.compute(features) for cost in self.costs], axis=1)
+            # Compute all costs first
+            cost_series_list = [cost.compute(features) for cost in self.costs]
+
+            # Group by semantic field and sum duplicates
+            cost_dict = {}
+            for cost_series in cost_series_list:
+                semantic_field = cost_series.name
+                if semantic_field in cost_dict:
+                    # If duplicate, sum the costs
+                    cost_dict[semantic_field] = cost_dict[semantic_field] + cost_series
+                else:
+                    cost_dict[semantic_field] = cost_series
+
+            # Create DataFrame from unique columns
+            costs = pd.DataFrame(cost_dict)
             total = costs.sum(axis=1).rename("cost.Total")
             data = pd.concat([costs, total], axis=1)
             return data
@@ -1806,6 +2234,260 @@ class RetrofitCosts(BaseModel):
 
 
 RETROFIT_COST_CACHE: dict[Path, RetrofitCosts] = {}
+
+
+class IncentiveFactor(ABC):
+    """An abstract base class for all incentive factors."""
+
+    @abstractmethod
+    def compute(self, features: pd.DataFrame, costs_df: pd.DataFrame) -> pd.Series:
+        """Compute the incentive for a given feature and cost."""
+        pass
+
+
+class FixedIncentive(BaseModel, IncentiveFactor):
+    """A fixed incentive amount."""
+
+    amount: float
+    error_scale: float | None = Field(
+        ...,
+        description="The expected error of the incentive estimate, if there are associated ranges due to regions, contractors, etc.",
+        ge=0,
+        le=1,
+    )
+    units: Literal["USD"]
+    description: str = Field(
+        ...,
+        description="A description of the fixed incentive.",
+    )
+    source: str = Field(
+        ...,
+        description="The source of the fixed incentive.",
+    )
+
+    def compute(self, features: pd.DataFrame, costs_df: pd.DataFrame) -> pd.Series:
+        """Compute the incentive for a given feature."""
+        if self.error_scale is None:
+            return pd.Series(
+                np.full(len(features), self.amount),
+                index=features.index,
+            )
+        else:
+            return pd.Series(
+                np.random.normal(
+                    self.amount, self.amount * self.error_scale, len(features)
+                ).clip(min=0),
+                index=features.index,
+            )
+
+
+class VariableIncentive(BaseModel, IncentiveFactor):
+    """A variable incentive that depends on features."""
+
+    coefficient: float = Field(
+        ..., description="The factor to multiply a target by.", gt=0
+    )
+    error_scale: float | None = Field(
+        ...,
+        description="The expected error of the incentive estimate.",
+        ge=0,
+        le=1,
+    )
+    units: Literal["USD/ton", "USD/kW", "USD/m2", "USD/per_unit"]
+    indicator_cols: list[str] = Field(
+        ...,
+        description="The column(s) in the source data that should be multiplied by the coefficient.",
+    )
+    description: str = Field(
+        ...,
+        description="An explanation of the incentive factor.",
+    )
+    source: str = Field(
+        ...,
+        description="The source of the incentive factor.",
+    )
+
+    def compute(self, features: pd.DataFrame, costs_df: pd.DataFrame) -> pd.Series:
+        """Compute the incentive for a given feature."""
+        base = features[self.indicator_cols].product(axis=1)
+        if self.error_scale is None:
+            return self.coefficient * base
+        else:
+            coefficient = np.random.normal(
+                self.coefficient,
+                self.coefficient * self.error_scale,
+                len(features),
+            ).clip(min=0)
+            return base * pd.Series(coefficient, index=base.index)
+
+
+class PercentIncentive(BaseModel, IncentiveFactor):
+    """A percentage-based incentive."""
+
+    percent: float = Field(
+        ..., description="The percentage to apply to the cost.", gt=0, le=1
+    )
+    limit: float | None = Field(None, description="The maximum incentive amount.")
+    limit_unit: Literal["USD"] | None = Field(
+        None, description="The unit of the limit."
+    )
+    error_scale: float | None = Field(
+        ...,
+        description="The expected error of the incentive estimate.",
+        ge=0,
+        le=1,
+    )
+    description: str = Field(
+        ...,
+        description="A description of the percentage incentive.",
+    )
+    source: str = Field(
+        ...,
+        description="The source of the percentage incentive.",
+    )
+
+    def compute(self, features: pd.DataFrame, costs_df: pd.DataFrame) -> pd.Series:
+        """Compute the incentive for a given feature."""
+        # Get the cost column (should be the only one in the filtered costs_df)
+        cost_cols = [col for col in costs_df.columns if col.startswith("cost.")]
+
+        if not cost_cols:
+            return pd.Series(0, index=features.index)
+
+        cost_col = cost_cols[0]
+        base_incentive = costs_df[cost_col] * self.percent
+
+        if self.error_scale is not None:
+            error_factor = np.random.normal(1.0, self.error_scale, len(features)).clip(
+                min=0
+            )
+            base_incentive = base_incentive * pd.Series(
+                error_factor, index=features.index
+            )
+
+        if self.limit is not None:
+            base_incentive = base_incentive.clip(upper=self.limit)
+
+        return base_incentive
+
+
+class RetrofitIncentive(BaseModel):
+    """The incentive for a retrofit intervention."""
+
+    semantic_field: str = Field(..., description="The semantic field to retrofit.")
+    initial: str | None = Field(
+        ...,
+        description="The initial value of the semantic field (`None` signifies any source).",
+    )
+    final: str = Field(..., description="The final value of the semantic field.")
+    program: str = Field(..., description="The program offering the incentive.")
+    eligibility: dict[str, list[str]] = Field(
+        ..., description="Eligibility criteria for the incentive."
+    )
+    incentive_factors: list[FixedIncentive | VariableIncentive | PercentIncentive] = (
+        Field(..., description="The incentive factors for the retrofit.")
+    )
+
+    def compute(self, features: pd.DataFrame, costs_df: pd.DataFrame) -> pd.Series:
+        """Compute the incentive for a given feature with proper stacking order.
+
+        Incentives are applied in the following order:
+        1. Fixed incentives (applied first to original cost)
+        2. Percentage incentives (applied to cost after fixed incentives)
+        3. Variable incentives (applied to cost after fixed and percentage incentives)
+        """
+        if len(self.incentive_factors) == 0:
+            print(
+                f"No incentive factors found for {self.semantic_field} = {self.initial} -> {self.final}"
+            )
+            return pd.Series(0, index=features.index)
+
+        # Initialize total incentive
+        total_incentive = pd.Series(0, index=features.index)
+
+        # Get the base cost for this semantic field (only needed for percentage/variable incentives)
+        cost_col = f"cost.{self.semantic_field}"
+        if cost_col in costs_df.columns:
+            base_cost = costs_df[cost_col]
+            net_cost = base_cost.copy()
+        else:
+            # If no cost column, we can only apply fixed incentives
+            net_cost = None
+
+        # Apply incentives in order: Fixed -> Percentage -> Variable
+        incentive_types = {FixedIncentive, PercentIncentive, VariableIncentive}
+
+        for incentive_class in incentive_types:
+            type_incentives = [
+                f for f in self.incentive_factors if isinstance(f, incentive_class)
+            ]
+
+            for factor in type_incentives:
+                if isinstance(factor, FixedIncentive):
+                    # Fixed incentives work independently of cost
+                    incentive_amount = factor.compute(features, costs_df)
+                    total_incentive += incentive_amount
+                elif isinstance(factor, PercentIncentive):
+                    # Percentage incentives need a cost to work with
+                    if net_cost is not None:
+                        temp_costs_df = pd.DataFrame(
+                            {cost_col: net_cost}, index=costs_df.index
+                        )
+                        incentive_amount = factor.compute(features, temp_costs_df)
+                        # The incentive_amount is already the dollar amount (percentage * cost)
+                        # So we subtract it from net_cost and add it to total_incentive
+                        net_cost = net_cost - incentive_amount
+                        total_incentive += incentive_amount
+                elif isinstance(factor, VariableIncentive):
+                    # Variable incentives need a cost to work with
+                    if net_cost is not None:
+                        incentive_amount = factor.compute(features, costs_df)
+                        net_cost = net_cost - incentive_amount
+                        total_incentive += incentive_amount
+
+        return total_incentive.rename(f"incentive.{self.semantic_field}")
+
+
+class RetrofitIncentives(BaseModel):
+    """The incentives associated with each of the retrofit interventions."""
+
+    incentives: list[RetrofitIncentive]
+
+    @property
+    def all_semantic_features(self) -> list[str]:
+        """The list of all features that are used in the incentives."""
+        return list({incentive.semantic_field for incentive in self.incentives})
+
+    def compute(self, features: pd.DataFrame, costs_df: pd.DataFrame) -> pd.DataFrame:
+        """Compute the incentives for a given feature."""
+        if self.incentives:
+            incentives = pd.concat(
+                [
+                    incentive.compute(features, costs_df)
+                    for incentive in self.incentives
+                ],
+                axis=1,
+            )
+            total = incentives.sum(axis=1).rename("incentive.Total")
+            data = pd.concat([incentives, total], axis=1)
+            return data
+        else:
+            return pd.DataFrame({"incentive.Total": [0] * len(features)})
+
+    @classmethod
+    def Open(cls, path: Path) -> "RetrofitIncentives":
+        """Open a retrofit incentives file."""
+        if path in RETROFIT_INCENTIVE_CACHE:
+            return RETROFIT_INCENTIVE_CACHE[path]
+        else:
+            with open(path) as f:
+                data = json.load(f)
+            retrofit_incentives = RetrofitIncentives.model_validate(data)
+            RETROFIT_INCENTIVE_CACHE[path] = retrofit_incentives
+            return retrofit_incentives
+
+
+RETROFIT_INCENTIVE_CACHE: dict[Path, RetrofitIncentives] = {}
 
 # provided features
 """

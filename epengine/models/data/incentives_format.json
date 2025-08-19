@@ -1,0 +1,285 @@
+{
+    "incentives": [
+        {
+            "semantic_field": "Heating",
+            "initial": null,
+            "final": "ASHPHeating",
+            "program": "MassSave",
+            "eligibility": {
+                "region": ["MA"],
+                "income": ["All_customers"],
+                "Heating": [
+                    "ElectricResistance",
+                    "OilHeating",
+                    "NaturalGasHeating",
+                    "NaturalGasCondensingHeating"
+                ]
+            },
+            "incentive_factors": [
+                {
+                    "type": "Fixed_Incentive",
+                    "amount": 10000,
+                    "error_scale": 0.05,
+                    "units": "USD",
+                    "description": "MassSave ASHP rebate for all customers",
+                    "source": "MassSave"
+                }
+            ]
+        },
+        {
+            "semantic_field": "Heating",
+            "initial": null,
+            "final": "ASHPHeating",
+            "program": "MassSave",
+            "eligibility": {
+                "region": ["MA"],
+                "income": ["Income_eligible"],
+                "Heating": [
+                    "ElectricResistance",
+                    "OilHeating",
+                    "NaturalGasHeating",
+                    "NaturalGasCondensingHeating"
+                ]
+            },
+            "incentive_factors": [
+                {
+                    "type": "Fixed_Incentive",
+                    "amount": 15000,
+                    "error_scale": 0.05,
+                    "units": "USD",
+                    "description": "MassSave ASHP rebate for income eligible customers",
+                    "source": "MassSave"
+                }
+            ]
+        },
+        {
+            "semantic_field": "Heating",
+            "initial": null,
+            "final": "GSHPHeating",
+            "program": "MassSave",
+            "eligibility": {
+                "region": ["MA"],
+                "income": ["All_customers"],
+                "Heating": [
+                    "ElectricResistance",
+                    "OilHeating",
+                    "NaturalGasHeating",
+                    "NaturalGasCondensingHeating"
+                ]
+            },
+            "incentive_factors": [
+                {
+                    "type": "Fixed_Incentive",
+                    "amount": 15000,
+                    "error_scale": 0.05,
+                    "units": "USD",
+                    "description": "MassSave GSHP rebate for all customers",
+                    "source": "MassSave"
+                }
+            ]
+        },
+        {
+            "semantic_field": "Heating",
+            "initial": null,
+            "final": "GSHPHeating",
+            "program": "MassSave",
+            "eligibility": {
+                "region": ["MA"],
+                "income": ["Income_eligible"],
+                "Heating": [
+                    "ElectricResistance",
+                    "OilHeating",
+                    "NaturalGasHeating",
+                    "NaturalGasCondensingHeating"
+                ]
+            },
+            "incentive_factors": [
+                {
+                    "type": "Fixed_Incentive",
+                    "amount": 25000,
+                    "error_scale": 0.05,
+                    "units": "USD",
+                    "description": "MassSave GSHP rebate for income eligible customers",
+                    "source": "MassSave"
+                }
+            ]
+        },
+        {
+            "semantic_field": "DHW",
+            "initial": "ElectricResistanceDHW",
+            "final": "HPWH",
+            "program": "MassSave",
+            "eligibility": {
+                "region": ["MA"],
+                "income": ["All_customers"]
+            },
+            "incentive_factors": [
+                {
+                    "type": "Fixed_Incentive",
+                    "amount": 750,
+                    "error_scale": 0.05,
+                    "units": "USD",
+                    "description": "MassSave HPWH rebate for all customers",
+                    "source": "MassSave"
+                }
+            ]
+        },
+        {
+            "semantic_field": "DHW",
+            "initial": "ElectricResistanceDHW",
+            "final": "HPWH",
+            "program": "MassSave",
+            "eligibility": {
+                "region": ["MA"],
+                "income": ["Income_eligible"]
+            },
+            "incentive_factors": [
+                {
+                    "type": "Fixed_Incentive",
+                    "amount": 1200,
+                    "error_scale": 0.05,
+                    "units": "USD",
+                    "description": "MassSave HPWH rebate for income eligible customers",
+                    "source": "MassSave"
+                }
+            ]
+        },
+        {
+            "semantic_field": "Thermostat",
+            "initial": null,
+            "final": "Controls",
+            "program": "MassSave",
+            "eligibility": {
+                "region": ["MA"],
+                "income": ["All_customers"]
+            },
+            "incentive_factors": [
+                {
+                    "type": "Fixed_Incentive",
+                    "amount": 100,
+                    "error_scale": 0.05,
+                    "units": "USD",
+                    "description": "MassSave smart thermostat rebate for all customers",
+                    "source": "MassSave"
+                }
+            ]
+        },
+        {
+            "semantic_field": "Thermostat",
+            "initial": null,
+            "final": "Controls",
+            "program": "MassSave",
+            "eligibility": {
+                "region": ["MA"],
+                "income": ["Income_eligible"]
+            },
+            "incentive_factors": [
+                {
+                    "type": "Fixed_Incentive",
+                    "amount": 200,
+                    "error_scale": 0.05,
+                    "units": "USD",
+                    "description": "MassSave smart thermostat rebate for income eligible customers",
+                    "source": "MassSave"
+                }
+            ]
+        },
+        {
+            "semantic_field": "Heating",
+            "initial": null,
+            "final": "ASHPHeating",
+            "program": "IRA",
+            "eligibility": {
+                "region": ["US"],
+                "income": ["All_customers"]
+            },
+            "incentive_factors": [
+                {
+                    "type": "Percent_Incentive",
+                    "percent": 0.3,
+                    "limit": 2000,
+                    "limit_unit": "USD",
+                    "error_scale": 0.05,
+                    "description": "IRA 30% tax credit for ASHP, capped at $2000",
+                    "source": "IRA"
+                }
+            ]
+        },
+        {
+            "semantic_field": "Heating",
+            "initial": null,
+            "final": "GSHPHeating",
+            "program": "IRA",
+            "eligibility": {
+                "region": ["US"],
+                "income": ["All_customers"]
+            },
+            "incentive_factors": [
+                {
+                    "type": "Percent_Incentive",
+                    "percent": 0.3,
+                    "limit": 2000,
+                    "limit_unit": "USD",
+                    "error_scale": 0.05,
+                    "description": "IRA 30% tax credit for GSHP, capped at $2000",
+                    "source": "IRA"
+                }
+            ]
+        },
+        {
+            "semantic_field": "Windows",
+            "initial": null,
+            "final": "DoublePaneLowE",
+            "program": "IRA",
+            "eligibility": {
+                "region": ["US"],
+                "income": ["All_customers"],
+                "Walls": [
+                    "UninsulatedWalls",
+                    "SomeInsulationWalls",
+                    "FullInsulationWallsCavity",
+                    "FullInsulationWallsCavityExterior"
+                ]
+            },
+            "incentive_factors": [
+                {
+                    "type": "Percent_Incentive",
+                    "percent": 0.3,
+                    "limit": 600,
+                    "limit_unit": "USD",
+                    "error_scale": 0.05,
+                    "description": "IRA 30% tax credit for energy efficient windows, capped at $600",
+                    "source": "IRA"
+                }
+            ]
+        },
+        {
+            "semantic_field": "Windows",
+            "initial": null,
+            "final": "TriplePaneLowE",
+            "program": "IRA",
+            "eligibility": {
+                "region": ["US"],
+                "income": ["All_customers"],
+                "Walls": [
+                    "UninsulatedWalls",
+                    "SomeInsulationWalls",
+                    "FullInsulationWallsCavity",
+                    "FullInsulationWallsCavityExterior"
+                ]
+            },
+            "incentive_factors": [
+                {
+                    "type": "Percent_Incentive",
+                    "percent": 0.3,
+                    "limit": 600,
+                    "limit_unit": "USD",
+                    "error_scale": 0.05,
+                    "description": "IRA 30% tax credit for energy efficient windows, capped at $600",
+                    "source": "IRA"
+                }
+            ]
+        }
+    ],
+    "$schema": "./incentives-schema.json"
+}
