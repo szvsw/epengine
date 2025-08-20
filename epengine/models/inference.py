@@ -1941,15 +1941,20 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         total_amount = 0.0
 
         for incentive in incentives.incentives:
-            # Compute the incentive amount for this specific incentive
             incentive_result = incentive.compute(features, costs_df)
             amount = incentive_result.iloc[0] if len(incentive_result) > 0 else 0.0
 
             if amount > 0:
-                # Get details from the first incentive factor (assuming all factors in an incentive have same description/source)
+                # Get details from the first incentive factor
                 first_factor = next(iter(incentive.incentive_factors))
 
                 # Determine incentive type
+                from epengine.models.inference import (
+                    FixedIncentive,
+                    PercentIncentive,
+                    VariableIncentive,
+                )
+
                 if isinstance(first_factor, FixedIncentive):
                     incentive_type = "Fixed"
                 elif isinstance(first_factor, PercentIncentive):
@@ -1981,6 +1986,8 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
     ) -> pd.DataFrame:
         """Helper method to compute net costs for a given incentive dataframe."""
         net_costs = costs_df.copy()
+
+        # Compute individual net costs for each semantic field
         for col in incentives_df.columns:
             if col.startswith("incentive."):
                 semantic_field = col.split(".")[1]
@@ -1989,14 +1996,23 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
                     net_col = f"net_cost.{semantic_field}"
                     net_costs[net_col] = net_costs[cost_col] - incentives_df[col]
 
-        # Add total net cost
-        net_cost_cols = [
-            col for col in net_costs.columns if col.startswith("net_cost.")
-        ]
-        if net_cost_cols:
-            net_costs["net_cost.Total"] = net_costs[net_cost_cols].sum(axis=1)
+        # calc method here should be total_cost - total_incentive
+        if (
+            "cost.Total" in net_costs.columns
+            and "incentive.Total" in incentives_df.columns
+        ):
+            net_costs["net_cost.Total"] = (
+                net_costs["cost.Total"] - incentives_df["incentive.Total"]
+            )
         else:
-            net_costs["net_cost.Total"] = net_costs["cost.Total"]
+            # catch all - should then have the net costs
+            net_cost_cols = [
+                col for col in net_costs.columns if col.startswith("net_cost.")
+            ]
+            if net_cost_cols:
+                net_costs["net_cost.Total"] = net_costs[net_cost_cols].sum(axis=1)
+            else:
+                net_costs["net_cost.Total"] = net_costs["cost.Total"]
 
         return net_costs
 

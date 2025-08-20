@@ -21,8 +21,47 @@
         },
         {
             "semantic_field": "Weatherization",
+            "initial": "LeakyEnvelope",
+            "final": "TightEnvelopeHRV",
+            "cost_factors": [
+                {
+                    "coefficient": 8.83,
+                    "error_scale": 0.05,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.energy_model_conditioned_area",
+                        "feature.geometry.est_fp_ratio"
+                    ],
+                    "per": "gross floor area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+
+        {
+            "semantic_field": "Weatherization",
             "initial": "SomewhatLeakyEnvelope",
             "final": "TightEnvelope",
+            "cost_factors": [
+                {
+                    "coefficient": 6.35,
+                    "error_scale": 0.05,
+                    "units": "$/m2",
+                    "indicator_cols": [
+                        "feature.geometry.energy_model_conditioned_area",
+                        "feature.geometry.est_fp_ratio"
+                    ],
+                    "per": "gross floor area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "semantic_field": "Weatherization",
+            "initial": "SomewhatLeakyEnvelope",
+            "final": "TightEnvelopeHRV",
             "cost_factors": [
                 {
                     "coefficient": 6.35,
@@ -318,7 +357,7 @@
                 {
                     "amount": 500.0,
                     "error_scale": 0.05,
-                    "description": "<lorem>",
+                    "description": "Fixed cost for programmable thermostat",
                     "source": ""
                 }
             ]
@@ -331,7 +370,7 @@
                 {
                     "amount": 4250.0,
                     "error_scale": 0.05,
-                    "description": "<lorem>",
+                    "description": "Fixed cost for high efficiency equipment",
                     "source": ""
                 }
             ]
@@ -344,7 +383,7 @@
                 {
                     "amount": 3000.0,
                     "error_scale": 0.05,
-                    "description": "<lorem>",
+                    "description": "Fixed cost for high efficiency equipment",
                     "source": ""
                 }
             ]

@@ -19,7 +19,7 @@
                 {
                     "type": "Fixed_Incentive",
                     "amount": 10000,
-                    "error_scale": 0.05,
+                    "error_scale": 0,
                     "units": "USD",
                     "description": "MassSave ASHP rebate for all customers",
                     "source": "MassSave"
@@ -45,7 +45,7 @@
                 {
                     "type": "Fixed_Incentive",
                     "amount": 15000,
-                    "error_scale": 0.05,
+                    "error_scale": 0,
                     "units": "USD",
                     "description": "MassSave ASHP rebate for income eligible customers",
                     "source": "MassSave"
@@ -71,7 +71,7 @@
                 {
                     "type": "Fixed_Incentive",
                     "amount": 15000,
-                    "error_scale": 0.05,
+                    "error_scale": 0,
                     "units": "USD",
                     "description": "MassSave GSHP rebate for all customers",
                     "source": "MassSave"
@@ -97,7 +97,7 @@
                 {
                     "type": "Fixed_Incentive",
                     "amount": 25000,
-                    "error_scale": 0.05,
+                    "error_scale": 0,
                     "units": "USD",
                     "description": "MassSave GSHP rebate for income eligible customers",
                     "source": "MassSave"
@@ -117,7 +117,7 @@
                 {
                     "type": "Fixed_Incentive",
                     "amount": 750,
-                    "error_scale": 0.05,
+                    "error_scale": 0,
                     "units": "USD",
                     "description": "MassSave HPWH rebate for all customers",
                     "source": "MassSave"
@@ -137,7 +137,7 @@
                 {
                     "type": "Fixed_Incentive",
                     "amount": 1200,
-                    "error_scale": 0.05,
+                    "error_scale": 0,
                     "units": "USD",
                     "description": "MassSave HPWH rebate for income eligible customers",
                     "source": "MassSave"
@@ -157,7 +157,7 @@
                 {
                     "type": "Fixed_Incentive",
                     "amount": 100,
-                    "error_scale": 0.05,
+                    "error_scale": 0,
                     "units": "USD",
                     "description": "MassSave smart thermostat rebate for all customers",
                     "source": "MassSave"
@@ -177,7 +177,7 @@
                 {
                     "type": "Fixed_Incentive",
                     "amount": 200,
-                    "error_scale": 0.05,
+                    "error_scale": 0,
                     "units": "USD",
                     "description": "MassSave smart thermostat rebate for income eligible customers",
                     "source": "MassSave"
@@ -199,7 +199,7 @@
                     "percent": 0.3,
                     "limit": 2000,
                     "limit_unit": "USD",
-                    "error_scale": 0.05,
+                    "error_scale": 0,
                     "description": "IRA 30% tax credit for ASHP, capped at $2000",
                     "source": "IRA"
                 }
@@ -220,7 +220,7 @@
                     "percent": 0.3,
                     "limit": 2000,
                     "limit_unit": "USD",
-                    "error_scale": 0.05,
+                    "error_scale": 0,
                     "description": "IRA 30% tax credit for GSHP, capped at $2000",
                     "source": "IRA"
                 }
@@ -247,7 +247,7 @@
                     "percent": 0.3,
                     "limit": 600,
                     "limit_unit": "USD",
-                    "error_scale": 0.05,
+                    "error_scale": 0,
                     "description": "IRA 30% tax credit for energy efficient windows, capped at $600",
                     "source": "IRA"
                 }
@@ -274,7 +274,7 @@
                     "percent": 0.3,
                     "limit": 600,
                     "limit_unit": "USD",
-                    "error_scale": 0.05,
+                    "error_scale": 0,
                     "description": "IRA 30% tax credit for energy efficient windows, capped at $600",
                     "source": "IRA"
                 }
