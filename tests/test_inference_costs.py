@@ -877,6 +877,331 @@ def test_incentive_metadata_serialization():
     print("✓ Incentive metadata serialization tests passed\n")
 
 
+def _generate_test_costs(retrofit_costs, features, test_upgrades):
+    """Generate costs for the test upgrades."""
+    selected_costs = []
+    for semantic_field, _initial, final in test_upgrades:
+        matching_costs = [
+            cost
+            for cost in retrofit_costs.costs
+            if cost.semantic_field == semantic_field and cost.final == final
+        ]
+        if matching_costs:
+            selected_costs.extend(matching_costs)
+
+    cost_entities = RetrofitCosts(costs=selected_costs)
+    costs_df = cost_entities.compute(features)
+
+    # Add missing cost columns for completeness
+    for feature in retrofit_costs.all_semantic_features:
+        col_name = f"cost.{feature}"
+        if col_name not in costs_df.columns:
+            costs_df[col_name] = 0
+
+    return costs_df, selected_costs
+
+
+def _select_incentives(retrofit_incentives, test_upgrades):
+    """Select incentives for both income levels."""
+    all_customers_incentives = []
+    income_eligible_incentives = []
+
+    for semantic_field, _initial, final in test_upgrades:
+        for incentive in retrofit_incentives.incentives:
+            # Check if incentive matches the upgrade
+            if incentive.semantic_field != semantic_field:
+                continue
+            if incentive.final != final:
+                continue
+            if incentive.initial is not None and incentive.initial != _initial:
+                continue
+
+            # Check region eligibility (MA)
+            if (
+                "region" in incentive.eligibility
+                and "MA" not in incentive.eligibility["region"]
+            ):
+                continue
+
+            # Check income level eligibility
+            if "All_customers" in incentive.eligibility.get("income", []):
+                all_customers_incentives.append(incentive)
+            if "Income_eligible" in incentive.eligibility.get("income", []):
+                income_eligible_incentives.append(incentive)
+
+    return all_customers_incentives, income_eligible_incentives
+
+
+def _compute_incentives(
+    all_customers_incentives,
+    income_eligible_incentives,
+    features,
+    costs_df,
+    retrofit_incentives,
+):
+    """Compute incentives for both income levels."""
+    all_customers_incentive_entities = RetrofitIncentives(
+        incentives=all_customers_incentives
+    )
+    income_eligible_incentive_entities = RetrofitIncentives(
+        incentives=income_eligible_incentives
+    )
+
+    all_customers_df = all_customers_incentive_entities.compute(features, costs_df)
+    income_eligible_df = income_eligible_incentive_entities.compute(features, costs_df)
+
+    # Add missing incentive columns
+    for feature in retrofit_incentives.all_semantic_features:
+        col_name = f"incentive.{feature}"
+        if col_name not in all_customers_df.columns:
+            all_customers_df[col_name] = 0
+        if col_name not in income_eligible_df.columns:
+            income_eligible_df[col_name] = 0
+
+    return all_customers_df, income_eligible_df
+
+
+def _compute_net_costs(costs_df, incentives_df):
+    """Compute net costs after incentives."""
+    net_costs = costs_df.copy()
+
+    # Compute individual net costs for each semantic field
+    for col in incentives_df.columns:
+        if col.startswith("incentive."):
+            semantic_field = col.split(".")[1]
+            cost_col = f"cost.{semantic_field}"
+            if cost_col in net_costs.columns:
+                net_col = f"net_cost.{semantic_field}"
+                net_costs[net_col] = net_costs[cost_col] - incentives_df[col]
+
+    # Compute total net cost correctly: total_cost - total_incentive
+    if "cost.Total" in net_costs.columns and "incentive.Total" in incentives_df.columns:
+        net_costs["net_cost.Total"] = (
+            net_costs["cost.Total"] - incentives_df["incentive.Total"]
+        )
+    else:
+        # Fallback: sum individual net costs if totals not available
+        net_cost_cols = [
+            col for col in net_costs.columns if col.startswith("net_cost.")
+        ]
+        if net_cost_cols:
+            net_costs["net_cost.Total"] = net_costs[net_cost_cols].sum(axis=1)
+        else:
+            net_costs["net_cost.Total"] = net_costs["cost.Total"]
+
+    return net_costs
+
+
+def _build_incentive_metadata(incentives, features, costs_df, income_level):
+    """Build incentive metadata."""
+    applied_incentives = []
+    total_amount = 0.0
+
+    for incentive in incentives:
+        incentive_result = incentive.compute(features, costs_df)
+        amount = incentive_result.iloc[0] if len(incentive_result) > 0 else 0.0
+
+        if amount > 0:
+            first_factor = next(iter(incentive.incentive_factors))
+
+            from epengine.models.inference import (
+                FixedIncentive,
+                PercentIncentive,
+                VariableIncentive,
+            )
+
+            if isinstance(first_factor, FixedIncentive):
+                incentive_type = "Fixed"
+            elif isinstance(first_factor, PercentIncentive):
+                incentive_type = "Percent"
+            elif isinstance(first_factor, VariableIncentive):
+                incentive_type = "Variable"
+            else:
+                incentive_type = "Unknown"
+
+            applied_incentive = AppliedIncentive(
+                semantic_field=incentive.semantic_field,
+                program=incentive.program,
+                amount=amount,
+                description=first_factor.description,
+                source=first_factor.source,
+                incentive_type=incentive_type,
+            )
+            applied_incentives.append(applied_incentive)
+            total_amount += amount
+
+    return IncentiveMetadata(
+        applied_incentives=applied_incentives,
+        total_incentive_amount=total_amount,
+        income_level=income_level,
+    )
+
+
+def _verify_consistency(
+    all_customers_metadata,
+    income_eligible_metadata,
+    all_customers_df,
+    income_eligible_df,
+    all_customers_net,
+    income_eligible_net,
+    costs_df,
+):
+    """Verify consistency between computed and metadata results."""
+    assert (
+        abs(
+            all_customers_metadata.total_incentive_amount
+            - all_customers_df["incentive.Total"].iloc[0]
+        )
+        < 0.01
+    ), (
+        f"Metadata total (${all_customers_metadata.total_incentive_amount:.2f}) doesn't match computed total (${all_customers_df['incentive.Total'].iloc[0]:.2f})"
+    )
+    assert (
+        abs(
+            income_eligible_metadata.total_incentive_amount
+            - income_eligible_df["incentive.Total"].iloc[0]
+        )
+        < 0.01
+    ), (
+        f"Metadata total (${income_eligible_metadata.total_incentive_amount:.2f}) doesn't match computed total (${income_eligible_df['incentive.Total'].iloc[0]:.2f})"
+    )
+
+    expected_all_customers_net = (
+        costs_df["cost.Total"].iloc[0] - all_customers_df["incentive.Total"].iloc[0]
+    )
+    expected_income_eligible_net = (
+        costs_df["cost.Total"].iloc[0] - income_eligible_df["incentive.Total"].iloc[0]
+    )
+
+    assert (
+        abs(all_customers_net["net_cost.Total"].iloc[0] - expected_all_customers_net)
+        < 0.01
+    ), "All customers net cost calculation incorrect"
+    assert (
+        abs(
+            income_eligible_net["net_cost.Total"].iloc[0] - expected_income_eligible_net
+        )
+        < 0.01
+    ), "Income eligible net cost calculation incorrect"
+
+
+def _print_results(all_customers_metadata, income_eligible_metadata):
+    """Print detailed results breakdown."""
+    if (
+        income_eligible_metadata.total_incentive_amount
+        > all_customers_metadata.total_incentive_amount
+    ):
+        print(
+            "✓ Income eligible incentives are higher than all customer incentives (expected)"
+        )
+    else:
+        print(
+            "Info: Income eligible incentives are not higher (may be expected depending on program design)"
+        )
+
+    # Print detailed breakdown
+    print("\nDetailed breakdown:")
+    print("All Customers Incentives:")
+    for incentive in all_customers_metadata.applied_incentives:
+        print(
+            f"  {incentive.semantic_field} - {incentive.program}: ${incentive.amount:.2f} ({incentive.incentive_type})"
+        )
+
+    print("\nIncome Eligible Incentives:")
+    for incentive in income_eligible_metadata.applied_incentives:
+        print(
+            f"  {incentive.semantic_field} - {incentive.program}: ${incentive.amount:.2f} ({incentive.incentive_type})"
+        )
+
+
+def test_full_incentive_flow():
+    """Test the complete flow from cost generation to incentive metadata."""
+    print("=== Testing Full Incentive Flow ===")
+
+    # Load costs and incentives
+    costs_path = Path("epengine/models/data/retrofit-costs.json")
+    incentives_path = Path("epengine/models/data/incentives_format.json")
+    retrofit_costs = RetrofitCosts.Open(costs_path)
+    retrofit_incentives = RetrofitIncentives.Open(incentives_path)
+
+    # Create test features
+    features = create_test_features_with_location()
+
+    # Step 1: Generate costs for a specific retrofit scenario
+    print("Step 1: Generating costs...")
+    test_upgrades = [
+        ("Heating", "NaturalGasHeating", "ASHPHeating"),
+        ("DHW", "NaturalGasDHW", "HPWH"),
+    ]
+
+    costs_df, selected_costs = _generate_test_costs(
+        retrofit_costs, features, test_upgrades
+    )
+    print(f"Generated costs for {len(selected_costs)} upgrades")
+    print(f"Total cost: ${costs_df['cost.Total'].iloc[0]:.2f}")
+
+    # Step 2: Select and compute incentives for both income levels
+    print("\nStep 2: Selecting and computing incentives...")
+    all_customers_incentives, income_eligible_incentives = _select_incentives(
+        retrofit_incentives, test_upgrades
+    )
+    all_customers_df, income_eligible_df = _compute_incentives(
+        all_customers_incentives,
+        income_eligible_incentives,
+        features,
+        costs_df,
+        retrofit_incentives,
+    )
+
+    print(
+        f"All customers: {len(all_customers_incentives)} incentives, total: ${all_customers_df['incentive.Total'].iloc[0]:.2f}"
+    )
+    print(
+        f"Income eligible: {len(income_eligible_incentives)} incentives, total: ${income_eligible_df['incentive.Total'].iloc[0]:.2f}"
+    )
+
+    # Step 3: Compute net costs
+    print("\nStep 3: Computing net costs...")
+    all_customers_net = _compute_net_costs(costs_df, all_customers_df)
+    income_eligible_net = _compute_net_costs(costs_df, income_eligible_df)
+
+    print(f"All customers net cost: ${all_customers_net['net_cost.Total'].iloc[0]:.2f}")
+    print(
+        f"Income eligible net cost: ${income_eligible_net['net_cost.Total'].iloc[0]:.2f}"
+    )
+
+    # Step 4: Build incentive metadata
+    print("\nStep 4: Building incentive metadata...")
+    all_customers_metadata = _build_incentive_metadata(
+        all_customers_incentives, features, costs_df, "All_customers"
+    )
+    income_eligible_metadata = _build_incentive_metadata(
+        income_eligible_incentives, features, costs_df, "Income_eligible"
+    )
+
+    print(
+        f"All customers metadata: {len(all_customers_metadata.applied_incentives)} incentives, total: ${all_customers_metadata.total_incentive_amount:.2f}"
+    )
+    print(
+        f"Income eligible metadata: {len(income_eligible_metadata.applied_incentives)} incentives, total: ${income_eligible_metadata.total_incentive_amount:.2f}"
+    )
+
+    # Step 5: Verify consistency
+    print("\nStep 5: Verifying consistency...")
+    _verify_consistency(
+        all_customers_metadata,
+        income_eligible_metadata,
+        all_customers_df,
+        income_eligible_df,
+        all_customers_net,
+        income_eligible_net,
+        costs_df,
+    )
+
+    _print_results(all_customers_metadata, income_eligible_metadata)
+    print("✓ Full incentive flow tests passed\n")
+
+
 def main():
     """Run all tests."""
     print("Starting Incentives Integration Tests\n")
@@ -896,6 +1221,7 @@ def main():
         test_incentive_selection_workflow()
         test_incentive_metadata_creation()
         test_incentive_metadata_serialization()
+        test_full_incentive_flow()
 
         print("=" * 50)
         print("All tests passed.")
