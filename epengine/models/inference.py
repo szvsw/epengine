@@ -2330,18 +2330,8 @@ class RetrofitCosts(BaseModel):
             # Compute all costs first
             cost_series_list = [cost.compute(features) for cost in self.costs]
 
-            # Group by semantic field and sum duplicates
-            cost_dict = {}
-            for cost_series in cost_series_list:
-                semantic_field = cost_series.name
-                if semantic_field in cost_dict:
-                    # If duplicate, sum the costs
-                    cost_dict[semantic_field] = cost_dict[semantic_field] + cost_series
-                else:
-                    cost_dict[semantic_field] = cost_series
-
-            # Create DataFrame from unique columns
-            costs = pd.DataFrame(cost_dict)
+            # Create DataFrame from cost series
+            costs = pd.DataFrame(cost_series_list).T
             total = costs.sum(axis=1).rename("cost.Total")
             data = pd.concat([costs, total], axis=1)
             return data
@@ -2647,6 +2637,11 @@ class IncentiveMetadata(BaseModel):
         ..., description="Total incentive amount across all programs"
     )
     income_level: str = Field(..., description="Income level these incentives apply to")
+
+    @property
+    def serialized(self) -> BaseModel:
+        """Serialize the IncentiveMetadata into a BaseModel."""
+        return self
 
 
 # provided features
