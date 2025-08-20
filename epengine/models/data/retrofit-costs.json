@@ -381,10 +381,48 @@
             "final": "ASHPHeating",
             "cost_factors": [
                 {
-                    "amount": 15000.0,
+                    "intercept": -79,
+                    "feature_components": [
+                        {
+                            "coefficient": 0.28,
+                            "indicator_cols": [
+                                "feature.geometry.energy_model_conditioned_area"
+                            ],
+                            "units": "multiplier"
+                        }
+                    ],
+                    "calculated_components": [
+                        {
+                            "coefficient": 303,
+                            "calculation": "heating_capacity_kw",
+                            "units": "$/kW"
+                        }
+                    ],
+                    "conditional_factors": {
+                        "county": {
+                            "Berkshire": 948,
+                            "Barnstable": 0,
+                            "Bristol": 924,
+                            "Dukes": 4777,
+                            "Essex": 2864,
+                            "Franklin": 456,
+                            "Hampden": 613,
+                            "Hampshire": 500,
+                            "Middlesex": 2497,
+                            "Nantucket": 5840,
+                            "Norfolk": 2624,
+                            "Plymouth": 791,
+                            "Suffolk": 3591,
+                            "Worcester": 752
+                        },
+                        "has_gas": { "true": 438, "false": 0 },
+                        "has_cooling": { "true": 334, "false": 0 }
+                    },
                     "error_scale": 0.05,
-                    "description": "<lorem>",
-                    "source": ""
+                    "units": "$/kW",
+                    "per": "heating system",
+                    "description": "ASHP cost based on capacity and building characteristics",
+                    "source": "Heat pump cost model"
                 }
             ]
         },
@@ -394,10 +432,47 @@
             "final": "GSHPHeating",
             "cost_factors": [
                 {
-                    "amount": 30000.0,
+                    "feature_components": [
+                        {
+                            "coefficient": 0.28,
+                            "indicator_cols": [
+                                "feature.geometry.energy_model_conditioned_area"
+                            ],
+                            "units": "$/sqft"
+                        }
+                    ],
+                    "calculated_components": [
+                        {
+                            "coefficient": 303,
+                            "calculation": "heating_capacity_kw",
+                            "units": "$/kW"
+                        }
+                    ],
+                    "conditional_factors": {
+                        "county": {
+                            "Berkshire": 948,
+                            "Barnstable": 0,
+                            "Bristol": 924,
+                            "Dukes": 4777,
+                            "Essex": 2864,
+                            "Franklin": 456,
+                            "Hampden": 613,
+                            "Hampshire": 500,
+                            "Middlesex": 2497,
+                            "Nantucket": 5840,
+                            "Norfolk": 2624,
+                            "Plymouth": 791,
+                            "Suffolk": 3591,
+                            "Worcester": 752
+                        },
+                        "has_gas": { "true": 438, "false": 0 },
+                        "has_cooling": { "true": 334, "false": 0 }
+                    },
                     "error_scale": 0.05,
-                    "description": "<lorem>",
-                    "source": ""
+                    "units": "$/kW",
+                    "per": "heating system",
+                    "description": "GSHP cost based on capacity and building characteristics",
+                    "source": "Heat pump cost model"
                 }
             ]
         },
