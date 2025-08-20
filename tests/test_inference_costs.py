@@ -970,9 +970,22 @@ def _compute_net_costs(costs_df, incentives_df):
         if col.startswith("incentive."):
             semantic_field = col.split(".")[1]
             cost_col = f"cost.{semantic_field}"
+
+            # Handle potential duplicate columns by summing them
             if cost_col in net_costs.columns:
+                # If there are multiple columns with the same name, sum them
+                if net_costs.columns.duplicated().any():
+                    # Get all columns with this name and sum them
+                    matching_cols = [c for c in net_costs.columns if c == cost_col]
+                    if len(matching_cols) > 1:
+                        cost_sum = net_costs[matching_cols].sum(axis=1)
+                    else:
+                        cost_sum = net_costs[cost_col]
+                else:
+                    cost_sum = net_costs[cost_col]
+
                 net_col = f"net_cost.{semantic_field}"
-                net_costs[net_col] = net_costs[cost_col] - incentives_df[col]
+                net_costs[net_col] = cost_sum - incentives_df[col]
 
     # Compute total net cost correctly: total_cost - total_incentive
     if "cost.Total" in net_costs.columns and "incentive.Total" in incentives_df.columns:
@@ -987,7 +1000,14 @@ def _compute_net_costs(costs_df, incentives_df):
         if net_cost_cols:
             net_costs["net_cost.Total"] = net_costs[net_cost_cols].sum(axis=1)
         else:
-            net_costs["net_cost.Total"] = net_costs["cost.Total"]
+            # If we have duplicate cost columns, sum them for the total
+            if net_costs.columns.duplicated().any():
+                cost_cols = [
+                    col for col in net_costs.columns if col.startswith("cost.")
+                ]
+                net_costs["net_cost.Total"] = net_costs[cost_cols].sum(axis=1)
+            else:
+                net_costs["net_cost.Total"] = net_costs["cost.Total"]
 
     return net_costs
 
