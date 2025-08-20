@@ -1862,7 +1862,11 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         gross_peak_kw = peak_heating_per_m2 * self.original.actual_conditioned_area_m2
         effective_cop = df_features["feature.factors.system.heat.effective_cop"]
         electrical_capacity_kw = gross_peak_kw / effective_cop
-        return pd.Series(electrical_capacity_kw, index=df_features.index) * 1.2
+        safety_factor = 1.2
+        electrical_capacity_kw = (
+            pd.Series(electrical_capacity_kw, index=df_features.index) * safety_factor
+        )
+        return electrical_capacity_kw
 
     def compute_retrofit_costs(
         self, features: pd.DataFrame, all_costs: "RetrofitCosts"
