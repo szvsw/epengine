@@ -11,6 +11,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # logging.basicConfig(level=logging.DEBUG)
 
 from epengine.models.inference import (
+    AppliedIncentive,
+    IncentiveMetadata,
     RetrofitCosts,
     RetrofitIncentives,
 )
@@ -815,6 +817,66 @@ def test_incentive_selection_workflow():
     print("✓ Incentive selection workflow tests passed\n")
 
 
+def test_incentive_metadata_creation():
+    """Test creating incentive metadata objects."""
+    print("=== Testing Incentive Metadata Creation ===")
+
+    # Create a sample applied incentive
+    applied_incentive = AppliedIncentive(
+        semantic_field="Heating",
+        program="MassSave",
+        amount=10000.0,
+        description="MassSave ASHP rebate for all customers",
+        source="MassSave",
+        incentive_type="Fixed",
+    )
+
+    print(f"Created AppliedIncentive: {applied_incentive}")
+
+    # Create incentive metadata
+    metadata = IncentiveMetadata(
+        applied_incentives=[applied_incentive],
+        total_incentive_amount=10000.0,
+        income_level="All_customers",
+    )
+
+    print(f"Created IncentiveMetadata: {metadata}")
+    print(f"Total incentive amount: ${metadata.total_incentive_amount}")
+    print(f"Number of incentives: {len(metadata.applied_incentives)}")
+
+    print("✓ Incentive metadata creation tests passed\n")
+
+
+def test_incentive_metadata_serialization():
+    """Test that incentive metadata can be serialized to JSON."""
+    print("=== Testing Incentive Metadata Serialization ===")
+
+    applied_incentive = AppliedIncentive(
+        semantic_field="Heating",
+        program="MassSave",
+        amount=10000.0,
+        description="MassSave ASHP rebate for all customers",
+        source="MassSave",
+        incentive_type="Fixed",
+    )
+
+    metadata = IncentiveMetadata(
+        applied_incentives=[applied_incentive],
+        total_incentive_amount=10000.0,
+        income_level="All_customers",
+    )
+
+    # Test JSON serialization
+    json_data = metadata.model_dump()
+    print(f"JSON serialization: {json_data}")
+
+    # Test JSON string serialization
+    json_string = metadata.model_dump_json()
+    print(f"JSON string: {json_string}")
+
+    print("✓ Incentive metadata serialization tests passed\n")
+
+
 def main():
     """Run all tests."""
     print("Starting Incentives Integration Tests\n")
@@ -832,6 +894,8 @@ def main():
         test_manual_incentive_calculation()
         test_income_level_differentiation()
         test_incentive_selection_workflow()
+        test_incentive_metadata_creation()
+        test_incentive_metadata_serialization()
 
         print("=" * 50)
         print("All tests passed.")

@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal, Union, cast
 
 import boto3
 import geopandas as gpd
@@ -173,14 +173,10 @@ class SBEMRetrofitDistributions:
                     .drop(["count"])
                 )
                 field_data = col_summary.to_dict()
-            if (
-                col.startswith("cost.")
-                or col.startswith("incentive.")
-                or col.startswith("net_cost.")
-            ):
-                field_data["units"] = "USD"
-            else:
-                field_data["units"] = "USD"
+            if not col.startswith(("cost.", "incentive.", "net_cost.")):
+                msg = f"Column {col} is not a cost, incentive, or net cost column"
+                raise ValueError(msg)
+            field_data["units"] = "USD"
 
             field_datas[col_name] = SummarySpec(**field_data)
 
@@ -1508,7 +1504,10 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
 
     def run(
         self, n: int = 10000
-    ) -> dict[str, SBEMDistributions | SBEMRetrofitDistributions]:
+    ) -> dict[
+        str,
+        Union["SBEMDistributions", "SBEMRetrofitDistributions", "IncentiveMetadata"],
+    ]:
         """Run the inference for a savings problem.
 
         This function will ensure that the original and upgraded models keep aligned
@@ -1608,7 +1607,12 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         retrofit_costs = self.compute_retrofit_costs(features_for_costs, cost_config)
 
         # Compute incentives for both income levels
-        all_customers_incentives, income_eligible_incentives = self.compute_incentives(
+        (
+            all_customers_incentives,
+            income_eligible_incentives,
+            all_customers_metadata,
+            income_eligible_metadata,
+        ) = self.compute_incentives(
             features_for_costs, incentive_config, retrofit_costs
         )
 
@@ -1695,6 +1699,8 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             "retrofit": cost_results,
             "retrofit_with_incentives_all": cost_results_with_incentives,
             "retrofit_with_incentives_income_eligible": cost_results_with_incentives_income_eligible,
+            "incentive_metadata_all": all_customers_metadata,
+            "incentive_metadata_income_eligible": income_eligible_metadata,
         }
 
     @property
@@ -1769,10 +1775,13 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
                 msg = f"No retrofit incentive found for {context_field} = {original_value} -> {context_value} (income: {income_level})"
                 print(msg)
             elif len(retrofit_incentive_candidates) > 1:
-                msg = f"Multiple retrofit incentives found for {context_field} = {original_value} -> {context_value} (income: {income_level}):\n {retrofit_incentive_candidates}"
-                print(f"Warning: {msg}")
-                # Take the first one for now, could be enhanced to select based on program priority
-                incentive_entities.append(retrofit_incentive_candidates[0])
+                msg = (
+                    f"Multiple retrofit incentives found for {context_field} = {original_value} -> {context_value} "
+                    f"(income: {income_level}); selecting all."
+                )
+                print(msg)
+                # Include all applicable incentives (e.g., federal + state)
+                incentive_entities.extend(retrofit_incentive_candidates)
             else:
                 incentive_entities.append(retrofit_incentive_candidates[0])
 
@@ -1784,7 +1793,7 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         """Check if the incentive is eligible based on semantic field context."""
         eligibility = incentive.eligibility
 
-        # Check region (default to MA if not specified)
+        # Check region - right now it's just going to default to MA, since that's what all the costs are from
         if "region" in eligibility:
             region = self.original.semantic_field_context.get("Region", "MA")
             if region not in eligibility["region"]:
@@ -1885,7 +1894,7 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         features: pd.DataFrame,
         all_incentives: "RetrofitIncentives",
         costs_df: pd.DataFrame,
-    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    ) -> tuple[pd.DataFrame, pd.DataFrame, "IncentiveMetadata", "IncentiveMetadata"]:
         """Compute the incentives for the changed context fields."""
         # Compute incentives for both income levels
         all_customers_incentives = self.select_incentive_entities(
@@ -1905,7 +1914,67 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             if col_name not in income_eligible_df.columns:
                 income_eligible_df[col_name] = 0
 
-        return all_customers_df, income_eligible_df
+        # Build metadata for both income levels
+        all_customers_metadata = self._build_incentive_metadata(
+            all_customers_incentives, features, costs_df, "All_customers"
+        )
+        income_eligible_metadata = self._build_incentive_metadata(
+            income_eligible_incentives, features, costs_df, "Income_eligible"
+        )
+
+        return (
+            all_customers_df,
+            income_eligible_df,
+            all_customers_metadata,
+            income_eligible_metadata,
+        )
+
+    def _build_incentive_metadata(
+        self,
+        incentives: "RetrofitIncentives",
+        features: pd.DataFrame,
+        costs_df: pd.DataFrame,
+        income_level: str,
+    ) -> "IncentiveMetadata":
+        """Build metadata about applied incentives."""
+        applied_incentives = []
+        total_amount = 0.0
+
+        for incentive in incentives.incentives:
+            # Compute the incentive amount for this specific incentive
+            incentive_result = incentive.compute(features, costs_df)
+            amount = incentive_result.iloc[0] if len(incentive_result) > 0 else 0.0
+
+            if amount > 0:
+                # Get details from the first incentive factor (assuming all factors in an incentive have same description/source)
+                first_factor = next(iter(incentive.incentive_factors))
+
+                # Determine incentive type
+                if isinstance(first_factor, FixedIncentive):
+                    incentive_type = "Fixed"
+                elif isinstance(first_factor, PercentIncentive):
+                    incentive_type = "Percent"
+                elif isinstance(first_factor, VariableIncentive):
+                    incentive_type = "Variable"
+                else:
+                    incentive_type = "Unknown"
+
+                applied_incentive = AppliedIncentive(
+                    semantic_field=incentive.semantic_field,
+                    program=incentive.program,
+                    amount=amount,
+                    description=first_factor.description,
+                    source=first_factor.source,
+                    incentive_type=incentive_type,
+                )
+                applied_incentives.append(applied_incentive)
+                total_amount += amount
+
+        return IncentiveMetadata(
+            applied_incentives=applied_incentives,
+            total_incentive_amount=total_amount,
+            income_level=income_level,
+        )
 
     def _compute_net_costs_for_incentives(
         self, costs_df: pd.DataFrame, incentives_df: pd.DataFrame
@@ -2459,7 +2528,6 @@ class RetrofitIncentive(BaseModel):
 
         # Apply incentives in order: Fixed -> Percentage -> Variable
         incentive_types = {FixedIncentive, PercentIncentive, VariableIncentive}
-
         for incentive_class in incentive_types:
             type_incentives = [
                 f for f in self.incentive_factors if isinstance(f, incentive_class)
@@ -2467,11 +2535,11 @@ class RetrofitIncentive(BaseModel):
 
             for factor in type_incentives:
                 if isinstance(factor, FixedIncentive):
-                    # Fixed incentives work independently of cost
+                    # Fixed incentives work independently of cost (should make sure there is proper error handling, in case a cost is not found)
                     incentive_amount = factor.compute(features, costs_df)
                     total_incentive += incentive_amount
                 elif isinstance(factor, PercentIncentive):
-                    # Percentage incentives need a cost to work with
+                    # Percentage incentives need a cost to compute the % reduction
                     if net_cost is not None:
                         temp_costs_df = pd.DataFrame(
                             {cost_col: net_cost}, index=costs_df.index
@@ -2482,7 +2550,6 @@ class RetrofitIncentive(BaseModel):
                         net_cost = net_cost - incentive_amount
                         total_incentive += incentive_amount
                 elif isinstance(factor, VariableIncentive):
-                    # Variable incentives need a cost to work with
                     if net_cost is not None:
                         incentive_amount = factor.compute(features, costs_df)
                         net_cost = net_cost - incentive_amount
@@ -2537,6 +2604,34 @@ class RetrofitIncentives(BaseModel):
 
 
 RETROFIT_INCENTIVE_CACHE: dict[Path, RetrofitIncentives] = {}
+
+
+class AppliedIncentive(BaseModel):
+    """Details about a single applied incentive."""
+
+    semantic_field: str = Field(
+        ..., description="The semantic field this incentive applies to"
+    )
+    program: str = Field(..., description="The program offering the incentive")
+    amount: float = Field(..., description="The incentive amount applied")
+    description: str = Field(..., description="Description from incentives_format.json")
+    source: str = Field(..., description="Source from incentives_format.json")
+    incentive_type: str = Field(
+        ..., description="Type of incentive (Fixed, Percent, Variable)"
+    )
+
+
+class IncentiveMetadata(BaseModel):
+    """Metadata about applied incentives for a retrofit."""
+
+    applied_incentives: list[AppliedIncentive] = Field(
+        ..., description="List of all incentives that were applied"
+    )
+    total_incentive_amount: float = Field(
+        ..., description="Total incentive amount across all programs"
+    )
+    income_level: str = Field(..., description="Income level these incentives apply to")
+
 
 # provided features
 """
