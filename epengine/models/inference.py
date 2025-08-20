@@ -1568,6 +1568,15 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         new_results = self.original.compute_distributions(
             new_features, new_results_energy
         )
+        # new_results_peak = self.original.compute_distributions(
+        #     new_features, _new_results_peak
+        # )
+
+        # Build features for retrofit costs by adding calculated heating capacity (kW)
+        features_for_costs = new_features.copy(deep=True)
+        features_for_costs["feature.calculated.heating_capacity_kw"] = (
+            self.compute_heating_capacity_kw(_new_results_peak, features_for_costs)
+        )
 
         # finally, we compute the deltas and the corresponding summary
         # statistics.
@@ -1596,10 +1605,11 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             Path(__file__).parent / "data" / "incentives_format.json"
         )
         retrofit_costs = self.compute_retrofit_costs(new_results.features, cost_config)
+        retrofit_costs = self.compute_retrofit_costs(features_for_costs, cost_config)
 
         # Compute incentives for both income levels
         all_customers_incentives, income_eligible_incentives = self.compute_incentives(
-            new_results.features, incentive_config, retrofit_costs
+            features_for_costs, incentive_config, retrofit_costs
         )
 
         # Compute net costs after incentives
@@ -1830,11 +1840,29 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         self, _new_results_peak: pd.DataFrame, df_features: pd.DataFrame
     ) -> pd.Series:
         """Compute heating capacity in kW based on peak heating load."""
-        heating_peaks = _new_results_peak.totals.Gross.Heating
-        heat_cop = df_features["feature.factors.system.heat.effective_cop"]
-        heating_capacity_kw = heating_peaks.div(heat_cop, axis=0)
-        # use the COP vals
-        return heating_capacity_kw
+        # Use peak heating load (per m2), scale to gross by area, divide by effective COP, and we also add a 20% safety factor in line with what most contractors are going to do
+        if isinstance(_new_results_peak.columns, pd.MultiIndex):
+            # Try to select 'Raw' slice if present, else use as-is
+            if "Raw" in _new_results_peak.columns.get_level_values(0):
+                peak_slice = _new_results_peak["Raw"]
+            else:
+                peak_slice = _new_results_peak
+        else:
+            peak_slice = _new_results_peak
+
+        if "Heating" not in peak_slice.columns:
+            # Fallback: the column may be a tuple ("Raw", "Heating") when not sliced above
+            try:
+                peak_heating_per_m2 = _new_results_peak[("Raw", "Heating")]
+            except Exception as e:
+                msg = "Expected 'Heating' in Peak results (with or without 'Raw' sublevel)."
+                raise KeyError(msg) from e
+        else:
+            peak_heating_per_m2 = peak_slice["Heating"]
+        gross_peak_kw = peak_heating_per_m2 * self.original.actual_conditioned_area_m2
+        effective_cop = df_features["feature.factors.system.heat.effective_cop"]
+        electrical_capacity_kw = gross_peak_kw / effective_cop
+        return pd.Series(electrical_capacity_kw, index=df_features.index) * 1.2
 
     def compute_retrofit_costs(
         self, features: pd.DataFrame, all_costs: "RetrofitCosts"
@@ -2051,8 +2079,19 @@ class VariableCost(BaseModel, Cost):
 
     def _compute_calculated_feature(self, calc_method: str, features: pd.DataFrame):
         """Compute calculated features like heating capacity."""
-        # TODO: Implement this method
-        raise NotImplementedError
+        # TODO: potentially also calculated the cooling peak (once stabilized), to ensure that the heat pump is sized to the correct max load
+        if calc_method == "heating_capacity_kw":
+            precomputed_col = "feature.calculated.heating_capacity_kw"
+            if precomputed_col in features.columns:
+                return features[precomputed_col]
+            # Fallback: approximate capacity from conditioned area if peaks are not available
+            area_col = "feature.geometry.energy_model_conditioned_area"
+            if area_col in features.columns:
+                return features[area_col] * 25 * 0.0031546
+            msg = "Missing required features to compute heating_capacity_kw."
+            raise KeyError(msg)
+        msg = f"Unknown calculated feature method: {calc_method}"
+        raise NotImplementedError(msg)
 
     def _apply_conditional_factors(
         self, result: pd.Series, features: pd.DataFrame
@@ -2460,19 +2499,25 @@ class RetrofitIncentives(BaseModel):
 
     def compute(self, features: pd.DataFrame, costs_df: pd.DataFrame) -> pd.DataFrame:
         """Compute the incentives for a given feature."""
-        if self.incentives:
-            incentives = pd.concat(
-                [
-                    incentive.compute(features, costs_df)
-                    for incentive in self.incentives
-                ],
-                axis=1,
-            )
-            total = incentives.sum(axis=1).rename("incentive.Total")
-            data = pd.concat([incentives, total], axis=1)
-            return data
-        else:
+        if not self.incentives:
             return pd.DataFrame({"incentive.Total": [0] * len(features)})
+
+        # Compute each incentive as a Series (columns may duplicate across programs)
+        incentives_df = pd.concat(
+            [incentive.compute(features, costs_df) for incentive in self.incentives],
+            axis=1,
+        )
+
+        # Aggregate duplicate columns by summing per column name
+        if incentives_df.columns.duplicated().any():
+            aggregated = incentives_df.T.groupby(level=0).sum().T
+        else:
+            aggregated = incentives_df
+
+        # Compute a single Total across all incentive.* columns
+        total = aggregated.sum(axis=1).rename("incentive.Total")
+        data = pd.concat([aggregated, total], axis=1)
+        return data
 
     @classmethod
     def Open(cls, path: Path) -> "RetrofitIncentives":
