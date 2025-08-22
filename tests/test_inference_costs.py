@@ -91,23 +91,21 @@ def test_features_with_location():
 @pytest.fixture
 def retrofit_costs():
     """Load retrofit costs for testing."""
-    costs_path = Path("epengine/models/data/retrofit-costs-new.json")
+    costs_path = Path("epengine/models/data/retrofit-costs.json")
     return RetrofitQuantities.Open(costs_path)
 
 
 @pytest.fixture
 def all_customers_incentives():
     """Load all customers incentives for testing."""
-    all_customers_path = Path("epengine/models/data/incentives_all_customers-new.json")
+    all_customers_path = Path("epengine/models/data/incentives_all_customers.json")
     return RetrofitQuantities.Open(all_customers_path)
 
 
 @pytest.fixture
 def income_eligible_incentives():
     """Load income eligible incentives for testing."""
-    income_eligible_path = Path(
-        "epengine/models/data/incentives_income_eligible-new.json"
-    )
+    income_eligible_path = Path("epengine/models/data/incentives_income_eligible.json")
     return RetrofitQuantities.Open(income_eligible_path)
 
 
