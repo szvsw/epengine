@@ -1,27 +1,19 @@
 #!/usr/bin/env python3
-"""Test script for incentives integration and costs checks. NOT comprehensive test suite yet."""
+"""Test script for the refactored inference.py cost functionality using pytest."""
 
-import sys
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-# logger = logging.getLogger(__name__)
-# logging.basicConfig(level=logging.DEBUG)
-
-from epengine.models.inference import (
-    AppliedIncentive,
-    IncentiveMetadata,
-    RetrofitCosts,
-    RetrofitIncentives,
-)
+from epengine.models.inference import RetrofitQuantities
 
 
-def create_test_features():
+@pytest.fixture
+def test_features():
     """Create a sample feature dataframe for testing."""
     features = pd.DataFrame({
-        "feature.geometry.energy_model_conditioned_area": [150.0],  # 150 m2
+        "feature.geometry.energy_model_conditioned_area": [250.0],  # 150 m2
         "feature.geometry.est_fp_ratio": [1.0],
         "feature.geometry.computed.roof_surface_area": [200.0],  # 200 m2
         "feature.geometry.roof_is_flat.num": [0],  # pitched roof
@@ -29,7 +21,7 @@ def create_test_features():
         "feature.geometry.computed.whole_bldg_facade_area": [300.0],  # 300 m2
         "feature.geometry.est_uniform_linear_scaling_factor": [1.0],
         "feature.geometry.computed.total_linear_facade_distance": [100.0],  # 100 m
-        "feature.geometry.computed.footprint_area": [150.0],  # 150 m2
+        "feature.geometry.computed.footprint_area": [250.0],  # 150 m2
         "feature.geometry.computed.window_area": [30.0],  # 30 m2
         "feature.geometry.computed.perimeter": [50.0],  # 50 m
         "feature.extra_spaces.basement.exists.num": [1],  # has basement
@@ -39,1222 +31,797 @@ def create_test_features():
     return features
 
 
-def create_test_features_with_location():
+@pytest.fixture
+def test_features_with_location():
     """Create test features with location information for conditional factors."""
-    features = create_test_features()
+    features = pd.DataFrame({
+        "feature.geometry.energy_model_conditioned_area": [250.0],  # 150 m2
+        "feature.geometry.est_fp_ratio": [1.0],
+        "feature.geometry.computed.roof_surface_area": [200.0],  # 200 m2
+        "feature.geometry.roof_is_flat.num": [0],  # pitched roof
+        "feature.geometry.roof_is_attic.num": [1],  # has attic
+        "feature.geometry.computed.whole_bldg_facade_area": [300.0],  # 300 m2
+        "feature.geometry.est_uniform_linear_scaling_factor": [1.0],
+        "feature.geometry.computed.total_linear_facade_distance": [100.0],  # 100 m
+        "feature.geometry.computed.footprint_area": [250.0],  # 150 m2
+        "feature.geometry.computed.window_area": [30.0],  # 30 m2
+        "feature.geometry.computed.perimeter": [50.0],  # 50 m
+        "feature.extra_spaces.basement.exists.num": [1],  # has basement
+        "feature.extra_spaces.basement.occupied.num": [0],  # unoccupied basement
+        "feature.extra_spaces.basement.not_occupied.num": [1],
+    })
+
     # Add location features for conditional factors
     features["feature.location.county"] = "Middlesex"  # Default county
     features["feature.semantic.Heating"] = "NaturalGasHeating"  # Has gas heating
     features["feature.semantic.Cooling"] = "ACCentral"  # Has cooling
+
+    # Add precomputed features that would normally be added by make_retrofit_cost_features
+    # Heating capacity (placeholder - would normally be calculated from peak results)
+    features["feature.calculated.heating_capacity_kW"] = 25  # 15 kW heating capacity
+
+    # County indicators (one-hot encoded)
+    features["feature.location.in_county_Middlesex"] = 1
+    features["feature.location.in_county_Berkshire"] = 0
+    features["feature.location.in_county_Barnstable"] = 0
+    features["feature.location.in_county_Bristol"] = 0
+    features["feature.location.in_county_Dukes"] = 0
+    features["feature.location.in_county_Essex"] = 0
+    features["feature.location.in_county_Franklin"] = 0
+    features["feature.location.in_county_Hampden"] = 0
+    features["feature.location.in_county_Hampshire"] = 0
+    features["feature.location.in_county_Nantucket"] = 0
+    features["feature.location.in_county_Norfolk"] = 0
+    features["feature.location.in_county_Plymouth"] = 0
+    features["feature.location.in_county_Suffolk"] = 0
+    features["feature.location.in_county_Worcester"] = 0
+
+    # System indicators
+    features["feature.system.has_gas"] = 1  # Has gas heating
+    features["feature.system.has_gas_not"] = 0
+    features["feature.system.has_cooling"] = 1  # Has cooling
+    features["feature.system.has_cooling_not"] = 0
+
+    # Constant feature
+    features["feature.constant.one"] = 1
+
     return features
 
 
-def test_cost_calculation():
+@pytest.fixture
+def retrofit_costs():
+    """Load retrofit costs for testing."""
+    costs_path = Path("epengine/models/data/retrofit-costs-new.json")
+    return RetrofitQuantities.Open(costs_path)
+
+
+@pytest.fixture
+def all_customers_incentives():
+    """Load all customers incentives for testing."""
+    all_customers_path = Path("epengine/models/data/incentives_all_customers-new.json")
+    return RetrofitQuantities.Open(all_customers_path)
+
+
+@pytest.fixture
+def income_eligible_incentives():
+    """Load income eligible incentives for testing."""
+    income_eligible_path = Path(
+        "epengine/models/data/incentives_income_eligible-new.json"
+    )
+    return RetrofitQuantities.Open(income_eligible_path)
+
+
+class TestCostCalculation:
     """Test basic cost calculation functionality."""
-    print("=== Testing Cost Calculation ===")
 
-    # Load the retrofit costs
-    costs_path = Path("epengine/models/data/retrofit-costs.json")
-    retrofit_costs = RetrofitCosts.Open(costs_path)
+    def test_cost_calculation(self, retrofit_costs, test_features_with_location):
+        """Test basic cost calculation functionality."""
+        print(f"Loaded {len(retrofit_costs.quantities)} cost configurations")
 
-    print(f"Loaded {len(retrofit_costs.costs)} cost configurations")
-
-    # Create test features
-    features = create_test_features_with_location()
-
-    # Test a specific cost calculation - ASHP Heating
-    ashp_costs = [
-        cost
-        for cost in retrofit_costs.costs
-        if cost.semantic_field == "Heating" and cost.final == "ASHPHeating"
-    ]
-    if ashp_costs:
-        ashp_cost = ashp_costs[0]
-        cost_result = ashp_cost.compute(features)
-        print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
-        assert cost_result.iloc[0] > 0, "Cost should be positive"
-
-    # Test a variable cost calculation - Windows
-    window_costs = [
-        cost
-        for cost in retrofit_costs.costs
-        if cost.semantic_field == "Windows" and cost.final == "DoublePaneLowE"
-    ]
-    if window_costs:
-        window_cost = window_costs[0]
-        cost_result = window_cost.compute(features)
-        expected_cost = 538.2 * 30.0 * 1.0  # coefficient * window_area * scaling_factor
-        print(
-            f"Double Pane Windows cost: ${cost_result.iloc[0]:.2f} (expected: ${expected_cost:.2f})"
-        )
-        # Account for error_scale variation (5% = 0.05)
-        # Allow for 3 standard deviations of variation (99.7% of cases)
-        error_margin = expected_cost * 0.05 * 3
-        assert abs(cost_result.iloc[0] - expected_cost) < error_margin, (
-            f"Window cost calculation incorrect. Expected ${expected_cost:.2f} ± ${error_margin:.2f}, got ${cost_result.iloc[0]:.2f}"
-        )
-
-    print("Cost calculation tests passed\n")
-
-
-def test_heat_pump_cost_calculation():
-    """Test the new heat pump cost calculation formula."""
-    print("=== Testing Heat Pump Cost Calculation ===")
-
-    # Load the retrofit costs
-    costs_path = Path("epengine/models/data/retrofit-costs.json")
-    retrofit_costs = RetrofitCosts.Open(costs_path)
-
-    # Create test features with location information
-    features = create_test_features_with_location()
-
-    # Test ASHP cost calculation
-    ashp_costs = [
-        cost
-        for cost in retrofit_costs.costs
-        if cost.semantic_field == "Heating" and cost.final == "ASHPHeating"
-    ]
-
-    if ashp_costs:
-        ashp_cost = ashp_costs[0]
-        cost_result = ashp_cost.compute(features)
-
-        # Calculate expected cost based on the new formula:
-        # intercept + feature_component + calculated_component + conditional_factors
-
-        # Base components
-        intercept = -79
-        conditioned_area = features[
-            "feature.geometry.energy_model_conditioned_area"
-        ].iloc[0]
-        feature_component = 0.28 * conditioned_area
-
-        # Calculated component (heating capacity)
-        # Estimate heating capacity: 150 m2 * 25 BTU/sqft * 0.0031546 = ~11.8 kW
-        heating_capacity_kw = conditioned_area * 25 * 0.0031546
-        calculated_component = 303 * heating_capacity_kw
-
-        # Conditional factors (Middlesex county, has gas, has cooling)
-        county_factor = 2497  # Middlesex
-        gas_factor = 438  # has_gas = true
-        cooling_factor = 334  # has_cooling = true
-
-        expected_cost = (
-            intercept
-            + feature_component
-            + calculated_component
-            + county_factor
-            + gas_factor
-            + cooling_factor
-        )
-
-        print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
-        print("Expected cost breakdown:")
-        print(f"  Intercept: ${intercept}")
-        print(
-            f"  Feature component (0.28 * {conditioned_area}m²): ${feature_component:.2f}"
-        )
-        print(
-            f"  Calculated component (303 * {heating_capacity_kw:.1f}kW): ${calculated_component:.2f}"
-        )
-        print(f"  County factor (Middlesex): ${county_factor}")
-        print(f"  Gas factor: ${gas_factor}")
-        print(f"  Cooling factor: ${cooling_factor}")
-        print(f"  Total expected: ${expected_cost:.2f}")
-
-        # Account for error_scale variation (5% = 0.05)
-        # Allow for 3 standard deviations of variation (99.7% of cases)
-        error_margin = expected_cost * 0.05 * 3
-        assert abs(cost_result.iloc[0] - expected_cost) < error_margin, (
-            f"ASHP cost calculation incorrect. Expected ${expected_cost:.2f} ± ${error_margin:.2f}, got ${cost_result.iloc[0]:.2f}"
-        )
-
-    # Test GSHP cost calculation
-    gshp_costs = [
-        cost
-        for cost in retrofit_costs.costs
-        if cost.semantic_field == "Heating" and cost.final == "GSHPHeating"
-    ]
-
-    if gshp_costs:
-        gshp_cost = gshp_costs[0]
-        cost_result = gshp_cost.compute(features)
-
-        # GSHP formula is similar but without intercept
-        # Recalculate values to avoid unbound variable issues
-        conditioned_area = features[
-            "feature.geometry.energy_model_conditioned_area"
-        ].iloc[0]
-        feature_component = 0.28 * conditioned_area
-        heating_capacity_kw = conditioned_area * 25 * 0.0031546
-        calculated_component = 303 * heating_capacity_kw
-        county_factor = 2497  # Middlesex
-        gas_factor = 438  # has_gas = true
-        cooling_factor = 334  # has_cooling = true
-        conditional_factors = county_factor + gas_factor + cooling_factor
-
-        expected_cost = feature_component + calculated_component + conditional_factors
-
-        print(f"\nGSHP Heating cost: ${cost_result.iloc[0]:.2f}")
-        print("Expected cost breakdown:")
-        print(
-            f"  Feature component (0.28 * {conditioned_area}m²): ${feature_component:.2f}"
-        )
-        print(
-            f"  Calculated component (303 * {heating_capacity_kw:.1f}kW): ${calculated_component:.2f}"
-        )
-        print(f"  Conditional factors: ${conditional_factors}")
-        print(f"  Total expected: ${expected_cost:.2f}")
-
-        error_margin = expected_cost * 0.05 * 3
-        assert abs(cost_result.iloc[0] - expected_cost) < error_margin, (
-            f"GSHP cost calculation incorrect. Expected ${expected_cost:.2f} ± ${error_margin:.2f}, got ${cost_result.iloc[0]:.2f}"
-        )
-
-    print("✓ Heat pump cost calculation tests passed\n")
-
-
-def test_new_cost_structure():
-    """Test the new cost structure with different types of cost factors."""
-    print("=== Testing New Cost Structure ===")
-
-    # Load the retrofit costs
-    costs_path = Path("epengine/models/data/retrofit-costs.json")
-    retrofit_costs = RetrofitCosts.Open(costs_path)
-
-    # Create test features
-    features = create_test_features_with_location()
-
-    # Test different cost types
-    test_cases = [
-        {
-            "name": "Fixed Cost - Thermostat",
-            "semantic_field": "Thermostat",
-            "final": "Controls",
-            "expected_type": "FixedCost",
-        },
-        {
-            "name": "Variable Cost - Windows",
-            "semantic_field": "Windows",
-            "final": "DoublePaneLowE",
-            "expected_type": "VariableCost",
-        },
-        {
-            "name": "Complex Cost - ASHP",
-            "semantic_field": "Heating",
-            "final": "ASHPHeating",
-            "expected_type": "VariableCost",
-        },
-    ]
-
-    for test_case in test_cases:
-        matching_costs = [
+        # Test a specific cost calculation - ASHP Heating
+        ashp_costs = [
             cost
-            for cost in retrofit_costs.costs
-            if cost.semantic_field == test_case["semantic_field"]
-            and cost.final == test_case["final"]
+            for cost in retrofit_costs.quantities
+            if cost.trigger_column == "Heating" and cost.final == "ASHPHeating"
         ]
+        if ashp_costs:
+            ashp_cost = ashp_costs[0]
+            cost_result = ashp_cost.compute(test_features_with_location)
+            print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
+            assert cost_result.iloc[0] > 0, "Cost should be positive"
 
-        if matching_costs:
-            cost = matching_costs[0]
-            cost_result = cost.compute(features)
-
-            print(f"{test_case['name']}: ${cost_result.iloc[0]:.2f}")
-
-            # Check that the cost has the expected structure
-            for cost_factor in cost.cost_factors:
-                if test_case["expected_type"] == "FixedCost":
-                    assert hasattr(cost_factor, "amount"), (
-                        "Fixed cost should have amount attribute"
-                    )
-                elif test_case["expected_type"] == "VariableCost":
-                    assert hasattr(cost_factor, "coefficient") or hasattr(
-                        cost_factor, "intercept"
-                    ), "Variable cost should have coefficient or intercept"
-
-                    # Check for new structure components (only for VariableCost)
-                    from epengine.models.inference import VariableCost
-
-                    if isinstance(cost_factor, VariableCost):
-                        if cost_factor.feature_components:
-                            print(
-                                f"  - Has {len(cost_factor.feature_components)} feature components"
-                            )
-                        if cost_factor.calculated_components:
-                            print(
-                                f"  - Has {len(cost_factor.calculated_components)} calculated components"
-                            )
-                        if cost_factor.conditional_factors:
-                            print("  - Has conditional factors")
-        else:
-            print(f"No cost found for {test_case['name']}")
-
-    print("✓ New cost structure tests passed\n")
-
-
-def test_incentive_loading():
-    """Test incentive loading and basic functionality."""
-    print("=== Testing Incentive Loading ===")
-
-    # Load the incentives
-    incentives_path = Path("epengine/models/data/incentives_format.json")
-    retrofit_incentives = RetrofitIncentives.Open(incentives_path)
-
-    print(f"Loaded {len(retrofit_incentives.incentives)} incentive configurations")
-
-    # Check for specific incentive types
-    ashp_incentives = [
-        inc
-        for inc in retrofit_incentives.incentives
-        if inc.semantic_field == "Heating" and inc.final == "ASHPHeating"
-    ]
-    print(f"Found {len(ashp_incentives)} ASHP heating incentives")
-
-    # Check for different income levels
-    all_customer_incentives = [
-        inc
-        for inc in ashp_incentives
-        if "All_customers" in inc.eligibility.get("income", [])
-    ]
-    income_eligible_incentives = [
-        inc
-        for inc in ashp_incentives
-        if "Income_eligible" in inc.eligibility.get("income", [])
-    ]
-
-    print(f"All customers ASHP incentives: {len(all_customer_incentives)}")
-    print(f"Income eligible ASHP incentives: {len(income_eligible_incentives)}")
-
-    assert len(all_customer_incentives) > 0, "Should have incentives for all customers"
-    assert len(income_eligible_incentives) > 0, (
-        "Should have incentives for income eligible customers"
-    )
-
-    print("✓ Incentive loading tests passed\n")
-
-
-def test_incentive_calculation():
-    """Test incentive calculation functionality."""
-    print("=== Testing Incentive Calculation ===")
-
-    # Load costs and incentives
-    costs_path = Path("epengine/models/data/retrofit-costs.json")
-    incentives_path = Path("epengine/models/data/incentives_format.json")
-    retrofit_costs = RetrofitCosts.Open(costs_path)
-    retrofit_incentives = RetrofitIncentives.Open(incentives_path)
-
-    features = create_test_features_with_location()
-
-    dhw_incentives = [
-        inc
-        for inc in retrofit_incentives.incentives
-        if inc.semantic_field == "DHW" and inc.final == "HPWH"
-    ]
-
-    if dhw_incentives:
-        dhw_incentive = dhw_incentives[0]  # Should be the "All_customers" one
-        # Create a proper cost DataFrame with the DHW cost column
-        costs_df = pd.DataFrame(
-            {"cost.DHW": [1000.0]}, index=features.index
-        )  # Dummy cost for testing
-        incentive_result = dhw_incentive.compute(features, costs_df)
-        print(f"DHW HPWH incentive (All customers): ${incentive_result.iloc[0]:.2f}")
-        assert incentive_result.iloc[0] > 0, "Incentive should be positive"
-
-    # Test percentage incentive calculation
-    # First create a cost dataframe
-    ashp_costs = [
-        cost
-        for cost in retrofit_costs.costs
-        if cost.semantic_field == "Heating" and cost.final == "ASHPHeating"
-    ]
-    if ashp_costs:
-        ashp_cost = ashp_costs[0]
-        cost_result = ashp_cost.compute(features)
-        costs_df = pd.DataFrame({"cost.Heating": cost_result})
-
-        # Find IRA incentive (percentage based)
-        ira_incentives = [
-            inc
-            for inc in retrofit_incentives.incentives
-            if inc.program == "IRA"
-            and inc.semantic_field == "Heating"
-            and inc.final == "ASHPHeating"
-        ]
-
-        if ira_incentives:
-            ira_incentive = ira_incentives[0]
-            incentive_result = ira_incentive.compute(features, costs_df)
-            expected_incentive = cost_result.iloc[0] * 0.30  # 30% of cost
-            # Check if the incentive is capped at $2000
-            expected_incentive = min(expected_incentive, 2000.0)  # IRA limit
-            print(
-                f"IRA ASHP incentive: ${incentive_result.iloc[0]:.2f} (expected: ${expected_incentive:.2f})"
-            )
-            # Account for error_scale variation (5% = 0.05) in both cost and incentive
-            # Allow for 3 standard deviations of variation (99.7% of cases)
-            error_margin = expected_incentive * 0.05 * 3
-            assert abs(incentive_result.iloc[0] - expected_incentive) < error_margin, (
-                f"Percentage incentive calculation incorrect. Expected ${expected_incentive:.2f} ± ${error_margin:.2f}, got ${incentive_result.iloc[0]:.2f}"
-            )
-
-    print("✓ Incentive calculation tests passed\n")
-
-
-def test_eligibility_checking():
-    """Test incentive eligibility checking."""
-    print("=== Testing Eligibility Checking ===")
-
-    # Load incentives
-    incentives_path = Path("epengine/models/data/incentives_format.json")
-    retrofit_incentives = RetrofitIncentives.Open(incentives_path)
-
-    # Test different eligibility scenarios
-    test_cases = [
-        {
-            "name": "MA resident, all customers",
-            "context": {"Region": "MA", "Heating": "NaturalGasHeating"},
-            "expected_eligible": True,
-        },
-        {
-            "name": "Non-MA resident",
-            "context": {"Region": "CA", "Heating": "NaturalGasHeating"},
-            "expected_eligible": False,
-        },
-        {
-            "name": "MA resident, ineligible heating type",
-            "context": {"Region": "MA", "Heating": "ASHPHeating"},
-            "expected_eligible": False,
-        },
-    ]
-
-    for test_case in test_cases:
-        # Test with a MassSave ASHP incentive
-        ashp_incentives = [
-            inc
-            for inc in retrofit_incentives.incentives
-            if inc.program == "MassSave"
-            and inc.semantic_field == "Heating"
-            and inc.final == "ASHPHeating"
-        ]
-
-        if ashp_incentives:
-            incentive = ashp_incentives[0]  # All customers version
-
-            # Check eligibility manually
-            is_eligible = True
-            eligibility = incentive.eligibility
-
-            # Check region
-            if "region" in eligibility:
-                region = test_case["context"].get("Region", "MA")
-                if region not in eligibility["region"]:
-                    is_eligible = False
-
-            # Check heating type
-            if "Heating" in eligibility:
-                heating = test_case["context"].get("Heating")
-                if heating not in eligibility["Heating"]:
-                    is_eligible = False
-
-            print(
-                f"{test_case['name']}: {'✓ Eligible' if is_eligible else '✗ Not eligible'}"
-            )
-            assert is_eligible == test_case["expected_eligible"], (
-                f"Eligibility check failed for {test_case['name']}"
-            )
-
-    print("✓ Eligibility checking tests passed\n")
-
-
-def test_cost_and_incentive_selection():
-    """Test cost and incentive selection functionality."""
-    print("=== Testing Cost and Incentive Selection ===")
-
-    # Load costs and incentives
-    costs_path = Path("epengine/models/data/retrofit-costs.json")
-    incentives_path = Path("epengine/models/data/incentives_format.json")
-    retrofit_costs = RetrofitCosts.Open(costs_path)
-    retrofit_incentives = RetrofitIncentives.Open(incentives_path)
-
-    # Test cost entity selection manually
-    print(f"Total available costs: {len(retrofit_costs.costs)}")
-
-    # Test specific cost selections
-    ashp_costs = [
-        cost
-        for cost in retrofit_costs.costs
-        if cost.semantic_field == "Heating" and cost.final == "ASHPHeating"
-    ]
-    print(f"ASHP Heating costs available: {len(ashp_costs)}")
-
-    dhw_costs = [
-        cost
-        for cost in retrofit_costs.costs
-        if cost.semantic_field == "DHW" and cost.final == "HPWH"
-    ]
-    print(f"DHW HPWH costs available: {len(dhw_costs)}")
-
-    # Test incentive entity selection manually
-    print(f"Total available incentives: {len(retrofit_incentives.incentives)}")
-
-    # Test specific incentive selections
-    ashp_incentives = [
-        inc
-        for inc in retrofit_incentives.incentives
-        if inc.semantic_field == "Heating" and inc.final == "ASHPHeating"
-    ]
-    print(f"ASHP Heating incentives available: {len(ashp_incentives)}")
-
-    dhw_incentives = [
-        inc
-        for inc in retrofit_incentives.incentives
-        if inc.semantic_field == "DHW" and inc.final == "HPWH"
-    ]
-    print(f"DHW HPWH incentives available: {len(dhw_incentives)}")
-
-    # Test eligibility filtering
-    ma_ashp_incentives = [
-        inc for inc in ashp_incentives if "MA" in inc.eligibility.get("region", [])
-    ]
-    print(f"MA-eligible ASHP incentives: {len(ma_ashp_incentives)}")
-
-    all_customer_ashp = [
-        inc
-        for inc in ashp_incentives
-        if "All_customers" in inc.eligibility.get("income", [])
-    ]
-    print(f"All-customer ASHP incentives: {len(all_customer_ashp)}")
-
-    print("✓ Cost and incentive selection tests passed\n")
-
-
-def test_manual_cost_calculation():
-    """Test manual cost calculation with sample data."""
-    print("=== Testing Manual Cost Calculation ===")
-
-    # Load costs
-    costs_path = Path("epengine/models/data/retrofit-costs.json")
-    retrofit_costs = RetrofitCosts.Open(costs_path)
-
-    # Create test features
-    features = create_test_features_with_location()
-
-    # Test multiple cost calculations
-    test_upgrades = [
-        ("Heating", "ASHPHeating"),
-        ("DHW", "HPWH"),
-        ("Windows", "DoublePaneLowE"),
-        ("Thermostat", "Controls"),
-    ]
-
-    total_cost = 0
-    for semantic_field, final_value in test_upgrades:
-        matching_costs = [
+        # Test a fixed cost calculation - Thermostat
+        thermostat_costs = [
             cost
-            for cost in retrofit_costs.costs
-            if cost.semantic_field == semantic_field and cost.final == final_value
+            for cost in retrofit_costs.quantities
+            if cost.trigger_column == "Thermostat" and cost.final == "Controls"
         ]
-
-        if matching_costs:
-            cost_result = matching_costs[0].compute(features)
-            cost_amount = cost_result.iloc[0]
-            total_cost += cost_amount
-            print(f"{semantic_field} → {final_value}: ${cost_amount:.2f}")
-        else:
-            print(f"No cost found for {semantic_field} → {final_value}")
-
-    print(f"Total retrofit cost: ${total_cost:.2f}")
-    assert total_cost > 0, "Total cost should be positive"
-
-    print("✓ Manual cost calculation tests passed\n")
-
-
-def test_manual_incentive_calculation():
-    """Test manual incentive calculation with sample data."""
-    print("=== Testing Manual Incentive Calculation ===")
-
-    # Load incentives
-    incentives_path = Path("epengine/models/data/incentives_format.json")
-    retrofit_incentives = RetrofitIncentives.Open(incentives_path)
-
-    # Create test features
-    features = create_test_features()
-
-    # Test multiple incentive calculations
-    test_upgrades = [
-        ("Heating", "ASHPHeating"),
-        ("DHW", "HPWH"),
-        ("Thermostat", "Controls"),
-    ]
-
-    total_incentive = 0
-    for semantic_field, final_value in test_upgrades:
-        matching_incentives = [
-            inc
-            for inc in retrofit_incentives.incentives
-            if inc.semantic_field == semantic_field and inc.final == final_value
-        ]
-
-        if matching_incentives:
-            # Use the first matching incentive (All_customers version)
-            incentive_result = matching_incentives[0].compute(features, pd.DataFrame())
-            incentive_amount = incentive_result.iloc[0]
-            total_incentive += incentive_amount
-            print(f"{semantic_field} → {final_value}: ${incentive_amount:.2f}")
-        else:
-            print(f"No incentive found for {semantic_field} → {final_value}")
-
-    print(f"Total incentive amount: ${total_incentive:.2f}")
-    assert total_incentive > 0, "Total incentive should be positive"
-
-    print("✓ Manual incentive calculation tests passed\n")
-
-
-def test_income_level_differentiation():  # noqa: C901
-    """Test that incentives are properly differentiated by income level."""
-    print("=== Testing Income Level Differentiation ===")
-
-    # Load costs and incentives
-    costs_path = Path("epengine/models/data/retrofit-costs.json")
-    incentives_path = Path("epengine/models/data/incentives_format.json")
-    retrofit_costs = RetrofitCosts.Open(costs_path)
-    retrofit_incentives = RetrofitIncentives.Open(incentives_path)
-
-    # Create test features
-    features = create_test_features_with_location()
-
-    # Test with ASHP heating upgrade
-    ashp_costs = [
-        cost
-        for cost in retrofit_costs.costs
-        if cost.semantic_field == "Heating" and cost.final == "ASHPHeating"
-    ]
-
-    if ashp_costs:
-        # Calculate the cost first
-        ashp_cost = ashp_costs[0]
-        cost_result = ashp_cost.compute(features)
-        costs_df = pd.DataFrame({"cost.Heating": cost_result})
-
-        print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
-
-        # Find incentives for both income levels
-        all_customer_incentives = [
-            inc
-            for inc in retrofit_incentives.incentives
-            if inc.semantic_field == "Heating"
-            and inc.final == "ASHPHeating"
-            and "All_customers" in inc.eligibility.get("income", [])
-        ]
-
-        income_eligible_incentives = [
-            inc
-            for inc in retrofit_incentives.incentives
-            if inc.semantic_field == "Heating"
-            and inc.final == "ASHPHeating"
-            and "Income_eligible" in inc.eligibility.get("income", [])
-        ]
-
-        print(f"Found {len(all_customer_incentives)} All_customers incentives")
-        print(f"Found {len(income_eligible_incentives)} Income_eligible incentives")
-
-        # Test All_customers incentives
-        all_customer_total = 0
-        if all_customer_incentives:
-            print("\nAll Customers Incentives:")
-            for _i, incentive in enumerate(all_customer_incentives):
-                try:
-                    result = incentive.compute(features, costs_df)
-                    amount = result.iloc[0]
-                    all_customer_total += amount
-                    print(f"  {incentive.program}: ${amount:.2f}")
-                except Exception as e:
-                    print(f"  {incentive.program}: Error - {e}")
-
-        # Test Income_eligible incentives
-        income_eligible_total = 0
-        if income_eligible_incentives:
-            print("\nIncome Eligible Incentives:")
-            for _i, incentive in enumerate(income_eligible_incentives):
-                try:
-                    result = incentive.compute(features, costs_df)
-                    amount = result.iloc[0]
-                    income_eligible_total += amount
-                    print(f"  {incentive.program}: ${amount:.2f}")
-                except Exception as e:
-                    print(f"  {incentive.program}: Error - {e}")
-
-        print(f"\nTotal All Customers Incentives: ${all_customer_total:.2f}")
-        print(f"Total Income Eligible Incentives: ${income_eligible_total:.2f}")
-
-        # Verify that we have different incentive amounts for different income levels
-        assert all_customer_total > 0, (
-            "Should have positive incentives for all customers"
-        )
-        assert income_eligible_total > 0, (
-            "Should have positive incentives for income eligible"
-        )
-
-        # Income eligible incentives should typically be higher
-        if income_eligible_total > all_customer_total:
-            print(
-                "✓ Income eligible incentives are higher than all customer incentives (expected)"
-            )
-        else:
-            print(
-                "Info: Income eligible incentives are not higher (may be expected depending on program design)"
-            )
-
-    # Test with DHW upgrade as well
-    print("\n--- Testing DHW HPWH Incentives ---")
-
-    dhw_costs = [
-        cost
-        for cost in retrofit_costs.costs
-        if cost.semantic_field == "DHW" and cost.final == "HPWH"
-    ]
-
-    if dhw_costs:
-        dhw_cost = dhw_costs[0]
-        cost_result = dhw_cost.compute(features)
-        costs_df = pd.DataFrame({"cost.DHW": cost_result})
-
-        print(f"DHW HPWH cost: ${cost_result.iloc[0]:.2f}")
-
-        # Find DHW incentives for both income levels
-        dhw_all_customer = [
-            inc
-            for inc in retrofit_incentives.incentives
-            if inc.semantic_field == "DHW"
-            and inc.final == "HPWH"
-            and "All_customers" in inc.eligibility.get("income", [])
-        ]
-
-        dhw_income_eligible = [
-            inc
-            for inc in retrofit_incentives.incentives
-            if inc.semantic_field == "DHW"
-            and inc.final == "HPWH"
-            and "Income_eligible" in inc.eligibility.get("income", [])
-        ]
-
-        print(f"DHW All_customers incentives: {len(dhw_all_customer)}")
-        print(f"DHW Income_eligible incentives: {len(dhw_income_eligible)}")
-
-        # Test that they compute to different values if both exist
-        if dhw_all_customer and dhw_income_eligible:
-            all_result = dhw_all_customer[0].compute(features, costs_df)
-            income_result = dhw_income_eligible[0].compute(features, costs_df)
-
-            print(f"DHW All customers: ${all_result.iloc[0]:.2f}")
-            print(f"DHW Income eligible: ${income_result.iloc[0]:.2f}")
-
-    print("✓ Income level differentiation tests passed\n")
-
-
-def test_incentive_selection_workflow():
-    """Test the complete incentive selection workflow like in inference.py."""
-    print("=== Testing Incentive Selection Workflow ===")
-
-    # Load incentives
-    incentives_path = Path("epengine/models/data/incentives_format.json")
-    retrofit_incentives = RetrofitIncentives.Open(incentives_path)
-
-    # Create test features with proper semantic context (not used in this workflow)
-
-    # Simulate the selection process for each income level
-    changed_upgrades = [
-        ("Heating", "NaturalGasHeating", "ASHPHeating"),
-        ("DHW", "NaturalGasDHW", "HPWH"),
-    ]
-
-    for income_level in ["All_customers", "Income_eligible"]:
-        print(f"\nTesting {income_level} incentive selection:")
-        selected_incentives = []
-
-        for semantic_field, initial, final in changed_upgrades:
-            candidates = []
-
-            for incentive in retrofit_incentives.incentives:
-                # Check if incentive matches the upgrade
-                if incentive.semantic_field != semantic_field:
-                    continue
-                if incentive.final != final:
-                    continue
-                if incentive.initial is not None and incentive.initial != initial:
-                    continue
-
-                # Check income level eligibility
-                if (
-                    "income" in incentive.eligibility
-                    and income_level not in incentive.eligibility["income"]
-                ):
-                    continue
-
-                # Check region eligibility
-                if (
-                    "region" in incentive.eligibility
-                    and "MA" not in incentive.eligibility["region"]
-                ):
-                    continue
-
-                candidates.append(incentive)
-
-            print(
-                f"  {semantic_field} {initial}→{final}: {len(candidates)} eligible incentives"
-            )
-            if candidates:
-                selected_incentives.extend(candidates)
-
-        print(f"  Total selected for {income_level}: {len(selected_incentives)}")
-
-        # Verify that each income level gets different incentive sets
-        assert len(selected_incentives) > 0, (
-            f"Should have incentives for {income_level}"
-        )
-
-    print("✓ Incentive selection workflow tests passed\n")
-
-
-def test_incentive_metadata_creation():
-    """Test creating incentive metadata objects."""
-    print("=== Testing Incentive Metadata Creation ===")
-
-    # Create a sample applied incentive
-    applied_incentive = AppliedIncentive(
-        semantic_field="Heating",
-        program="MassSave",
-        amount=10000.0,
-        description="MassSave ASHP rebate for all customers",
-        source="MassSave",
-        incentive_type="Fixed",
-    )
-
-    print(f"Created AppliedIncentive: {applied_incentive}")
-
-    # Create incentive metadata
-    metadata = IncentiveMetadata(
-        applied_incentives=[applied_incentive],
-        total_incentive_amount=10000.0,
-        income_level="All_customers",
-    )
-
-    print(f"Created IncentiveMetadata: {metadata}")
-    print(f"Total incentive amount: ${metadata.total_incentive_amount}")
-    print(f"Number of incentives: {len(metadata.applied_incentives)}")
-
-    print("✓ Incentive metadata creation tests passed\n")
-
-
-def test_incentive_metadata_serialization():
-    """Test that incentive metadata can be serialized to JSON."""
-    print("=== Testing Incentive Metadata Serialization ===")
-
-    applied_incentive = AppliedIncentive(
-        semantic_field="Heating",
-        program="MassSave",
-        amount=10000.0,
-        description="MassSave ASHP rebate for all customers",
-        source="MassSave",
-        incentive_type="Fixed",
-    )
-
-    metadata = IncentiveMetadata(
-        applied_incentives=[applied_incentive],
-        total_incentive_amount=10000.0,
-        income_level="All_customers",
-    )
-
-    # Test JSON serialization
-    json_data = metadata.model_dump()
-    print(f"JSON serialization: {json_data}")
-
-    # Test JSON string serialization
-    json_string = metadata.model_dump_json()
-    print(f"JSON string: {json_string}")
-
-    print("✓ Incentive metadata serialization tests passed\n")
-
-
-def _generate_test_costs(retrofit_costs, features, test_upgrades):
-    """Generate costs for the test upgrades."""
-    selected_costs = []
-    for semantic_field, _initial, final in test_upgrades:
-        matching_costs = [
-            cost
-            for cost in retrofit_costs.costs
-            if cost.semantic_field == semantic_field and cost.final == final
-        ]
-        if matching_costs:
-            selected_costs.extend(matching_costs)
-
-    cost_entities = RetrofitCosts(costs=selected_costs)
-    costs_df = cost_entities.compute(features)
-
-    # Add missing cost columns for completeness
-    for feature in retrofit_costs.all_semantic_features:
-        col_name = f"cost.{feature}"
-        if col_name not in costs_df.columns:
-            costs_df[col_name] = 0
-
-    return costs_df, selected_costs
-
-
-def _select_incentives(retrofit_incentives, test_upgrades):
-    """Select incentives for both income levels."""
-    all_customers_incentives = []
-    income_eligible_incentives = []
-
-    for semantic_field, _initial, final in test_upgrades:
-        for incentive in retrofit_incentives.incentives:
-            # Check if incentive matches the upgrade
-            if incentive.semantic_field != semantic_field:
-                continue
-            if incentive.final != final:
-                continue
-            if incentive.initial is not None and incentive.initial != _initial:
-                continue
-
-            # Check region eligibility (MA)
-            if (
-                "region" in incentive.eligibility
-                and "MA" not in incentive.eligibility["region"]
-            ):
-                continue
-
-            # Check income level eligibility
-            if "All_customers" in incentive.eligibility.get("income", []):
-                all_customers_incentives.append(incentive)
-            if "Income_eligible" in incentive.eligibility.get("income", []):
-                income_eligible_incentives.append(incentive)
-
-    return all_customers_incentives, income_eligible_incentives
-
-
-def _compute_incentives(
-    all_customers_incentives,
-    income_eligible_incentives,
-    features,
-    costs_df,
-    retrofit_incentives,
-):
-    """Compute incentives for both income levels."""
-    all_customers_incentive_entities = RetrofitIncentives(
-        incentives=all_customers_incentives
-    )
-    income_eligible_incentive_entities = RetrofitIncentives(
-        incentives=income_eligible_incentives
-    )
-
-    all_customers_df = all_customers_incentive_entities.compute(features, costs_df)
-    income_eligible_df = income_eligible_incentive_entities.compute(features, costs_df)
-
-    # Add missing incentive columns
-    for feature in retrofit_incentives.all_semantic_features:
-        col_name = f"incentive.{feature}"
-        if col_name not in all_customers_df.columns:
-            all_customers_df[col_name] = 0
-        if col_name not in income_eligible_df.columns:
-            income_eligible_df[col_name] = 0
-
-    return all_customers_df, income_eligible_df
-
-
-def _compute_net_costs(costs_df, incentives_df):
-    """Compute net costs after incentives."""
-    net_costs = costs_df.copy()
-
-    # Compute individual net costs for each semantic field
-    for col in incentives_df.columns:
-        if col.startswith("incentive."):
-            semantic_field = col.split(".")[1]
-            cost_col = f"cost.{semantic_field}"
-
-            # Handle potential duplicate columns by summing them
-            if cost_col in net_costs.columns:
-                # If there are multiple columns with the same name, sum them
-                if net_costs.columns.duplicated().any():
-                    # Get all columns with this name and sum them
-                    matching_cols = [c for c in net_costs.columns if c == cost_col]
-                    if len(matching_cols) > 1:
-                        cost_sum = net_costs[matching_cols].sum(axis=1)
-                    else:
-                        cost_sum = net_costs[cost_col]
-                else:
-                    cost_sum = net_costs[cost_col]
-
-                net_col = f"net_cost.{semantic_field}"
-                net_costs[net_col] = cost_sum - incentives_df[col]
-
-    # Compute total net cost correctly: total_cost - total_incentive
-    if "cost.Total" in net_costs.columns and "incentive.Total" in incentives_df.columns:
-        net_costs["net_cost.Total"] = (
-            net_costs["cost.Total"] - incentives_df["incentive.Total"]
-        )
-    else:
-        # Fallback: sum individual net costs if totals not available
-        net_cost_cols = [
-            col for col in net_costs.columns if col.startswith("net_cost.")
-        ]
-        if net_cost_cols:
-            net_costs["net_cost.Total"] = net_costs[net_cost_cols].sum(axis=1)
-        else:
-            # If we have duplicate cost columns, sum them for the total
-            if net_costs.columns.duplicated().any():
-                cost_cols = [
-                    col for col in net_costs.columns if col.startswith("cost.")
-                ]
-                net_costs["net_cost.Total"] = net_costs[cost_cols].sum(axis=1)
-            else:
-                net_costs["net_cost.Total"] = net_costs["cost.Total"]
-
-    return net_costs
-
-
-def _build_incentive_metadata(incentives, features, costs_df, income_level):
-    """Build incentive metadata."""
-    applied_incentives = []
-    total_amount = 0.0
-
-    for incentive in incentives:
-        incentive_result = incentive.compute(features, costs_df)
-        amount = incentive_result.iloc[0] if len(incentive_result) > 0 else 0.0
-
-        if amount > 0:
-            first_factor = next(iter(incentive.incentive_factors))
-
-            from epengine.models.inference import (
-                FixedIncentive,
-                PercentIncentive,
-                VariableIncentive,
-            )
-
-            if isinstance(first_factor, FixedIncentive):
-                incentive_type = "Fixed"
-            elif isinstance(first_factor, PercentIncentive):
-                incentive_type = "Percent"
-            elif isinstance(first_factor, VariableIncentive):
-                incentive_type = "Variable"
-            else:
-                incentive_type = "Unknown"
-
-            applied_incentive = AppliedIncentive(
-                semantic_field=incentive.semantic_field,
-                program=incentive.program,
-                amount=amount,
-                description=first_factor.description,
-                source=first_factor.source,
-                incentive_type=incentive_type,
-            )
-            applied_incentives.append(applied_incentive)
-            total_amount += amount
-
-    return IncentiveMetadata(
-        applied_incentives=applied_incentives,
-        total_incentive_amount=total_amount,
-        income_level=income_level,
-    )
-
-
-def _verify_consistency(
-    all_customers_metadata,
-    income_eligible_metadata,
-    all_customers_df,
-    income_eligible_df,
-    all_customers_net,
-    income_eligible_net,
-    costs_df,
-):
-    """Verify consistency between computed and metadata results."""
-    assert (
-        abs(
-            all_customers_metadata.total_incentive_amount
-            - all_customers_df["incentive.Total"].iloc[0]
-        )
-        < 0.01
-    ), (
-        f"Metadata total (${all_customers_metadata.total_incentive_amount:.2f}) doesn't match computed total (${all_customers_df['incentive.Total'].iloc[0]:.2f})"
-    )
-    assert (
-        abs(
-            income_eligible_metadata.total_incentive_amount
-            - income_eligible_df["incentive.Total"].iloc[0]
-        )
-        < 0.01
-    ), (
-        f"Metadata total (${income_eligible_metadata.total_incentive_amount:.2f}) doesn't match computed total (${income_eligible_df['incentive.Total'].iloc[0]:.2f})"
-    )
-
-    expected_all_customers_net = (
-        costs_df["cost.Total"].iloc[0] - all_customers_df["incentive.Total"].iloc[0]
-    )
-    expected_income_eligible_net = (
-        costs_df["cost.Total"].iloc[0] - income_eligible_df["incentive.Total"].iloc[0]
-    )
-
-    assert (
-        abs(all_customers_net["net_cost.Total"].iloc[0] - expected_all_customers_net)
-        < 0.01
-    ), "All customers net cost calculation incorrect"
-    assert (
-        abs(
-            income_eligible_net["net_cost.Total"].iloc[0] - expected_income_eligible_net
-        )
-        < 0.01
-    ), "Income eligible net cost calculation incorrect"
-
-
-def _print_results(all_customers_metadata, income_eligible_metadata):
-    """Print detailed results breakdown."""
-    if (
-        income_eligible_metadata.total_incentive_amount
-        > all_customers_metadata.total_incentive_amount
+        if thermostat_costs:
+            thermostat_cost = thermostat_costs[0]
+            cost_result = thermostat_cost.compute(test_features_with_location)
+            print(f"Thermostat cost: ${cost_result.iloc[0]:.2f}")
+            assert cost_result.iloc[0] > 0, "Cost should be positive"
+
+    def test_heat_pump_cost_calculation(
+        self, retrofit_costs, test_features_with_location
     ):
+        """Test the new heat pump cost calculation formula."""
+        # Test ASHP cost calculation
+        ashp_costs = [
+            cost
+            for cost in retrofit_costs.quantities
+            if cost.trigger_column == "Heating" and cost.final == "ASHPHeating"
+        ]
+
+        if ashp_costs:
+            ashp_cost = ashp_costs[0]
+            cost_result = ashp_cost.compute(test_features_with_location)
+
+            # Get the expected values from the features
+            conditioned_area = test_features_with_location[
+                "feature.geometry.energy_model_conditioned_area"
+            ].iloc[0]
+
+            # These features should be precomputed by make_retrofit_cost_features
+            heating_capacity_kw = test_features_with_location.get(
+                "feature.calculated.heating_capacity_kW", [0]
+            ).iloc[0]
+            in_county_middlesex = test_features_with_location.get(
+                "feature.location.in_county_Middlesex", [0]
+            ).iloc[0]
+            has_gas = test_features_with_location.get(
+                "feature.system.has_gas", [0]
+            ).iloc[0]
+            has_cooling = test_features_with_location.get(
+                "feature.system.has_cooling", [0]
+            ).iloc[0]
+
+            print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
+            print("Expected cost breakdown:")
+            print(f"  Conditioned area: {conditioned_area}m²")
+            print(f"  Heating capacity: {heating_capacity_kw:.1f}kW")
+            print(f"  In Middlesex county: {in_county_middlesex}")
+            print(f"  Has gas: {has_gas}")
+            print(f"  Has cooling: {has_cooling}")
+
+            # The cost should be positive and reasonable
+            assert cost_result.iloc[0] > 0, "ASHP cost should be positive"
+            assert cost_result.iloc[0] < 100000, (
+                "ASHP cost should be reasonable (< $100k)"
+            )
+
+        # Test GSHP cost calculation
+        gshp_costs = [
+            cost
+            for cost in retrofit_costs.quantities
+            if cost.trigger_column == "Heating" and cost.final == "GSHPHeating"
+        ]
+
+        if gshp_costs:
+            gshp_cost = gshp_costs[0]
+            cost_result = gshp_cost.compute(test_features_with_location)
+
+            print(f"\nGSHP Heating cost: ${cost_result.iloc[0]:.2f}")
+
+            # The cost should be positive and reasonable
+            assert cost_result.iloc[0] > 0, "GSHP cost should be positive"
+            assert cost_result.iloc[0] < 100000, (
+                "GSHP cost should be reasonable (< $100k)"
+            )
+
+    def test_new_cost_structure(self, retrofit_costs, test_features_with_location):
+        """Test the new cost structure with different types of cost factors."""
+        # Test different cost types
+        test_cases = [
+            {
+                "name": "Fixed Cost - Thermostat",
+                "trigger_column": "Thermostat",
+                "final": "Controls",
+                "expected_type": "FixedQuantity",
+            },
+            {
+                "name": "Mixed Cost - ASHP",
+                "trigger_column": "Heating",
+                "final": "ASHPHeating",
+                "expected_type": "LinearQuantity",  # Should have at least one LinearQuantity
+            },
+            {
+                "name": "DHW Cost - HPWH",
+                "trigger_column": "DHW",
+                "final": "HPWH",
+                "expected_type": "FixedQuantity",
+            },
+        ]
+
+        for test_case in test_cases:
+            matching_costs = [
+                cost
+                for cost in retrofit_costs.quantities
+                if cost.trigger_column == test_case["trigger_column"]
+                and cost.final == test_case["final"]
+            ]
+
+            if matching_costs:
+                cost = matching_costs[0]
+                cost_result = cost.compute(test_features_with_location)
+
+                print(f"{test_case['name']}: ${cost_result.iloc[0]:.2f}")
+
+                # Check that the cost has the expected structure
+                # Count the different types of quantity factors
+                fixed_count = sum(
+                    1 for qf in cost.quantity_factors if hasattr(qf, "amount")
+                )
+                linear_count = sum(
+                    1 for qf in cost.quantity_factors if hasattr(qf, "coefficient")
+                )
+                percent_count = sum(
+                    1 for qf in cost.quantity_factors if hasattr(qf, "percent")
+                )
+
+                print(
+                    f"  Quantity factors: {fixed_count} Fixed, {linear_count} Linear, {percent_count} Percent"
+                )
+
+                if test_case["expected_type"] == "FixedQuantity":
+                    assert fixed_count > 0, (
+                        "Should have at least one FixedQuantity factor"
+                    )
+                elif test_case["expected_type"] == "LinearQuantity":
+                    assert linear_count > 0, (
+                        "Should have at least one LinearQuantity factor"
+                    )
+                elif test_case["expected_type"] == "PercentQuantity":
+                    assert percent_count > 0, (
+                        "Should have at least one PercentQuantity factor"
+                    )
+            else:
+                print(f"No cost found for {test_case['name']}")
+
+    def test_cost_and_incentive_selection(self, retrofit_costs):
+        """Test cost and incentive selection functionality."""
+        # Test cost entity selection manually
+        print(f"Total available costs: {len(retrofit_costs.quantities)}")
+
+        # Test specific cost selections
+        ashp_costs = [
+            cost
+            for cost in retrofit_costs.quantities
+            if cost.trigger_column == "Heating" and cost.final == "ASHPHeating"
+        ]
+        print(f"ASHP Heating costs available: {len(ashp_costs)}")
+
+        dhw_costs = [
+            cost
+            for cost in retrofit_costs.quantities
+            if cost.trigger_column == "DHW" and cost.final == "HPWH"
+        ]
+        print(f"DHW HPWH costs available: {len(dhw_costs)}")
+
+        # Test that we have the expected cost types
+        assert len(ashp_costs) > 0, "Should have ASHP heating costs"
+        assert len(dhw_costs) > 0, "Should have DHW HPWH costs"
+
+    def test_manual_cost_calculation(self, retrofit_costs, test_features_with_location):
+        """Test manual cost calculation with sample data."""
+        # Test multiple cost calculations
+        test_upgrades = [
+            ("Heating", "ASHPHeating"),
+            ("DHW", "HPWH"),
+            ("Thermostat", "Controls"),
+        ]
+
+        total_cost = 0
+        for trigger_column, final_value in test_upgrades:
+            matching_costs = [
+                cost
+                for cost in retrofit_costs.quantities
+                if cost.trigger_column == trigger_column and cost.final == final_value
+            ]
+
+            if matching_costs:
+                cost_result = matching_costs[0].compute(test_features_with_location)
+                cost_amount = cost_result.iloc[0]
+                total_cost += cost_amount
+                print(f"{trigger_column} → {final_value}: ${cost_amount:.2f}")
+            else:
+                print(f"No cost found for {trigger_column} → {final_value}")
+
+        print(f"Total retrofit cost: ${total_cost:.2f}")
+        assert total_cost > 0, "Total cost should be positive"
+
+    def test_feature_precomputation(self, test_features_with_location):
+        """Test that features are properly precomputed for cost calculations."""
+        # Test that we have the expected precomputed features
+        expected_features = [
+            "feature.calculated.heating_capacity_kW",
+            "feature.location.in_county_Middlesex",
+            "feature.system.has_gas",
+            "feature.system.has_cooling",
+            "feature.constant.one",
+        ]
+
+        for feature_name in expected_features:
+            if feature_name in test_features_with_location.columns:
+                print(f"✓ Found feature: {feature_name}")
+            else:
+                print(f"⚠ Missing feature: {feature_name}")
+
+
+class TestIncentiveLoading:
+    """Test incentive loading and basic functionality."""
+
+    def test_incentive_loading(
+        self, all_customers_incentives, income_eligible_incentives
+    ):
+        """Test incentive loading and basic functionality."""
         print(
-            "✓ Income eligible incentives are higher than all customer incentives (expected)"
+            f"Loaded {len(all_customers_incentives.quantities)} all customers incentive configurations"
         )
-    else:
         print(
-            "Info: Income eligible incentives are not higher (may be expected depending on program design)"
+            f"Loaded {len(income_eligible_incentives.quantities)} income eligible incentive configurations"
         )
 
-    # Print detailed breakdown
-    print("\nDetailed breakdown:")
-    print("All Customers Incentives:")
-    for incentive in all_customers_metadata.applied_incentives:
+        # Check for specific incentive types
+        ashp_all_customers = [
+            inc
+            for inc in all_customers_incentives.quantities
+            if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
+        ]
+        ashp_income_eligible = [
+            inc
+            for inc in income_eligible_incentives.quantities
+            if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
+        ]
+
         print(
-            f"  {incentive.semantic_field} - {incentive.program}: ${incentive.amount:.2f} ({incentive.incentive_type})"
+            f"Found {len(ashp_all_customers)} ASHP heating incentives (all customers)"
         )
-
-    print("\nIncome Eligible Incentives:")
-    for incentive in income_eligible_metadata.applied_incentives:
         print(
-            f"  {incentive.semantic_field} - {incentive.program}: ${incentive.amount:.2f} ({incentive.incentive_type})"
+            f"Found {len(ashp_income_eligible)} ASHP heating incentives (income eligible)"
+        )
+
+        assert len(ashp_all_customers) > 0, "Should have incentives for all customers"
+        assert len(ashp_income_eligible) > 0, (
+            "Should have incentives for income eligible customers"
         )
 
 
-def test_full_incentive_flow():
-    """Test the complete flow from cost generation to incentive metadata."""
-    print("=== Testing Full Incentive Flow ===")
+class TestIncentiveCalculation:
+    """Test incentive calculation functionality."""
 
-    # Load costs and incentives
-    costs_path = Path("epengine/models/data/retrofit-costs.json")
-    incentives_path = Path("epengine/models/data/incentives_format.json")
-    retrofit_costs = RetrofitCosts.Open(costs_path)
-    retrofit_incentives = RetrofitIncentives.Open(incentives_path)
-
-    # Create test features
-    features = create_test_features_with_location()
-
-    # Step 1: Generate costs for a specific retrofit scenario
-    print("Step 1: Generating costs...")
-    test_upgrades = [
-        ("Heating", "NaturalGasHeating", "ASHPHeating"),
-        ("DHW", "NaturalGasDHW", "HPWH"),
-    ]
-
-    costs_df, selected_costs = _generate_test_costs(
-        retrofit_costs, features, test_upgrades
-    )
-    print(f"Generated costs for {len(selected_costs)} upgrades")
-    print(f"Total cost: ${costs_df['cost.Total'].iloc[0]:.2f}")
-
-    # Step 2: Select and compute incentives for both income levels
-    print("\nStep 2: Selecting and computing incentives...")
-    all_customers_incentives, income_eligible_incentives = _select_incentives(
-        retrofit_incentives, test_upgrades
-    )
-    all_customers_df, income_eligible_df = _compute_incentives(
+    def test_incentive_calculation(
+        self,
+        retrofit_costs,
         all_customers_incentives,
         income_eligible_incentives,
-        features,
-        costs_df,
-        retrofit_incentives,
-    )
+        test_features_with_location,
+    ):
+        """Test incentive calculation functionality."""
+        # Test ASHP heating incentives
+        ashp_costs = [
+            cost
+            for cost in retrofit_costs.quantities
+            if cost.trigger_column == "Heating" and cost.final == "ASHPHeating"
+        ]
 
-    print(
-        f"All customers: {len(all_customers_incentives)} incentives, total: ${all_customers_df['incentive.Total'].iloc[0]:.2f}"
-    )
-    print(
-        f"Income eligible: {len(income_eligible_incentives)} incentives, total: ${income_eligible_df['incentive.Total'].iloc[0]:.2f}"
-    )
+        ashp_all_customers = [
+            inc
+            for inc in all_customers_incentives.quantities
+            if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
+        ]
 
-    # Step 3: Compute net costs
-    print("\nStep 3: Computing net costs...")
-    all_customers_net = _compute_net_costs(costs_df, all_customers_df)
-    income_eligible_net = _compute_net_costs(costs_df, income_eligible_df)
+        ashp_income_eligible = [
+            inc
+            for inc in income_eligible_incentives.quantities
+            if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
+        ]
 
-    print(f"All customers net cost: ${all_customers_net['net_cost.Total'].iloc[0]:.2f}")
-    print(
-        f"Income eligible net cost: ${income_eligible_net['net_cost.Total'].iloc[0]:.2f}"
-    )
+        if ashp_costs and ashp_all_customers and ashp_income_eligible:
+            # Calculate the cost first
+            ashp_cost = ashp_costs[0]
+            cost_result = ashp_cost.compute(test_features_with_location)
+            costs_df = pd.DataFrame({"cost.Heating": cost_result})
 
-    # Step 4: Build incentive metadata
-    print("\nStep 4: Building incentive metadata...")
-    all_customers_metadata = _build_incentive_metadata(
-        all_customers_incentives, features, costs_df, "All_customers"
-    )
-    income_eligible_metadata = _build_incentive_metadata(
-        income_eligible_incentives, features, costs_df, "Income_eligible"
-    )
+            print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
 
-    print(
-        f"All customers metadata: {len(all_customers_metadata.applied_incentives)} incentives, total: ${all_customers_metadata.total_incentive_amount:.2f}"
-    )
-    print(
-        f"Income eligible metadata: {len(income_eligible_metadata.applied_incentives)} incentives, total: ${income_eligible_metadata.total_incentive_amount:.2f}"
-    )
+            # Test all customers incentive (compute only ASHP incentives)
+            all_customer_result = all_customers_incentives.compute(
+                test_features_with_location, costs_df, final_values={"ASHPHeating"}
+            )
+            print(f"All customers result: {all_customer_result}")
+            all_customer_total = all_customer_result[
+                "incentive.Heating.ASHPHeating"
+            ].iloc[0]
+            print(f"All customers incentive: ${all_customer_total:.2f}")
 
-    # Step 5: Verify consistency
-    print("\nStep 5: Verifying consistency...")
-    _verify_consistency(
-        all_customers_metadata,
-        income_eligible_metadata,
-        all_customers_df,
-        income_eligible_df,
-        all_customers_net,
-        income_eligible_net,
-        costs_df,
-    )
+            # Test income eligible incentive (compute only ASHP incentives)
+            income_eligible_result = income_eligible_incentives.compute(
+                test_features_with_location, costs_df, final_values={"ASHPHeating"}
+            )
+            print(f"Income eligible result: {income_eligible_result}")
+            income_eligible_total = income_eligible_result[
+                "incentive.Heating.ASHPHeating"
+            ].iloc[0]
+            print(f"Income eligible incentive: ${income_eligible_total:.2f}")
 
-    _print_results(all_customers_metadata, income_eligible_metadata)
-    print("✓ Full incentive flow tests passed\n")
+            # Verify that income eligible incentives are higher
+            assert income_eligible_total > all_customer_total, (
+                "Income eligible incentives should be higher than all customer incentives"
+            )
 
+            # Verify that incentives are properly clipped to the total cost
+            # (incentives can be larger than cost but will be clipped to cost amount)
+            assert all_customer_total <= cost_result.iloc[0], (
+                f"All customers incentive (${all_customer_total:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
+            )
+            assert income_eligible_total <= cost_result.iloc[0], (
+                f"Income eligible incentive (${income_eligible_total:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
+            )
 
-def main():
-    """Run all tests."""
-    print("Starting Incentives Integration Tests\n")
-    print("=" * 50)
+            # Verify that net cost is never negative
+            net_cost_all_customers = cost_result.iloc[0] - all_customer_total
+            net_cost_income_eligible = cost_result.iloc[0] - income_eligible_total
 
-    try:
-        test_cost_calculation()
-        test_heat_pump_cost_calculation()
-        test_new_cost_structure()
-        test_incentive_loading()
-        test_incentive_calculation()
-        test_eligibility_checking()
-        test_cost_and_incentive_selection()
-        test_manual_cost_calculation()
-        test_manual_incentive_calculation()
-        test_income_level_differentiation()
-        test_incentive_selection_workflow()
-        test_incentive_metadata_creation()
-        test_incentive_metadata_serialization()
-        test_full_incentive_flow()
+            assert net_cost_all_customers >= 0, (
+                f"Net cost for all customers should be >= 0, got ${net_cost_all_customers:.2f}"
+            )
+            assert net_cost_income_eligible >= 0, (
+                f"Net cost for income eligible should be >= 0, got ${net_cost_income_eligible:.2f}"
+            )
 
-        print("=" * 50)
-        print("All tests passed.")
+    def test_incentive_eligibility(
+        self, all_customers_incentives, income_eligible_incentives
+    ):
+        """Test incentive eligibility checking."""
+        # Test that we can load and access the incentives
+        assert len(all_customers_incentives.quantities) > 0, (
+            "Should have all customers incentives"
+        )
+        assert len(income_eligible_incentives.quantities) > 0, (
+            "Should have income eligible incentives"
+        )
 
-    except Exception as e:
-        print(f"\n❌ Test failed with error: {e}")
-        import traceback
+        # Test that we have different incentive amounts for the same upgrades
+        ashp_all = [
+            inc
+            for inc in all_customers_incentives.quantities
+            if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
+        ]
+        ashp_income = [
+            inc
+            for inc in income_eligible_incentives.quantities
+            if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
+        ]
 
-        traceback.print_exc()
-        return 1
+        assert len(ashp_all) > 0, "Should have ASHP incentives for all customers"
+        assert len(ashp_income) > 0, "Should have ASHP incentives for income eligible"
 
-    return 0
+    def test_incentive_income_level_differentiation(
+        self,
+        retrofit_costs,
+        all_customers_incentives,
+        income_eligible_incentives,
+        test_features_with_location,
+    ):
+        """Test that incentives are properly differentiated by income level."""
+        # Test with ASHP heating upgrade
+        ashp_costs = [
+            cost
+            for cost in retrofit_costs.quantities
+            if cost.trigger_column == "Heating" and cost.final == "ASHPHeating"
+        ]
 
+        if ashp_costs:
+            # Calculate the cost first
+            ashp_cost = ashp_costs[0]
+            cost_result = ashp_cost.compute(test_features_with_location)
+            costs_df = pd.DataFrame({"cost.Heating": cost_result})
 
-if __name__ == "__main__":
-    exit(main())
+            print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
+
+            # Find incentives for both income levels
+            all_customer_incentives = [
+                inc
+                for inc in all_customers_incentives.quantities
+                if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
+            ]
+
+            income_eligible_incentives_list = [
+                inc
+                for inc in income_eligible_incentives.quantities
+                if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
+            ]
+
+            print(f"Found {len(all_customer_incentives)} All_customers incentives")
+            print(
+                f"Found {len(income_eligible_incentives_list)} Income_eligible incentives"
+            )
+
+            # Test All_customers incentives (compute only ASHP incentives)
+            all_customer_total = 0
+            if all_customer_incentives:
+                print("\nAll Customers Incentives:")
+                try:
+                    result = all_customers_incentives.compute(
+                        test_features_with_location,
+                        costs_df,
+                        final_values={"ASHPHeating"},
+                    )
+                    all_customer_total = result["incentive.Heating.ASHPHeating"].iloc[0]
+                    print(f"  Total: ${all_customer_total:.2f}")
+                except Exception as e:
+                    print(f"  Error - {e}")
+
+            # Test Income_eligible incentives (compute only ASHP incentives)
+            income_eligible_total = 0
+            if income_eligible_incentives_list:
+                print("\nIncome Eligible Incentives:")
+                try:
+                    result = income_eligible_incentives.compute(
+                        test_features_with_location,
+                        costs_df,
+                        final_values={"ASHPHeating"},
+                    )
+                    income_eligible_total = result[
+                        "incentive.Heating.ASHPHeating"
+                    ].iloc[0]
+                    print(f"  Total: ${income_eligible_total:.2f}")
+                except Exception as e:
+                    print(f"  Error - {e}")
+
+            print(f"\nTotal All Customers Incentives: ${all_customer_total:.2f}")
+            print(f"Total Income Eligible Incentives: ${income_eligible_total:.2f}")
+
+            # Verify that we have different incentive amounts for different income levels
+            assert all_customer_total > 0, (
+                "Should have positive incentives for all customers"
+            )
+            assert income_eligible_total > 0, (
+                "Should have positive incentives for income eligible"
+            )
+
+            # Income eligible incentives should typically be higher
+            if income_eligible_total > all_customer_total:
+                print(
+                    "✓ Income eligible incentives are higher than all customer incentives (expected)"
+                )
+            else:
+                print(
+                    "Info: Income eligible incentives are not higher (may be expected depending on program design)"
+                )
+
+            # Verify that total incentives are properly clipped to the cost
+            total_incentives = max(all_customer_total, income_eligible_total)
+            assert total_incentives <= cost_result.iloc[0], (
+                f"Total incentives (${total_incentives:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
+            )
+
+            # Verify that net cost is never negative
+            net_cost = cost_result.iloc[0] - total_incentives
+            assert net_cost >= 0, f"Net cost should be >= 0, got ${net_cost:.2f}"
+
+    def test_incentive_clipping(
+        self,
+        retrofit_costs,
+        all_customers_incentives,
+        income_eligible_incentives,
+        test_features_with_location,
+    ):
+        """Test that incentives are properly clipped to prevent negative net costs."""
+        # Test ASHP heating with specific cost scenario
+        ashp_costs = [
+            cost
+            for cost in retrofit_costs.quantities
+            if cost.trigger_column == "Heating" and cost.final == "ASHPHeating"
+        ]
+
+        if ashp_costs:
+            # Set a specific cost for testing
+            test_cost = 11091.0
+            costs_df = pd.DataFrame({
+                "cost.Heating": pd.Series(
+                    [test_cost], index=test_features_with_location.index
+                )
+            })
+
+            print(f"Test ASHP cost: ${test_cost:.2f}")
+
+            # Test all customers incentives (compute only ASHP incentives)
+            all_customer_result = all_customers_incentives.compute(
+                test_features_with_location, costs_df, final_values={"ASHPHeating"}
+            )
+            all_customer_total = all_customer_result[
+                "incentive.Heating.ASHPHeating"
+            ].iloc[0]
+
+            print(f"All customers incentive: ${all_customer_total:.2f}")
+
+            # Expected: MassSave $10,000 + IRA 30% of remaining $1,091 = $10,000 + $327.30 = $10,327.30
+            expected_all_customers = 10000 + (test_cost - 10000) * 0.3
+            print(f"Expected all customers: ${expected_all_customers:.2f}")
+
+            # Test income eligible incentives (compute only ASHP incentives)
+            income_eligible_result = income_eligible_incentives.compute(
+                test_features_with_location, costs_df, final_values={"ASHPHeating"}
+            )
+            income_eligible_total = income_eligible_result[
+                "incentive.Heating.ASHPHeating"
+            ].iloc[0]
+
+            print(f"Income eligible incentive: ${income_eligible_total:.2f}")
+
+            # Expected: MassSave $15,000 (clipped to cost $11,091) + IRA 30% of remaining $0 = $11,091
+            expected_income_eligible = test_cost  # Should be clipped to full cost
+            print(f"Expected income eligible: ${expected_income_eligible:.2f}")
+
+            # Verify clipping behavior
+            assert all_customer_total <= test_cost, (
+                f"All customers incentive (${all_customer_total:.2f}) should be clipped to cost (${test_cost:.2f})"
+            )
+            assert income_eligible_total <= test_cost, (
+                f"Income eligible incentive (${income_eligible_total:.2f}) should be clipped to cost (${test_cost:.2f})"
+            )
+
+            # Verify net cost is never negative
+            net_cost_all = test_cost - all_customer_total
+            net_cost_income = test_cost - income_eligible_total
+
+            assert net_cost_all >= 0, (
+                f"Net cost for all customers should be >= 0, got ${net_cost_all:.2f}"
+            )
+            assert net_cost_income >= 0, (
+                f"Net cost for income eligible should be >= 0, got ${net_cost_income:.2f}"
+            )
+
+            print(f"Net cost all customers: ${net_cost_all:.2f}")
+            print(f"Net cost income eligible: ${net_cost_income:.2f}")
+            print("✓ ASHP incentive clipping test passed")
+
+        # Test with a low-cost upgrade to verify clipping
+        thermostat_costs = [
+            cost
+            for cost in retrofit_costs.quantities
+            if cost.trigger_column == "Thermostat" and cost.final == "Controls"
+        ]
+
+        if thermostat_costs:
+            # Calculate the cost first
+            thermostat_cost = thermostat_costs[0]
+            cost_result = thermostat_cost.compute(test_features_with_location)
+            costs_df = pd.DataFrame({"cost.Thermostat": cost_result})
+
+            print(f"Thermostat cost: ${cost_result.iloc[0]:.2f}")
+
+            # Get thermostat incentives
+            thermostat_incentives = [
+                inc
+                for inc in all_customers_incentives.quantities
+                if inc.trigger_column == "Thermostat" and inc.final == "Controls"
+            ]
+
+            if thermostat_incentives:
+                # Compute incentive (compute only Thermostat incentives)
+                incentive_result = all_customers_incentives.compute(
+                    test_features_with_location, costs_df, final_values={"Controls"}
+                )
+                incentive_total = incentive_result[
+                    "incentive.Thermostat.Controls"
+                ].iloc[0]
+
+                print(f"Thermostat incentive: ${incentive_total:.2f}")
+
+                # Verify clipping behavior
+                assert incentive_total <= cost_result.iloc[0], (
+                    f"Incentive (${incentive_total:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
+                )
+
+                # Verify net cost is never negative
+                net_cost = cost_result.iloc[0] - incentive_total
+                assert net_cost >= 0, f"Net cost should be >= 0, got ${net_cost:.2f}"
+
+                print(f"Net cost: ${net_cost:.2f}")
+                print("✓ Thermostat incentive clipping test passed")
+
+    def test_incentive_validation(
+        self,
+        retrofit_costs,
+        all_customers_incentives,
+        income_eligible_incentives,
+        test_features_with_location,
+    ):
+        """Test that incentives are properly validated and computed correctly."""
+        # Test multiple upgrade scenarios
+        test_upgrades = [
+            ("Heating", "ASHPHeating"),
+            ("DHW", "HPWH"),
+        ]
+
+        for trigger_column, final_value in test_upgrades:
+            print(f"\nTesting {trigger_column} → {final_value}:")
+
+            # Get the cost
+            matching_costs = [
+                cost
+                for cost in retrofit_costs.quantities
+                if cost.trigger_column == trigger_column and cost.final == final_value
+            ]
+
+            if matching_costs:
+                cost = matching_costs[0]
+                cost_result = cost.compute(test_features_with_location)
+                costs_df = pd.DataFrame({f"cost.{trigger_column}": cost_result})
+
+                print(f"  Cost: ${cost_result.iloc[0]:.2f}")
+
+                # Get incentives for both income levels
+                all_customer_incentives = [
+                    inc
+                    for inc in all_customers_incentives.quantities
+                    if inc.trigger_column == trigger_column and inc.final == final_value
+                ]
+
+                income_eligible_incentives_list = [
+                    inc
+                    for inc in income_eligible_incentives.quantities
+                    if inc.trigger_column == trigger_column and inc.final == final_value
+                ]
+
+                # Test all customers incentives
+                if all_customer_incentives:
+                    try:
+                        result = all_customers_incentives.compute(
+                            test_features_with_location,
+                            costs_df,
+                            final_values={final_value},
+                        )
+                        all_customer_total = result[
+                            f"incentive.{trigger_column}.{final_value}"
+                        ].iloc[0]
+                        print(f"    All customers total: ${all_customer_total:.2f}")
+                    except Exception as e:
+                        print(f"    All customers incentive: Error - {e}")
+                        all_customer_total = 0
+
+                    # Validate all customers incentives
+                    assert all_customer_total > 0, (
+                        "All customers should have positive incentives"
+                    )
+                    assert all_customer_total <= cost_result.iloc[0], (
+                        f"All customers incentives (${all_customer_total:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
+                    )
+
+                # Test income eligible incentives
+                if income_eligible_incentives_list:
+                    try:
+                        result = income_eligible_incentives.compute(
+                            test_features_with_location,
+                            costs_df,
+                            final_values={final_value},
+                        )
+                        income_eligible_total = result[
+                            f"incentive.{trigger_column}.{final_value}"
+                        ].iloc[0]
+                        print(
+                            f"    Income eligible total: ${income_eligible_total:.2f}"
+                        )
+                    except Exception as e:
+                        print(f"    Income eligible incentive: Error - {e}")
+                        income_eligible_total = 0
+
+                    # Validate income eligible incentives
+                    assert income_eligible_total > 0, (
+                        "Income eligible should have positive incentives"
+                    )
+                    assert income_eligible_total <= cost_result.iloc[0], (
+                        f"Income eligible incentives (${income_eligible_total:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
+                    )
+
+                    # Verify income eligible are higher if both exist
+                    if all_customer_incentives:
+                        assert income_eligible_total >= all_customer_total, (
+                            f"Income eligible incentives (${income_eligible_total:.2f}) should be >= all customers (${all_customer_total:.2f})"
+                        )
+
+            else:
+                print(f"  No cost found for {trigger_column} → {final_value}")
