@@ -1,18 +1,38 @@
 {
-    "costs": [
+    "quantities": [
         {
-            "semantic_field": "Weatherization",
+            "trigger_column": "Lighting",
+            "initial": "NoLED",
+            "final": "LED",
+            "quantity_factors": [
+                {
+                    "type": "LinearQuantity",
+                    "coefficient": 11.21,
+                    "indicator_cols": [
+                        "feature.geometry.energy_model_conditioned_area"
+                    ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
+                    "per": "gross floor area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "trigger_column": "Weatherization",
             "initial": "LeakyEnvelope",
             "final": "TightEnvelope",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 8.83,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.energy_model_conditioned_area",
                         "feature.geometry.est_fp_ratio"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "gross floor area",
                     "description": "",
                     "source": ""
@@ -20,38 +40,39 @@
             ]
         },
         {
-            "semantic_field": "Weatherization",
+            "trigger_column": "Weatherization",
             "initial": "LeakyEnvelope",
             "final": "TightEnvelopeHRV",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 8.83,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.energy_model_conditioned_area",
                         "feature.geometry.est_fp_ratio"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "gross floor area",
                     "description": "",
                     "source": ""
                 }
             ]
         },
-
         {
-            "semantic_field": "Weatherization",
+            "trigger_column": "Weatherization",
             "initial": "SomewhatLeakyEnvelope",
             "final": "TightEnvelope",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 6.35,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.energy_model_conditioned_area",
                         "feature.geometry.est_fp_ratio"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "gross floor area",
                     "description": "",
                     "source": ""
@@ -59,18 +80,19 @@
             ]
         },
         {
-            "semantic_field": "Weatherization",
+            "trigger_column": "Weatherization",
             "initial": "SomewhatLeakyEnvelope",
             "final": "TightEnvelopeHRV",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 6.35,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.energy_model_conditioned_area",
                         "feature.geometry.est_fp_ratio"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "gross floor area",
                     "description": "",
                     "source": ""
@@ -78,19 +100,20 @@
             ]
         },
         {
-            "semantic_field": "RoofInsulation",
+            "trigger_column": "RoofInsulation",
             "initial": "InsulatedRoof",
             "final": "HighlyInsulatedRoof",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 129.17,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.roof_surface_area",
                         "feature.geometry.roof_is_flat.num",
                         "feature.geometry.est_fp_ratio"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "roof surface area",
                     "description": "",
                     "source": ""
@@ -98,32 +121,34 @@
             ]
         },
         {
-            "semantic_field": "RoofInsulation",
+            "trigger_column": "RoofInsulation",
             "initial": "UninsulatedRoof",
             "final": "HighlyInsulatedRoof",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 129.17,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.roof_surface_area",
                         "feature.geometry.roof_is_flat.num",
                         "feature.geometry.est_fp_ratio"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "roof surface area",
                     "description": "",
                     "source": ""
                 },
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 142.73,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.roof_surface_area",
                         "feature.geometry.roof_is_attic.num",
                         "feature.geometry.est_fp_ratio"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "roof surface area",
                     "description": "",
                     "source": ""
@@ -131,30 +156,32 @@
             ]
         },
         {
-            "semantic_field": "Walls",
+            "trigger_column": "Walls",
             "initial": "UninsulatedWalls",
             "final": "FullInsulationWallsCavity",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 7.21,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.whole_bldg_facade_area",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "facade area",
                     "description": "",
                     "source": ""
                 },
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 30.76,
-                    "error_scale": 0.05,
-                    "units": "$/m",
                     "indicator_cols": [
                         "feature.geometry.computed.total_linear_facade_distance",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m",
                     "per": "total linear facade distance",
                     "description": "",
                     "source": ""
@@ -162,30 +189,32 @@
             ]
         },
         {
-            "semantic_field": "Walls",
+            "trigger_column": "Walls",
             "initial": "UninsulatedWalls",
             "final": "FullInsulationWallsCavityExterior",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 188.9,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.whole_bldg_facade_area",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "facade area",
                     "description": "",
                     "source": ""
                 },
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 30.76,
-                    "error_scale": 0.05,
-                    "units": "$/m",
                     "indicator_cols": [
                         "feature.geometry.computed.total_linear_facade_distance",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m",
                     "per": "total linear facade distance",
                     "description": "",
                     "source": ""
@@ -193,30 +222,32 @@
             ]
         },
         {
-            "semantic_field": "Walls",
+            "trigger_column": "Walls",
             "initial": "SomeInsulationWalls",
             "final": "FullInsulationWallsCavity",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 14.42,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.whole_bldg_facade_area",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "facade area",
                     "description": "",
                     "source": ""
                 },
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 61.52,
-                    "error_scale": 0.05,
-                    "units": "$/m",
                     "indicator_cols": [
                         "feature.geometry.computed.total_linear_facade_distance",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m",
                     "per": "total linear facade distance",
                     "description": "",
                     "source": ""
@@ -224,30 +255,32 @@
             ]
         },
         {
-            "semantic_field": "Walls",
+            "trigger_column": "Walls",
             "initial": "SomeInsulationWalls",
             "final": "FullInsulationWallsCavityExterior",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 196.11,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.whole_bldg_facade_area",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "facade area",
                     "description": "",
                     "source": ""
                 },
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 61.52,
-                    "error_scale": 0.05,
-                    "units": "$/m",
                     "indicator_cols": [
                         "feature.geometry.computed.total_linear_facade_distance",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m",
                     "per": "total linear facade distance",
                     "description": "",
                     "source": ""
@@ -255,18 +288,19 @@
             ]
         },
         {
-            "semantic_field": "Walls",
+            "trigger_column": "Walls",
             "initial": "FullInsulationWalls",
             "final": "FullInsulationWallsCavityExterior",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 181.69,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.whole_bldg_facade_area",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "facade area",
                     "description": "",
                     "source": ""
@@ -274,18 +308,19 @@
             ]
         },
         {
-            "semantic_field": "AtticFloorInsulation",
+            "trigger_column": "AtticFloorInsulation",
             "initial": "NoInsulation",
             "final": "HighlyInsulated",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 16.58,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.footprint_area",
                         "feature.geometry.est_fp_ratio"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "footprint area",
                     "description": "",
                     "source": ""
@@ -293,18 +328,19 @@
             ]
         },
         {
-            "semantic_field": "AtticFloorInsulation",
+            "trigger_column": "AtticFloorInsulation",
             "initial": "Insulated",
             "final": "HighlyInsulated",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 9.58,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.footprint_area",
                         "feature.geometry.est_fp_ratio"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "footprint area",
                     "description": "",
                     "source": ""
@@ -312,18 +348,19 @@
             ]
         },
         {
-            "semantic_field": "Windows",
+            "trigger_column": "Windows",
             "initial": null,
             "final": "DoublePaneLowE",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 538.2,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.window_area",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "window area",
                     "description": "",
                     "source": ""
@@ -331,18 +368,19 @@
             ]
         },
         {
-            "semantic_field": "Windows",
+            "trigger_column": "Windows",
             "initial": null,
             "final": "TriplePaneLowE",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 645.83,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.window_area",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "window area",
                     "description": "",
                     "source": ""
@@ -350,11 +388,12 @@
             ]
         },
         {
-            "semantic_field": "Thermostat",
+            "trigger_column": "Thermostat",
             "initial": null,
             "final": "Controls",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "FixedQuantity",
                     "amount": 500.0,
                     "error_scale": 0.05,
                     "description": "Fixed cost for programmable thermostat",
@@ -363,11 +402,12 @@
             ]
         },
         {
-            "semantic_field": "Equipment",
+            "trigger_column": "Equipment",
             "initial": null,
             "final": "HighEfficiencyEquipment",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "FixedQuantity",
                     "amount": 4250.0,
                     "error_scale": 0.05,
                     "description": "Fixed cost for high efficiency equipment",
@@ -376,11 +416,12 @@
             ]
         },
         {
-            "semantic_field": "DHW",
+            "trigger_column": "DHW",
             "initial": "ElectricResistanceDHW",
             "final": "HPWH",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "FixedQuantity",
                     "amount": 3000.0,
                     "error_scale": 0.05,
                     "description": "Fixed cost for high efficiency equipment",
@@ -389,11 +430,12 @@
             ]
         },
         {
-            "semantic_field": "DHW",
+            "trigger_column": "DHW",
             "initial": "NaturalGasDHW",
             "final": "HPWH",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "FixedQuantity",
                     "amount": 3200.0,
                     "error_scale": 0.05,
                     "description": "<lorem>",
@@ -402,11 +444,12 @@
             ]
         },
         {
-            "semantic_field": "DHW",
+            "trigger_column": "DHW",
             "initial": "NaturalGasDHWCombo",
             "final": "HPWH",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "FixedQuantity",
                     "amount": 3200.0,
                     "error_scale": 0.05,
                     "description": "<lorem>",
@@ -415,112 +458,123 @@
             ]
         },
         {
-            "semantic_field": "Heating",
+            "trigger_column": "Heating",
             "initial": null,
             "final": "ASHPHeating",
-            "cost_factors": [
+            "quantity_factors": [
                 {
-                    "intercept": -79,
-                    "feature_components": [
-                        {
-                            "coefficient": 0.28,
-                            "indicator_cols": [
-                                "feature.geometry.energy_model_conditioned_area"
-                            ],
-                            "units": "multiplier"
-                        }
+                    "type": "FixedQuantity",
+                    "amount": -79,
+                    "error_scale": 0.05,
+                    "description": "Base intercept for ASHP cost based on capacity and building characteristics",
+                    "source": "Heat pump cost model"
+                },
+                {
+                    "type": "LinearQuantity",
+                    "coefficient": 0.28,
+                    "indicator_cols": [
+                        "feature.geometry.energy_model_conditioned_area"
                     ],
-                    "calculated_components": [
-                        {
-                            "coefficient": 303,
-                            "calculation": "heating_capacity_kw",
-                            "units": "$/kW"
-                        }
-                    ],
-                    "conditional_factors": {
-                        "county": {
-                            "Berkshire": 948,
-                            "Barnstable": 0,
-                            "Bristol": 924,
-                            "Dukes": 4777,
-                            "Essex": 2864,
-                            "Franklin": 456,
-                            "Hampden": 613,
-                            "Hampshire": 500,
-                            "Middlesex": 2497,
-                            "Nantucket": 5840,
-                            "Norfolk": 2624,
-                            "Plymouth": 791,
-                            "Suffolk": 3591,
-                            "Worcester": 752
-                        },
-                        "has_gas": { "true": 438, "false": 0 },
-                        "has_cooling": { "true": 334, "false": 0 }
-                    },
                     "error_scale": 0.05,
                     "units": "$/kW",
                     "per": "heating system",
-                    "description": "ASHP cost based on capacity and building characteristics",
+                    "description": "Area-based component for ASHP cost based on capacity and building characteristics",
+                    "source": "Heat pump cost model"
+                },
+                {
+                    "type": "LinearQuantity",
+                    "coefficient": 303,
+                    "indicator_cols": [
+                        "feature.calculated.heating_capacity_kW"
+                    ],
+                    "error_scale": 0.05,
+                    "units": "$/kW",
+                    "per": "heating system",
+                    "description": "Heating capacity component for ASHP cost based on capacity and building characteristics",
+                    "source": "Heat pump cost model"
+                },
+                {
+                    "type": "FixedQuantity",
+                    "amount": 2497,
+                    "error_scale": 0.05,
+                    "description": "County factor for Middlesex",
+                    "source": "Heat pump cost model"
+                },
+                {
+                    "type": "FixedQuantity",
+                    "amount": 438,
+                    "error_scale": 0.05,
+                    "description": "Gas availability factor",
+                    "source": "Heat pump cost model"
+                },
+                {
+                    "type": "FixedQuantity",
+                    "amount": 334,
+                    "error_scale": 0.05,
+                    "description": "Cooling availability factor",
                     "source": "Heat pump cost model"
                 }
             ]
         },
         {
-            "semantic_field": "Heating",
+            "trigger_column": "Heating",
             "initial": null,
             "final": "GSHPHeating",
-            "cost_factors": [
+            "quantity_factors": [
                 {
-                    "feature_components": [
-                        {
-                            "coefficient": 0.28,
-                            "indicator_cols": [
-                                "feature.geometry.energy_model_conditioned_area"
-                            ],
-                            "units": "$/sqft"
-                        }
+                    "type": "LinearQuantity",
+                    "coefficient": 0.28,
+                    "indicator_cols": [
+                        "feature.geometry.energy_model_conditioned_area"
                     ],
-                    "calculated_components": [
-                        {
-                            "coefficient": 303,
-                            "calculation": "heating_capacity_kw",
-                            "units": "$/kW"
-                        }
-                    ],
-                    "conditional_factors": {
-                        "county": {
-                            "Berkshire": 948,
-                            "Barnstable": 0,
-                            "Bristol": 924,
-                            "Dukes": 4777,
-                            "Essex": 2864,
-                            "Franklin": 456,
-                            "Hampden": 613,
-                            "Hampshire": 500,
-                            "Middlesex": 2497,
-                            "Nantucket": 5840,
-                            "Norfolk": 2624,
-                            "Plymouth": 791,
-                            "Suffolk": 3591,
-                            "Worcester": 752
-                        },
-                        "has_gas": { "true": 438, "false": 0 },
-                        "has_cooling": { "true": 334, "false": 0 }
-                    },
                     "error_scale": 0.05,
                     "units": "$/kW",
                     "per": "heating system",
-                    "description": "GSHP cost based on capacity and building characteristics",
+                    "description": "Area-based component for GSHP cost based on capacity and building characteristics",
+                    "source": "Heat pump cost model"
+                },
+                {
+                    "type": "LinearQuantity",
+                    "coefficient": 303,
+                    "indicator_cols": [
+                        "feature.calculated.heating_capacity_kW"
+                    ],
+                    "error_scale": 0.05,
+                    "units": "$/kW",
+                    "per": "heating system",
+                    "description": "Heating capacity component for GSHP cost based on capacity and building characteristics",
+                    "source": "Heat pump cost model"
+                },
+                {
+                    "type": "FixedQuantity",
+                    "amount": 2497,
+                    "error_scale": 0.05,
+                    "description": "County factor for Middlesex",
+                    "source": "Heat pump cost model"
+                },
+                {
+                    "type": "FixedQuantity",
+                    "amount": 438,
+                    "error_scale": 0.05,
+                    "description": "Gas availability factor",
+                    "source": "Heat pump cost model"
+                },
+                {
+                    "type": "FixedQuantity",
+                    "amount": 334,
+                    "error_scale": 0.05,
+                    "description": "Cooling availability factor",
                     "source": "Heat pump cost model"
                 }
             ]
         },
         {
-            "semantic_field": "Cooling",
+            "trigger_column": "Cooling",
             "initial": null,
             "final": "ASHPCooling",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "FixedQuantity",
                     "amount": 15000.0,
                     "error_scale": 0.05,
                     "description": "<lorem>",
@@ -529,11 +583,12 @@
             ]
         },
         {
-            "semantic_field": "Cooling",
+            "trigger_column": "Cooling",
             "initial": null,
             "final": "GSHPCooling",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "FixedQuantity",
                     "amount": 30000.0,
                     "error_scale": 0.05,
                     "description": "<lorem>",
@@ -542,18 +597,19 @@
             ]
         },
         {
-            "semantic_field": "Distribution",
+            "trigger_column": "Distribution",
             "initial": "HotWaterUninsulated",
             "final": "HotWaterInsulated",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 6.46,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.footprint_area",
                         "feature.geometry.est_fp_ratio"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "footprint area",
                     "description": "",
                     "source": ""
@@ -561,18 +617,19 @@
             ]
         },
         {
-            "semantic_field": "Distribution",
+            "trigger_column": "Distribution",
             "initial": "AirDuctsUninsulated",
             "final": "AirDuctsInsulated",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 32.29,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.footprint_area",
                         "feature.geometry.est_fp_ratio"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "footprint area",
                     "description": "",
                     "source": ""
@@ -580,34 +637,36 @@
             ]
         },
         {
-            "semantic_field": "BasementCeilingInsulation",
+            "trigger_column": "BasementCeilingInsulation",
             "initial": "UninsulatedCeiling",
             "final": "InsulatedCeiling",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 11.48,
-                    "error_scale": 0.05,
-                    "units": "$/m",
                     "indicator_cols": [
                         "feature.geometry.computed.perimeter",
                         "feature.extra_spaces.basement.exists.num",
                         "feature.extra_spaces.basement.not_occupied.num",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m",
                     "per": "perimeter",
                     "description": "",
                     "source": ""
                 },
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 32.2917,
-                    "error_scale": 0.05,
-                    "units": "$/m2",
                     "indicator_cols": [
                         "feature.geometry.computed.footprint_area",
                         "feature.geometry.est_fp_ratio",
                         "feature.extra_spaces.basement.exists.num",
                         "feature.extra_spaces.basement.not_occupied.num"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
                     "per": "footprint area",
                     "description": "",
                     "source": ""
@@ -615,20 +674,21 @@
             ]
         },
         {
-            "semantic_field": "BasementWallsInsulation",
+            "trigger_column": "BasementWallsInsulation",
             "initial": "UninsulatedWalls",
             "final": "InsulatedWalls",
-            "cost_factors": [
+            "quantity_factors": [
                 {
+                    "type": "LinearQuantity",
                     "coefficient": 199.16,
-                    "error_scale": 0.05,
-                    "units": "$/m",
                     "indicator_cols": [
                         "feature.geometry.computed.perimeter",
                         "feature.extra_spaces.basement.occupied.num",
                         "feature.extra_spaces.basement.exists.num",
                         "feature.geometry.est_uniform_linear_scaling_factor"
                     ],
+                    "error_scale": 0.05,
+                    "units": "$/m",
                     "per": "perimeter",
                     "description": "",
                     "source": ""
@@ -636,5 +696,5 @@
             ]
         }
     ],
-    "$schema": "./retrofit-cost-schema.json"
+    "output_key": "cost"
 }
