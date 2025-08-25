@@ -536,9 +536,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 948,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Berkshire"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Berkshire"],
                     "error_scale": 0.05,
                     "description": "County factor for Berkshire",
                     "source": "Heat pump cost model",
@@ -548,9 +546,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 924,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Bristol"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Bristol"],
                     "error_scale": 0.05,
                     "description": "County factor for Bristol",
                     "source": "Heat pump cost model",
@@ -560,9 +556,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 4777,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Dukes"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Dukes"],
                     "error_scale": 0.05,
                     "description": "County factor for Dukes",
                     "source": "Heat pump cost model",
@@ -572,9 +566,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 2864,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Essex"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Essex"],
                     "error_scale": 0.05,
                     "description": "County factor for Essex",
                     "source": "Heat pump cost model",
@@ -584,9 +576,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 456,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Franklin"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Franklin"],
                     "error_scale": 0.05,
                     "description": "County factor for Franklin",
                     "source": "Heat pump cost model",
@@ -596,9 +586,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 613,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Hampden"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Hampden"],
                     "error_scale": 0.05,
                     "description": "County factor for Hampden",
                     "source": "Heat pump cost model",
@@ -608,9 +596,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 500,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Hampshire"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Hampshire"],
                     "error_scale": 0.05,
                     "description": "County factor for Hampshire",
                     "source": "Heat pump cost model",
@@ -620,9 +606,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 2497,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Middlesex"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Middlesex"],
                     "error_scale": 0.05,
                     "description": "County factor for Middlesex",
                     "source": "Heat pump cost model",
@@ -632,9 +616,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 5840,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Nantucket"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Nantucket"],
                     "error_scale": 0.05,
                     "description": "County factor for Nantucket",
                     "source": "Heat pump cost model",
@@ -644,9 +626,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 2624,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Norfolk"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Norfolk"],
                     "error_scale": 0.05,
                     "description": "County factor for Norfolk",
                     "source": "Heat pump cost model",
@@ -656,9 +636,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 791,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Plymouth"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Plymouth"],
                     "error_scale": 0.05,
                     "description": "County factor for Plymouth",
                     "source": "Heat pump cost model",
@@ -668,9 +646,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 3591,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Suffolk"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Suffolk"],
                     "error_scale": 0.05,
                     "description": "County factor for Suffolk",
                     "source": "Heat pump cost model",
@@ -680,9 +656,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 752,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Worcester"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Worcester"],
                     "error_scale": 0.05,
                     "description": "County factor for Worcester",
                     "source": "Heat pump cost model",
@@ -692,9 +666,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 0,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Barnstable"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Barnstable"],
                     "error_scale": 0.05,
                     "description": "County factor for Barnstable",
                     "source": "Heat pump cost model",
@@ -783,9 +755,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 948,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Berkshire"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Berkshire"],
                     "error_scale": 0.05,
                     "description": "County factor for Berkshire",
                     "source": "Heat pump cost model",
@@ -795,9 +765,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 924,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Bristol"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Bristol"],
                     "error_scale": 0.05,
                     "description": "County factor for Bristol",
                     "source": "Heat pump cost model",
@@ -807,9 +775,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 4777,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Dukes"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Dukes"],
                     "error_scale": 0.05,
                     "description": "County factor for Dukes",
                     "source": "Heat pump cost model",
@@ -819,9 +785,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 2864,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Essex"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Essex"],
                     "error_scale": 0.05,
                     "description": "County factor for Essex",
                     "source": "Heat pump cost model",
@@ -831,9 +795,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 456,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Franklin"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Franklin"],
                     "error_scale": 0.05,
                     "description": "County factor for Franklin",
                     "source": "Heat pump cost model",
@@ -843,9 +805,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 613,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Hampden"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Hampden"],
                     "error_scale": 0.05,
                     "description": "County factor for Hampden",
                     "source": "Heat pump cost model",
@@ -855,9 +815,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 500,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Hampshire"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Hampshire"],
                     "error_scale": 0.05,
                     "description": "County factor for Hampshire",
                     "source": "Heat pump cost model",
@@ -867,9 +825,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 2497,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Middlesex"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Middlesex"],
                     "error_scale": 0.05,
                     "description": "County factor for Middlesex",
                     "source": "Heat pump cost model",
@@ -879,9 +835,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 5840,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Nantucket"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Nantucket"],
                     "error_scale": 0.05,
                     "description": "County factor for Nantucket",
                     "source": "Heat pump cost model",
@@ -891,9 +845,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 2624,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Norfolk"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Norfolk"],
                     "error_scale": 0.05,
                     "description": "County factor for Norfolk",
                     "source": "Heat pump cost model",
@@ -903,9 +855,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 791,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Plymouth"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Plymouth"],
                     "error_scale": 0.05,
                     "description": "County factor for Plymouth",
                     "source": "Heat pump cost model",
@@ -915,9 +865,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 3591,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Suffolk"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Suffolk"],
                     "error_scale": 0.05,
                     "description": "County factor for Suffolk",
                     "source": "Heat pump cost model",
@@ -927,9 +875,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 752,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Worcester"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Worcester"],
                     "error_scale": 0.05,
                     "description": "County factor for Worcester",
                     "source": "Heat pump cost model",
@@ -939,9 +885,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 0,
-                    "indicator_cols": [
-                        "feature.location.region.in_county_Barnstable"
-                    ],
+                    "indicator_cols": ["feature.location.in_county_Barnstable"],
                     "error_scale": 0.05,
                     "description": "County factor for Barnstable",
                     "source": "Heat pump cost model",
@@ -990,7 +934,6 @@
                 }
             ]
         },
-
         {
             "trigger_column": "Cooling",
             "initial": null,

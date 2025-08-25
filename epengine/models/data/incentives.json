@@ -4,27 +4,31 @@
             "trigger_column": "Heating",
             "initial": null,
             "final": "ASHPHeating",
-            "order": ["FixedQuantity", "PercentQuantity"],
+            "order": ["LinearQuantity", "PercentQuantity"],
             "quantity_factors": [
                 {
-                    "type": "FixedQuantity",
+                    "type": "LinearQuantity",
+                    "coefficient": 10000,
+                    "indicator_cols": [
+                        "feature.homeowner.in_bracket_AllCustomers"
+                    ],
                     "error_scale": 0,
                     "description": "MassSave ASHP rebate for all customers",
                     "source": "MassSave",
-                    "amount": 10000,
-                    "indicator_cols": [
-                        "feature.homeowner.in_bracket_AllCustomers"
-                    ]
+                    "units": "$",
+                    "per": "rebate"
                 },
                 {
-                    "type": "FixedQuantity",
+                    "type": "LinearQuantity",
+                    "coefficient": 15000,
+                    "indicator_cols": [
+                        "feature.homeowner.in_bracket_IncomeEligible"
+                    ],
                     "error_scale": 0,
                     "description": "MassSave ASHP rebate for income eligible customers",
                     "source": "MassSave",
-                    "amount": 15000,
-                    "indicator_cols": [
-                        "feature.homeowner.in_bracket_IncomeEligible"
-                    ]
+                    "units": "$",
+                    "per": "rebate"
                 },
                 {
                     "type": "PercentQuantity",
@@ -41,27 +45,31 @@
             "trigger_column": "Heating",
             "initial": null,
             "final": "GSHPHeating",
-            "order": ["FixedQuantity", "PercentQuantity"],
+            "order": ["LinearQuantity", "PercentQuantity"],
             "quantity_factors": [
                 {
-                    "type": "FixedQuantity",
+                    "type": "LinearQuantity",
+                    "coefficient": 15000,
+                    "indicator_cols": [
+                        "feature.homeowner.in_bracket_AllCustomers"
+                    ],
                     "error_scale": 0,
                     "description": "MassSave GSHP rebate for all customers",
                     "source": "MassSave",
-                    "amount": 15000,
-                    "indicator_cols": [
-                        "feature.homeowner.in_bracket_AllCustomers"
-                    ]
+                    "units": "$",
+                    "per": "rebate"
                 },
                 {
-                    "type": "FixedQuantity",
+                    "type": "LinearQuantity",
+                    "coefficient": 25000,
+                    "indicator_cols": [
+                        "feature.homeowner.in_bracket_IncomeEligible"
+                    ],
                     "error_scale": 0,
                     "description": "MassSave GSHP rebate for income eligible customers",
                     "source": "MassSave",
-                    "amount": 25000,
-                    "indicator_cols": [
-                        "feature.homeowner.in_bracket_IncomeEligible"
-                    ]
+                    "units": "$",
+                    "per": "rebate"
                 },
                 {
                     "type": "PercentQuantity",
@@ -78,27 +86,31 @@
             "trigger_column": "DHW",
             "initial": "ElectricResistanceDHW",
             "final": "HPWH",
-            "order": ["FixedQuantity"],
+            "order": ["LinearQuantity"],
             "quantity_factors": [
                 {
-                    "type": "FixedQuantity",
+                    "type": "LinearQuantity",
+                    "coefficient": 750,
+                    "indicator_cols": [
+                        "feature.homeowner.in_bracket_AllCustomers"
+                    ],
                     "error_scale": 0,
                     "description": "MassSave HPWH rebate for all customers",
                     "source": "MassSave",
-                    "amount": 750,
-                    "indicator_cols": [
-                        "feature.homeowner.in_bracket_AllCustomers"
-                    ]
+                    "units": "$",
+                    "per": "rebate"
                 },
                 {
-                    "type": "FixedQuantity",
+                    "type": "LinearQuantity",
+                    "coefficient": 1200,
+                    "indicator_cols": [
+                        "feature.homeowner.in_bracket_IncomeEligible"
+                    ],
                     "error_scale": 0,
                     "description": "MassSave HPWH rebate for income eligible customers",
                     "source": "MassSave",
-                    "amount": 1200,
-                    "indicator_cols": [
-                        "feature.homeowner.in_bracket_IncomeEligible"
-                    ]
+                    "units": "$",
+                    "per": "rebate"
                 }
             ]
         },
@@ -106,27 +118,31 @@
             "trigger_column": "Thermostat",
             "initial": null,
             "final": "Controls",
-            "order": ["FixedQuantity"],
+            "order": ["LinearQuantity"],
             "quantity_factors": [
                 {
-                    "type": "FixedQuantity",
+                    "type": "LinearQuantity",
+                    "coefficient": 100,
+                    "indicator_cols": [
+                        "feature.homeowner.in_bracket_AllCustomers"
+                    ],
                     "error_scale": 0,
                     "description": "MassSave smart thermostat rebate for all customers",
                     "source": "MassSave",
-                    "amount": 100,
-                    "indicator_cols": [
-                        "feature.homeowner.in_bracket_AllCustomers"
-                    ]
+                    "units": "$",
+                    "per": "rebate"
                 },
                 {
-                    "type": "FixedQuantity",
+                    "type": "LinearQuantity",
+                    "coefficient": 200,
+                    "indicator_cols": [
+                        "feature.homeowner.in_bracket_IncomeEligible"
+                    ],
                     "error_scale": 0,
                     "description": "MassSave smart thermostat rebate for income eligible customers",
                     "source": "MassSave",
-                    "amount": 200,
-                    "indicator_cols": [
-                        "feature.homeowner.in_bracket_IncomeEligible"
-                    ]
+                    "units": "$",
+                    "per": "rebate"
                 }
             ]
         },
