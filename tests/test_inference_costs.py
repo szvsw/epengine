@@ -55,10 +55,24 @@ def test_features_with_location():
     features["feature.location.county"] = "Middlesex"  # Default county
     features["feature.semantic.Heating"] = "NaturalGasHeating"  # Has gas heating
     features["feature.semantic.Cooling"] = "ACCentral"  # Has cooling
+    features["feature.semantic.Windows"] = "SinglePane"  # Default window type
+    features["feature.semantic.Walls"] = "NoInsulationWalls"  # Default wall type
+
+    # Add income eligibility feature (needed for incentive calculations)
+    features["feature.eligibility.income_level"] = (
+        "AllCustomers"  # Default to all customers
+    )
+
+    # Add income bracket indicators (needed for incentive calculations)
+    features["feature.homeowner.in_bracket_AllCustomers"] = False
+    features["feature.homeowner.in_bracket_IncomeEligible"] = False
 
     # Add precomputed features that would normally be added by make_retrofit_cost_features
     # Heating capacity (placeholder - would normally be calculated from peak results)
     features["feature.calculated.heating_capacity_kW"] = 25  # 15 kW heating capacity
+
+    # Add system factors needed for cost calculations
+    features["feature.factors.system.heat.effective_cop"] = 0.8  # Typical effective COP
 
     # County indicators (one-hot encoded)
     features["feature.location.in_county_Middlesex"] = 1
@@ -77,10 +91,10 @@ def test_features_with_location():
     features["feature.location.in_county_Worcester"] = 0
 
     # System indicators
-    features["feature.system.has_gas"] = 1  # Has gas heating
-    features["feature.system.has_gas_not"] = 0
-    features["feature.system.has_cooling"] = 1  # Has cooling
-    features["feature.system.has_cooling_not"] = 0
+    features["feature.system.has_gas.true"] = 1  # Has gas heating
+    features["feature.system.has_gas.false"] = 0
+    features["feature.system.has_cooling.true"] = 1  # Has cooling
+    features["feature.system.has_cooling.false"] = 0
 
     # Constant feature
     features["feature.constant.one"] = 1
@@ -178,10 +192,10 @@ class TestCostCalculation:
                 "feature.location.in_county_Middlesex", [0]
             ).iloc[0]
             has_gas = test_features_with_location.get(
-                "feature.system.has_gas", [0]
+                "feature.system.has_gas.true", [0]
             ).iloc[0]
             has_cooling = test_features_with_location.get(
-                "feature.system.has_cooling", [0]
+                "feature.system.has_cooling.true", [0]
             ).iloc[0]
 
             print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
@@ -426,9 +440,14 @@ class TestIncentiveCalculation:
             # Calculate the cost first
             ashp_cost = ashp_costs[0]
             cost_result = ashp_cost.compute(test_features_with_location)
-            costs_df = pd.DataFrame({"cost.Heating": cost_result})
+
+            # Use a higher cost to avoid clipping so we can test the income bracket differentiation
+            # The incentives are $12,000 for AllCustomers and $17,000 for IncomeEligible
+            test_cost = max(cost_result.iloc[0], 20000.0)  # Ensure cost is high enough
+            costs_df = pd.DataFrame({"cost.Heating": [test_cost]})
 
             print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
+            print(f"Using test cost: ${test_cost:.2f} (to avoid clipping)")
 
             # Test all customers incentive
             all_customers_features = create_features_with_income_bracket(
@@ -460,16 +479,16 @@ class TestIncentiveCalculation:
             )
 
             # Verify that incentives are properly clipped to the total cost
-            assert all_customer_total <= cost_result.iloc[0], (
-                f"All customers incentive (${all_customer_total:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
+            assert all_customer_total <= test_cost, (
+                f"All customers incentive (${all_customer_total:.2f}) should be clipped to cost (${test_cost:.2f})"
             )
-            assert income_eligible_total <= cost_result.iloc[0], (
-                f"Income eligible incentive (${income_eligible_total:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
+            assert income_eligible_total <= test_cost, (
+                f"Income eligible incentive (${income_eligible_total:.2f}) should be clipped to cost (${test_cost:.2f})"
             )
 
             # Verify that net cost is never negative
-            net_cost_all_customers = cost_result.iloc[0] - all_customer_total
-            net_cost_income_eligible = cost_result.iloc[0] - income_eligible_total
+            net_cost_all_customers = test_cost - all_customer_total
+            net_cost_income_eligible = test_cost - income_eligible_total
 
             assert net_cost_all_customers >= 0, (
                 f"Net cost for all customers should be >= 0, got ${net_cost_all_customers:.2f}"
@@ -497,11 +516,11 @@ class TestIncentiveCalculation:
         # Check that the incentive has both income bracket factors
         if ashp_incentives:
             ashp_incentive = ashp_incentives[0]
-            fixed_factors = [
-                f for f in ashp_incentive.quantity_factors if hasattr(f, "amount")
+            linear_factors = [
+                f for f in ashp_incentive.quantity_factors if hasattr(f, "coefficient")
             ]
-            assert len(fixed_factors) >= 2, (
-                "Should have at least 2 fixed incentive factors (one for each income bracket)"
+            assert len(linear_factors) >= 2, (
+                "Should have at least 2 linear incentive factors (one for each income bracket)"
             )
 
     def test_incentive_income_level_differentiation(
