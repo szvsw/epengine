@@ -1268,10 +1268,6 @@ class SBEMInferenceRequestSpec(BaseModel):
             electrical_capacity_kW * safety_factor
         )
 
-        # Add county indicator (placeholder - will be set based on location)
-        cost_features["feature.location.county"] = "MA"  # Default to MA
-
-        # Add one-hot encoded county features
         counties = [
             "Berkshire",
             "Barnstable",
@@ -1289,9 +1285,13 @@ class SBEMInferenceRequestSpec(BaseModel):
             "Worcester",
         ]
         for county in counties:
-            cost_features[f"feature.location.in_county_{county}"] = (
-                cost_features["feature.location.county"] == county
-            )
+            if "feature.location.county" in cost_features.columns:
+                cost_features[f"feature.location.in_county_{county}"] = (
+                    cost_features["feature.location.county"] == county
+                )
+            else:
+                # Check to ensure that county can always be returned, otherwise it will exclude this cost factor - could instead consider making this raise an error?
+                cost_features[f"feature.location.in_county_{county}"] = False
 
         # Add gas availability indicator
         gas_heating_systems = ["NaturalGasHeating", "NaturalGasCondensingHeating"]
