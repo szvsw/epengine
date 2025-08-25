@@ -2046,7 +2046,7 @@ class LinearQuantity(BaseModel, QuantityFactor, frozen=True):
     """A quantity that is linear in the product of a set of indicator columns."""
 
     coefficient: float = Field(
-        ..., description="The factor to multiply the indicator columns by.", gt=0
+        ..., description="The factor to multiply the indicator columns by.", ge=0
     )
     indicator_cols: tuple[str, ...] = Field(
         ...,
@@ -2211,7 +2211,15 @@ class RetrofitQuantity(BaseModel, frozen=True):
                 if isinstance(factor, dict):
                     factor_type = factor.get("type")
                     if factor_type == "FixedQuantity":
-                        inferred_factors.append(FixedQuantity(**factor))
+                        # Convert indicator_cols from list to tuple for hashability if present
+                        factor_copy = factor.copy()
+                        if "indicator_cols" in factor_copy and isinstance(
+                            factor_copy["indicator_cols"], list
+                        ):
+                            factor_copy["indicator_cols"] = tuple(
+                                factor_copy["indicator_cols"]
+                            )
+                        inferred_factors.append(FixedQuantity(**factor_copy))
                     elif factor_type == "LinearQuantity":
                         # Convert indicator_cols from list to tuple for hashability
                         factor_copy = factor.copy()
@@ -2387,10 +2395,25 @@ class RetrofitQuantities(BaseModel, frozen=True):
             )
             total_quantity += quantity_result
 
+        # For incentives, clip the total amount to the cost amount
+        if self.output_key == "incentive" and context_df is not None:
+            # Find the cost column for this trigger
+            cost_col = f"cost.{trigger}"
+            if cost_col in context_df.columns:
+                cost_amount = context_df[cost_col]
+                # Clip the total incentive to the cost amount
+                total_quantity = total_quantity.clip(upper=cost_amount)
+
         # Collect metadata if requested (for incentives)
         if incentive_metadata_rows is not None and self.output_key == "incentive":
             self._collect_incentive_metadata(
-                trigger, final, quantities, total_quantity, incentive_metadata_rows
+                trigger,
+                final,
+                quantities,
+                total_quantity,
+                incentive_metadata_rows,
+                features,
+                current_context,
             )
 
         return total_quantity
@@ -2402,6 +2425,8 @@ class RetrofitQuantities(BaseModel, frozen=True):
         quantities: list[RetrofitQuantity],
         total_quantity: pd.Series,
         incentive_metadata_rows: list[dict],
+        features: pd.DataFrame,
+        context_df: pd.DataFrame | None = None,
     ) -> None:
         """Collect metadata for incentive quantities."""
         for quantity in quantities:
@@ -2414,8 +2439,8 @@ class RetrofitQuantities(BaseModel, frozen=True):
                     source = factor.source
                     break
 
-            # Calculate the amount this quantity contributed
-            quantity_result = quantity.compute(pd.DataFrame(), None, self.output_key)
+            # Calculate the amount this quantity contributed using actual features and context
+            quantity_result = quantity.compute(features, context_df, self.output_key)
             amount_applied = (
                 float(quantity_result.iloc[0]) if len(quantity_result) > 0 else 0.0
             )
