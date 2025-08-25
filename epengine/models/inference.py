@@ -1311,12 +1311,7 @@ class SBEMInferenceRequestSpec(BaseModel):
         # Check that each row has exactly one county set to True
         county_df = cost_features[county_oh_col_names]
         rows_with_no_county = county_df.sum(axis=1) == 0
-        # check if there are any rows with more than one county set to True
-        rows_with_multiple_counties = county_df.sum(axis=1) > 1
-        if rows_with_multiple_counties.any():
-            msg = f"Found {rows_with_multiple_counties.sum()} rows with multiple county indicators set to True"
-            logging.warning(msg)
-        # check if there are any rows with no county set to True
+        # check if there are any rows with no county set to True - pydantic validation of the request shoudl catch if nothing is entered, but if an unknown county is entered, then this warning will appear. We coudl update the pydantic valdation to include only the counties we currently consider
         if rows_with_no_county.any():
             msg = f"Found {rows_with_no_county.sum()} rows with no county indicators set to True"
             logging.warning(msg)
