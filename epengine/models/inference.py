@@ -54,6 +54,12 @@ from epengine.models.shoebox_sbem import (
 from epengine.models.transforms import CategoricalFeature, RegressorInputSpec
 
 END_USES = ("Lighting", "Equipment", "DomesticHotWater", "Heating", "Cooling")
+OIL_HEATING_SYSTEMS = ["OilHeating"]
+NG_HEATING_SYSTEMS = ["NaturalGasHeating", "NaturalGasCondensingHeating"]
+INCOME_BRACKETS = [
+    "IncomeEligible",
+    "AllCustomers",
+]
 FUELS = ("Oil", "NaturalGas", "Electricity")
 DATASETS = (
     "Raw",
@@ -1267,8 +1273,7 @@ class SBEMInferenceRequestSpec(BaseModel):
         cost_features["feature.calculated.heating_capacity_kW"] = (
             electrical_capacity_kW * safety_factor
         )
-
-        counties = [
+        COUNTIES = [
             "Berkshire",
             "Barnstable",
             "Bristol",
@@ -1284,25 +1289,34 @@ class SBEMInferenceRequestSpec(BaseModel):
             "Suffolk",
             "Worcester",
         ]
-        for county in counties:
-            if "feature.location.county" in cost_features.columns:
-                cost_features[f"feature.location.in_county_{county}"] = (
-                    cost_features["feature.location.county"] == county
-                )
-            else:
-                # Check to ensure that county can always be returned, otherwise it will exclude this cost factor - could instead consider making this raise an error?
-                cost_features[f"feature.location.in_county_{county}"] = False
-                # TODO: log a warning if the column is missing
-                logging.warning(f"County {county} not found in cost features")
-                # pd.to_dummies
+        for county in COUNTIES:
+            cost_features[f"feature.location.in_county_{county}"] = (
+                features["feature.location.county"] == county
+            )
+
+        def oh_col_name_for_county(county: str) -> str:
+            return f"feature.location.in_county_{county}"
+
+        county_oh_col_names = [oh_col_name_for_county(county) for county in COUNTIES]
+        # Check that each row has exactly one county set to True
+        county_df = cost_features[county_oh_col_names]
+        rows_with_no_county = county_df.sum(axis=1) == 0
+        # check if there are any rows with more than one county set to True
+        rows_with_multiple_counties = county_df.sum(axis=1) > 1
+        if rows_with_multiple_counties.any():
+            msg = f"Found {rows_with_multiple_counties.sum()} rows with multiple county indicators set to True"
+            logging.warning(msg)
+        # check if there are any rows with no county set to True
+        if rows_with_no_county.any():
+            msg = f"Found {rows_with_no_county.sum()} rows with no county indicators set to True"
+            logging.warning(msg)
 
         # Add gas availability indicator
-        gas_heating_systems = ["NaturalGasHeating", "NaturalGasCondensingHeating"]
-        cost_features["feature.system.has_gas"] = features[
+        cost_features["feature.system.has_gas.true"] = features[
             "feature.semantic.Heating"
-        ].isin(gas_heating_systems)
-        cost_features["feature.system.has_gas_not"] = ~cost_features[
-            "feature.system.has_gas"
+        ].isin(NG_HEATING_SYSTEMS)
+        cost_features["feature.system.has_gas.false"] = ~cost_features[
+            "feature.system.has_gas.true"
         ]
 
         # Add cooling availability indicator
@@ -1313,11 +1327,11 @@ class SBEMInferenceRequestSpec(BaseModel):
             "ASHPCooling",
             "GSHPCooling",
         ]
-        cost_features["feature.system.has_cooling"] = features[
+        cost_features["feature.system.has_cooling.true"] = features[
             "feature.semantic.Cooling"
         ].isin(cooling_systems)
-        cost_features["feature.system.has_cooling_not"] = ~cost_features[
-            "feature.system.has_cooling"
+        cost_features["feature.system.has_cooling.false"] = ~cost_features[
+            "feature.system.has_cooling.true"
         ]
 
         # Add constant feature for intercept terms
@@ -1340,13 +1354,33 @@ class SBEMInferenceRequestSpec(BaseModel):
         incentive_features["feature.fuel.electricity"] = True  # Always available
         incentive_features["feature.fuel.natural_gas"] = features[
             "feature.semantic.Heating"
-        ].isin(["NaturalGasHeating", "NaturalGasCondensingHeating"])
-        incentive_features["feature.fuel.oil"] = (
-            features["feature.semantic.Heating"] == "OilHeating"
-        )
+        ].isin(NG_HEATING_SYSTEMS)
+        incentive_features["feature.fuel.oil"] = features[
+            "feature.semantic.Heating"
+        ].isin(OIL_HEATING_SYSTEMS)
 
-        # Add income eligibility (placeholder - will be set based on context)
-        incentive_features["feature.eligibility.income_level"] = "All_customers"
+        for bracket in INCOME_BRACKETS:
+            incentive_features[f"feature.homeowner.in_bracket_{bracket}"] = (
+                incentive_features["feature.eligibility.income_level"] == bracket
+            )
+
+        # Add window/wall eligibility check as one-hot encoding
+        # Check if there's a window upgrade to Double or Triple pane
+        window_upgrade = features["feature.semantic.Windows"].isin([
+            "DoublePaneLowE",
+            "TriplePaneLowE",
+        ])
+
+        # Check if there's a wall insulation upgrade
+        wall_upgrade = features["feature.semantic.Walls"].isin([
+            "FullInsulationWallsCavity",
+            "FullInsulationWallsCavityExterior",
+        ])
+
+        # Window incentives are eligible only if both window and wall upgrades are present
+        incentive_features["feature.eligibility.window_wall_combo"] = (
+            window_upgrade & wall_upgrade
+        )
 
         return incentive_features
 
@@ -1685,12 +1719,6 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         new_results = self.original.compute_distributions(
             new_features, new_results_energy
         )
-        # new_results_peak = self.original.compute_distributions(
-        #     new_features, _new_results_peak
-        # )
-
-        # Build features for retrofit costs with calculated values
-        features_for_costs = new_features.copy(deep=True)
 
         # finally, we compute the deltas and the corresponding summary
         # statistics.
@@ -1714,119 +1742,97 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
 
         costs_path = Path(__file__).parent / "data" / "retrofit-costs.json"
 
-        # Load split incentive files
-        all_customers_incentives_path = (
-            Path(__file__).parent / "data" / "incentives_all_customers.json"
-        )
-        income_eligible_incentives_path = (
-            Path(__file__).parent / "data" / "incentives_income_eligible.json"
-        )
-
-        # Load both incentive configurations
-        all_customers_incentive_config = RetrofitQuantities.Open(
-            all_customers_incentives_path
-        )
-        income_eligible_incentive_config = RetrofitQuantities.Open(
-            income_eligible_incentives_path
-        )
+        # Load consolidated incentive file
+        incentives_path = Path(__file__).parent / "data" / "incentives.json"
+        incentive_config = RetrofitQuantities.Open(incentives_path)
 
         cost_config = RetrofitQuantities.Open(costs_path)
 
         # Compute features for cost calculations after inference
         features_for_costs = self.original.make_retrofit_cost_features(
-            features_for_costs, new_results_peak
+            new_features, new_results_peak
         )
         retrofit_costs = self.compute_retrofit_costs(features_for_costs, cost_config)
 
-        # Compute incentives using split incentive files
-        (
-            all_customers_incentives,
-            income_eligible_incentives,
-        ) = self.compute_incentives_split(
+        # Compute incentives for all income brackets
+        incentives_by_bracket = self.compute_incentives_by_bracket(
             features_for_costs,
-            all_customers_incentive_config,
-            income_eligible_incentive_config,
+            incentive_config,
             retrofit_costs,
         )
 
-        # Compute net costs after incentives
-        all_customers_net_costs, income_eligible_net_costs = self.compute_net_costs(
-            retrofit_costs, all_customers_incentives, income_eligible_incentives
+        # Compute net costs after incentives for all brackets
+        net_costs_by_bracket = self.compute_net_costs_by_bracket(
+            retrofit_costs, incentives_by_bracket
         )
 
         # Compute paybacks
         payback_no_incentives = self.compute_payback(retrofit_costs, delta_results)
-        # TODO: decide what paybacks to show in outputs
-        payback_with_incentives_all = self.compute_payback_with_incentives(
-            all_customers_net_costs, delta_results
-        )
-        payback_with_incentives_income = self.compute_payback_with_incentives(
-            income_eligible_net_costs, delta_results
-        )
+
+        # Compute paybacks for each income bracket
+        paybacks_by_bracket = {}
+        for bracket, net_costs_df in net_costs_by_bracket.items():
+            paybacks_by_bracket[bracket] = self.compute_payback(
+                net_costs_df, delta_results, "net_cost.Total"
+            )
 
         # Combine all cost and incentive data
         all_costs_data = pd.concat(
             [
                 retrofit_costs,
-                all_customers_incentives,
-                income_eligible_incentives,
-                all_customers_net_costs,
-                income_eligible_net_costs,
+                *incentives_by_bracket.values(),
+                *net_costs_by_bracket.values(),
             ],
             axis=1,
         )
 
+        def summarize(data: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
+            return data.describe(percentiles=list(PERCENTILES.keys())).drop(["count"])
+
         # Create summary statistics
-        retrofit_costs_summary = retrofit_costs.describe(
-            percentiles=list(PERCENTILES.keys())
-        ).drop(["count"])
+        retrofit_costs_summary = summarize(retrofit_costs)
 
-        all_customers_net_costs_summary = all_customers_net_costs.describe(
-            percentiles=list(PERCENTILES.keys())
-        ).drop(["count"])
-        income_eligible_net_costs_summary = income_eligible_net_costs.describe(
-            percentiles=list(PERCENTILES.keys())
-        ).drop(["count"])
+        # Create summary statistics for each bracket
+        net_costs_summaries = {}
+        payback_summaries = {}
+        for bracket, net_costs_df in net_costs_by_bracket.items():
+            net_costs_summaries[bracket] = summarize(net_costs_df)
+            payback_summaries[bracket] = summarize(paybacks_by_bracket[bracket])
 
-        payback_no_incentives_summary = payback_no_incentives.describe(
-            percentiles=list(PERCENTILES.keys())
-        ).drop(["count"])
-        payback_with_incentives_all_summary = payback_with_incentives_all.describe(
-            percentiles=list(PERCENTILES.keys())
-        ).drop(["count"])
-        payback_with_incentives_income_summary = (
-            payback_with_incentives_income.describe(
-                percentiles=list(PERCENTILES.keys())
-            ).drop(["count"])
-        )
+        payback_no_incentives_summary = summarize(payback_no_incentives)
 
+        # Create cost results for each bracket
         cost_results = SBEMRetrofitDistributions(
             costs=all_costs_data,
             paybacks=payback_no_incentives,
-            costs_summary=retrofit_costs_summary,
-            paybacks_summary=payback_no_incentives_summary,
-        )
-        cost_results_with_incentives = SBEMRetrofitDistributions(
-            costs=all_costs_data,
-            paybacks=payback_with_incentives_all,
-            costs_summary=all_customers_net_costs_summary,
-            paybacks_summary=payback_with_incentives_all_summary,
-        )
-        cost_results_with_incentives_income_eligible = SBEMRetrofitDistributions(
-            costs=all_costs_data,
-            paybacks=payback_with_incentives_income,
-            costs_summary=income_eligible_net_costs_summary,
-            paybacks_summary=payback_with_incentives_income_summary,
+            costs_summary=cast(pd.DataFrame, retrofit_costs_summary),
+            paybacks_summary=cast(pd.Series, payback_no_incentives_summary),
         )
 
-        return {
+        cost_results_by_bracket = {}
+        for bracket in incentives_by_bracket:
+            cost_results_by_bracket[bracket] = SBEMRetrofitDistributions(
+                costs=all_costs_data,
+                paybacks=paybacks_by_bracket[bracket],
+                costs_summary=cast(pd.DataFrame, net_costs_summaries[bracket]),
+                paybacks_summary=cast(pd.Series, payback_summaries[bracket]),
+            )
+
+        # Build return dictionary
+        result_dict = {
             "original": original_results,
             "upgraded": new_results,
             "delta": delta_results,
             "retrofit": cost_results,
-            "retrofit_with_incentives_all": cost_results_with_incentives,
-            "retrofit_with_incentives_income_eligible": cost_results_with_incentives_income_eligible,
         }
+
+        # Add results for each income bracket
+        for bracket in incentives_by_bracket:
+            result_dict[f"retrofit_with_incentives_{bracket.lower()}"] = (
+                cost_results_by_bracket[bracket]
+            )
+
+        return result_dict
 
     @property
     def changed_context_fields(
@@ -1843,159 +1849,105 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             if v != self.original.semantic_field_context[f]
         }
 
-    def select_cost_entities(self, costs: "RetrofitQuantities") -> "RetrofitQuantities":
-        """Select the cost entities that are relevant to the changed context fields."""
-        _changed_feature_fields, changed_context_fields = self.changed_context_fields
-        cost_entities: list[RetrofitQuantity] = []
-        for context_field, context_value in changed_context_fields.items():
-            original_value = self.original.semantic_field_context[context_field]
-            retrofit_cost_candidates: list[RetrofitQuantity] = []
-            for cost in costs.quantities:
-                if cost.trigger_column != context_field:
-                    continue
-                if cost.final != context_value:
-                    continue
-                if cost.initial is None or cost.initial == original_value:
-                    retrofit_cost_candidates.append(cost)
-            if len(retrofit_cost_candidates) == 0:
-                msg = f"No retrofit cost found for {context_field} = {original_value} -> {context_value}"
-                print(msg)
-            elif len(retrofit_cost_candidates) > 1:
-                msg = f"Multiple retrofit costs found for {context_field} = {original_value} -> {context_value}:\n {retrofit_cost_candidates}"
-                raise ValueError(msg)
-            else:
-                cost_entities.append(retrofit_cost_candidates[0])
-        return RetrofitQuantities(
-            quantities=frozenset(cost_entities), output_key="cost"
-        )
-
-    def select_incentive_entities(
-        self, incentives: "RetrofitQuantities", income_level: str = "All_customers"
+    def select_relevant_entities(
+        self, entities: "RetrofitQuantities"
     ) -> "RetrofitQuantities":
-        """Select the incentive entities that are relevant to the changed context fields and eligibility criteria."""
+        """Select the entities that are relevant to the changed context fields."""
         _changed_feature_fields, changed_context_fields = self.changed_context_fields
-        incentive_entities: list[RetrofitQuantity] = []
+        selected_entities: list[RetrofitQuantity] = []
 
         for context_field, context_value in changed_context_fields.items():
             original_value = self.original.semantic_field_context[context_field]
-            retrofit_incentive_candidates: list[RetrofitQuantity] = []
+            entity_candidates: list[RetrofitQuantity] = []
 
-            for incentive in incentives.quantities:
-                # Check if incentive matches the semantic field and final value
-                if incentive.trigger_column != context_field:
+            for entity in entities.quantities:
+                # Check if entity matches the semantic field and final value
+                if entity.trigger_column != context_field:
                     continue
-                if incentive.final != context_value:
+                if entity.final != context_value:
                     continue
-                if (
-                    incentive.initial is not None
-                    and incentive.initial != original_value
-                ):
+                if entity.initial is not None and entity.initial != original_value:
                     continue
 
-                # Check eligibility criteria
-                if not self._check_eligibility(incentive, income_level):
-                    continue
+                entity_candidates.append(entity)
 
-                retrofit_incentive_candidates.append(incentive)
-
-            if len(retrofit_incentive_candidates) == 0:
-                msg = f"No retrofit incentive found for {context_field} = {original_value} -> {context_value} (income: {income_level})"
+            if len(entity_candidates) == 0:
+                msg = f"No {entities.output_key} entity found for {context_field} = {original_value} -> {context_value}"
                 print(msg)
-            elif len(retrofit_incentive_candidates) > 1:
-                msg = (
-                    f"Multiple retrofit incentives found for {context_field} = {original_value} -> {context_value} "
-                    f"(income: {income_level}); selecting all."
-                )
-                print(msg)
-                # Include all applicable incentives (e.g., federal + state)
-                incentive_entities.extend(retrofit_incentive_candidates)
+            elif len(entity_candidates) > 1:
+                if entities.raise_on_duplicate_trigger:
+                    msg = f"Multiple {entities.output_key} entities found for {context_field} = {original_value} -> {context_value}:\n {entity_candidates}"
+                    raise ValueError(msg)
+                else:
+                    msg = f"Multiple {entities.output_key} entities found for {context_field} = {original_value} -> {context_value}; selecting all."
+                    print(msg)
+                    # Include all applicable entities (e.g., federal + state incentives)
+                    selected_entities.extend(entity_candidates)
             else:
-                incentive_entities.append(retrofit_incentive_candidates[0])
+                selected_entities.append(entity_candidates[0])
 
         return RetrofitQuantities(
-            quantities=frozenset(incentive_entities), output_key="incentive"
+            quantities=frozenset(selected_entities),
+            output_key=entities.output_key,
+            raise_on_duplicate_trigger=entities.raise_on_duplicate_trigger,
         )
-
-    def _check_eligibility(
-        self, incentive: "RetrofitQuantity", income_level: str
-    ) -> bool:
-        """Check if the incentive is eligible based on semantic field context."""
-        # For now, assume all incentives are eligible
-        # TODO: Implement proper eligibility checking based on incentive metadata
-        return True
-
-    def _check_window_wall_eligibility(
-        self, features: pd.DataFrame, changed_context_fields: dict
-    ) -> bool:
-        """Check if window incentives are eligible based on wall insulation upgrades."""
-        # Check if there's a window upgrade to Double or Triple pane
-        window_upgrade = False
-        if "Windows" in changed_context_fields:
-            final_window = changed_context_fields["Windows"]
-            if final_window in ["DoublePaneLowE", "TriplePaneLowE"]:
-                window_upgrade = True
-
-        # Check if there's a wall insulation upgrade
-        wall_upgrade = False
-        if "Walls" in changed_context_fields:
-            final_walls = changed_context_fields["Walls"]
-            if final_walls in [
-                "FullInsulationWallsCavity",
-                "FullInsulationWallsCavityExterior",
-            ]:
-                wall_upgrade = True
-
-        return window_upgrade and wall_upgrade
 
     def compute_retrofit_costs(
         self, features: pd.DataFrame, all_costs: "RetrofitQuantities"
     ) -> pd.DataFrame:
         """Compute the retrofit costs for the changed context fields."""
-        cost_entities = self.select_cost_entities(all_costs)
+        cost_entities = self.select_relevant_entities(all_costs)
         costs_df = cost_entities.compute(features)
-        for feature in all_costs.all_semantic_features:
+        for feature in all_costs.all_trigger_features:
             col_name = f"cost.{feature}"
             if col_name not in costs_df.columns:
                 costs_df[col_name] = 0
         return costs_df
 
-    def compute_incentives_split(
+    def compute_incentives_by_bracket(
         self,
         features: pd.DataFrame,
-        all_customers_incentives: "RetrofitQuantities",
-        income_eligible_incentives: "RetrofitQuantities",
+        incentive_config: "RetrofitQuantities",
         costs_df: pd.DataFrame,
-    ) -> tuple[pd.DataFrame, pd.DataFrame]:
-        """Compute the incentives for the changed context fields using split incentive files."""
+    ) -> dict[str, pd.DataFrame]:
+        """Compute incentives for all income brackets using consolidated incentive file.
+
+        Returns:
+            dict: Dictionary mapping income bracket names to incentive DataFrames
+        """
+        # Get income brackets from the module constant
         # Compute features for incentive calculations after inference
         features_for_incentives = self.original.make_retrofit_incentive_features(
             features
         )
 
-        # Compute incentives for both income levels using the split configurations
-        all_customers_df = all_customers_incentives.compute(
-            features_for_incentives, costs_df
-        )
-        income_eligible_df = income_eligible_incentives.compute(
-            features_for_incentives, costs_df
-        )
+        incentives_by_bracket = {}
 
-        # Add missing columns for all semantic features
-        all_semantic_features = set(
-            all_customers_incentives.all_semantic_features
-            + income_eligible_incentives.all_semantic_features
-        )
-        for feature in all_semantic_features:
-            col_name = f"incentive.{feature}"
-            if col_name not in all_customers_df.columns:
-                all_customers_df[col_name] = 0
-            if col_name not in income_eligible_df.columns:
-                income_eligible_df[col_name] = 0
+        # Compute incentives for each income bracket
+        for bracket in INCOME_BRACKETS:
+            # Create features for this specific income bracket
+            bracket_features = features_for_incentives.copy()
 
-        return (
-            all_customers_df,
-            income_eligible_df,
-        )
+            # Set all income bracket indicators to False
+            for b in INCOME_BRACKETS:
+                bracket_features[f"feature.homeowner.in_bracket_{b}"] = False
+
+            # Set the current bracket to True
+            bracket_features[f"feature.homeowner.in_bracket_{bracket}"] = True
+
+            # Compute incentives for this bracket
+            bracket_incentives = incentive_config.compute(bracket_features, costs_df)
+
+            # Add missing columns for all semantic features
+            all_semantic_features = set(incentive_config.all_trigger_features)
+            for feature in all_semantic_features:
+                col_name = f"incentive.{feature}"
+                if col_name not in bracket_incentives.columns:
+                    bracket_incentives[col_name] = 0
+
+            incentives_by_bracket[bracket] = bracket_incentives
+
+        return incentives_by_bracket
 
     def _compute_net_costs_for_incentives(
         self, costs_df: pd.DataFrame, incentives_df: pd.DataFrame
@@ -2014,23 +1966,18 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
 
         # calc method here should be total_cost - total_incentive
         # Calculate net cost total: cost total minus incentive total, or sum of existing net costs
-        net_costs["net_cost.Total"] = (
-            net_costs["cost.Total"] - incentives_df["incentive.Total"]
-        )
 
         # If either column doesn't exist, fall back to summing existing net_cost columns
-        if (
-            "cost.Total" not in net_costs.columns
-            or "incentive.Total" not in incentives_df.columns
-        ):
+        if "incentive.Total" not in incentives_df.columns:
             net_cost_cols = [
                 col for col in net_costs.columns if col.startswith("net_cost.")
             ]
             if net_cost_cols:
                 net_costs["net_cost.Total"] = net_costs[net_cost_cols].sum(axis=1)
-            elif "cost.Total" in net_costs.columns:
-                net_costs["net_cost.Total"] = net_costs["cost.Total"]
-
+        else:
+            net_costs["net_cost.Total"] = (
+                net_costs["cost.Total"] - incentives_df["incentive.Total"]
+            )
         # Ensure net cost total is not negative (clip at 0) and warn when clipping
         negatives = net_costs["net_cost.Total"] < 0
         if negatives.any():
@@ -2042,20 +1989,19 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
 
         return net_costs
 
-    def compute_net_costs(
+    def compute_net_costs_by_bracket(
         self,
         costs_df: pd.DataFrame,
-        all_customers_incentives_df: pd.DataFrame,
-        income_eligible_incentives_df: pd.DataFrame,
-    ) -> tuple[pd.DataFrame, pd.DataFrame]:
-        """Compute net costs after incentives for both income levels."""
-        all_customers_net = self._compute_net_costs_for_incentives(
-            costs_df, all_customers_incentives_df
-        )
-        income_eligible_net = self._compute_net_costs_for_incentives(
-            costs_df, income_eligible_incentives_df
-        )
-        return all_customers_net, income_eligible_net
+        incentives_by_bracket: dict[str, pd.DataFrame],
+    ) -> dict[str, pd.DataFrame]:
+        """Compute net costs after incentives for all income brackets."""
+        net_costs_by_bracket = {}
+
+        for bracket, incentives_df in incentives_by_bracket.items():
+            net_costs = self._compute_net_costs_for_incentives(costs_df, incentives_df)
+            net_costs_by_bracket[bracket] = net_costs
+
+        return net_costs_by_bracket
 
     def compute_payback(
         self,
@@ -2078,12 +2024,6 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         payback[payback < 0] = np.inf
 
         return payback
-
-    def compute_payback_with_incentives(
-        self, net_costs_df: pd.DataFrame, delta_results: SBEMDistributions
-    ) -> pd.Series:
-        """Compute the payback for the changed context fields with incentives applied."""
-        return self.compute_payback(net_costs_df, delta_results, "net_cost.Total")
 
 
 class QuantityFactor(ABC):
@@ -2136,22 +2076,9 @@ class LinearQuantity(BaseModel, QuantityFactor, frozen=True):
         self, features: pd.DataFrame, context_df: pd.DataFrame | None = None
     ) -> pd.Series:
         """Compute the quantity for a given feature."""
-        # Check if this is a context-based calculation (for percentage incentives)
-        if self.indicator_cols == ("cost_context",) and context_df is not None:
-            # This is a percentage-based calculation using context
-            context_cols = [
-                col for col in context_df.columns if col.startswith("cost.")
-            ]
-            if context_cols:
-                context_col = context_cols[0]
-                base_quantity = context_df[context_col] * self.coefficient
-                result = base_quantity
-            else:
-                result = pd.Series(0, index=features.index)
-        else:
-            # Standard linear calculation: coefficient * product of indicator columns
-            base = features[list(self.indicator_cols)].product(axis=1)
-            result = self.coefficient * base
+        # Standard linear calculation: coefficient * product of indicator columns
+        base = features[list(self.indicator_cols)].product(axis=1)
+        result = self.coefficient * base
 
         # Apply error scaling (multiplicative)
         if self.error_scale is not None:
@@ -2194,10 +2121,16 @@ class FixedQuantity(BaseModel, QuantityFactor, frozen=True):
         else:
             # Use absolute value of amount for standard deviation to avoid negative scale
             std_dev = abs(self.amount) * self.error_scale
-            return pd.Series(
-                np.random.normal(self.amount, std_dev, len(features)).clip(min=0),
-                index=features.index,
-            )
+            is_positive = self.amount > 0
+
+            random_values = np.random.normal(self.amount, std_dev, len(features))
+
+            if is_positive:
+                clipped_values = np.maximum(random_values, 0)
+            else:
+                clipped_values = np.minimum(random_values, 0)
+
+            return pd.Series(clipped_values, index=features.index)
 
 
 class PercentQuantity(BaseModel, QuantityFactor, frozen=True):
@@ -2263,6 +2196,10 @@ class RetrofitQuantity(BaseModel, frozen=True):
     quantity_factors: frozenset[LinearQuantity | FixedQuantity | PercentQuantity] = (
         Field(..., description="The quantity factors for the retrofit.")
     )
+    order: tuple[str, ...] = Field(
+        default=("FixedQuantity", "PercentQuantity", "LinearQuantity"),
+        description="The order in which to apply quantity factors.",
+    )
 
     @field_validator("quantity_factors", mode="before")
     @classmethod
@@ -2309,51 +2246,33 @@ class RetrofitQuantity(BaseModel, frozen=True):
                 0, index=features.index, name=f"{output_key}.{self.trigger_column}"
             )
 
-        # IMMUTABLE ORDER: Fixed -> Percent -> Linear
-        # This ensures proper sequential application for incentives:
-        # 1. Fixed incentives subtract from gross cost
-        # 2. Percent incentives apply to net cost after fixed incentives
-        # 3. Linear incentives apply to remaining cost
-        factor_types = (FixedQuantity, PercentQuantity, LinearQuantity)
+        # Use custom order defined in the quantity configuration
+        # Map string names to actual classes
+        factor_class_map = {
+            "FixedQuantity": FixedQuantity,
+            "PercentQuantity": PercentQuantity,
+            "LinearQuantity": LinearQuantity,
+        }
+
         total_quantity = pd.Series(0, index=features.index)
         current_context = context_df.copy() if context_df is not None else None
 
-        for factor_class in factor_types:
+        for factor_type_name in self.order:
+            if factor_type_name not in factor_class_map:
+                print(
+                    f"Warning: Unknown factor type '{factor_type_name}' in order, skipping"
+                )
+                continue
+
+            factor_class = factor_class_map[factor_type_name]
             type_factors = [
                 f for f in self.quantity_factors if isinstance(f, factor_class)
             ]
 
             for factor in type_factors:
-                if isinstance(factor, FixedQuantity):
-                    # Fixed quantities: add directly to total
-                    quantity_amount = factor.compute(features, current_context)
-                    total_quantity += quantity_amount
-
-                    # Note: Context updates are now handled at the RetrofitQuantities level
-
-                elif isinstance(factor, PercentQuantity):
-                    # Percentage quantities: apply to current net cost (after fixed incentives)
-                    if current_context is not None:
-                        context_col = f"cost.{self.trigger_column}"
-                        if context_col in current_context.columns:
-                            temp_context_df = pd.DataFrame(
-                                {context_col: current_context[context_col]},
-                                index=current_context.index,
-                            )
-                            quantity_amount = factor.compute(features, temp_context_df)
-                            total_quantity += quantity_amount
-
-                            # Note: Context updates are now handled at the RetrofitQuantities level
-                    else:
-                        # No context provided - can't compute percentage
-                        quantity_amount = pd.Series(0, index=features.index)
-
-                elif isinstance(factor, LinearQuantity):
-                    # Linear quantities: compute based on features or context
-                    quantity_amount = factor.compute(features, current_context)
-                    total_quantity += quantity_amount
-
-                    # Note: Context updates are now handled at the RetrofitQuantities level
+                # All factor types use the same compute interface
+                quantity_amount = factor.compute(features, current_context)
+                total_quantity += quantity_amount
 
         return total_quantity.rename(f"{output_key}.{self.trigger_column}")
 
@@ -2366,9 +2285,13 @@ class RetrofitQuantities(BaseModel, frozen=True):
         ...,
         description="The key prefix to use for the output quantity columns.",
     )
+    raise_on_duplicate_trigger: bool = Field(
+        ...,
+        description="Whether to raise an error if there are duplicate triggers.",
+    )
 
     @property
-    def all_semantic_features(self) -> list[str]:
+    def all_trigger_features(self) -> list[str]:
         """The list of all features that are used in the quantities."""
         return list({quantity.trigger_column for quantity in self.quantities})
 
@@ -2457,175 +2380,53 @@ class RetrofitQuantities(BaseModel, frozen=True):
         current_context = context_df.copy() if context_df is not None else None
         total_quantity = pd.Series(0, index=features.index)
 
-        if self.output_key == "incentive" and current_context is not None:
-            total_quantity = self._compute_incentive_quantity(
-                features,
-                current_context,
-                trigger,
-                final,
-                quantities,
-                incentive_metadata_rows,
-            )
-        else:
-            # For costs, compute normally
-            for quantity in quantities:
-                quantity_result = quantity.compute(
-                    features, current_context, self.output_key
-                )
-                total_quantity += quantity_result
-
-        return total_quantity
-
-    def _compute_incentive_quantity(
-        self,
-        features: pd.DataFrame,
-        current_context: pd.DataFrame,
-        trigger: str,
-        final: str,
-        quantities: list[RetrofitQuantity],
-        incentive_metadata_rows: list[dict] | None = None,
-    ) -> pd.Series:
-        """Compute incentive quantity with proper clipping."""
-        context_col = f"cost.{trigger}"
-        if context_col not in current_context.columns:
-            return self._compute_quantities_simple(
-                features, current_context, quantities
-            )
-
-        gross_cost = current_context[context_col].iloc[0]
-        if len(quantities) == 1:
-            return self._compute_single_incentive(
-                features,
-                current_context,
-                trigger,
-                final,
-                quantities[0],
-                gross_cost,
-                incentive_metadata_rows,
-            )
-        else:
-            return self._compute_multiple_incentives(
-                features,
-                current_context,
-                trigger,
-                final,
-                quantities,
-                context_col,
-                gross_cost,
-                incentive_metadata_rows,
-            )
-
-    def _compute_quantities_simple(
-        self,
-        features: pd.DataFrame,
-        current_context: pd.DataFrame,
-        quantities: list[RetrofitQuantity],
-    ) -> pd.Series:
-        """Compute quantities without context clipping."""
-        total_quantity = pd.Series(0, index=features.index)
+        # Use the existing RetrofitQuantity.compute() method for all cases
         for quantity in quantities:
             quantity_result = quantity.compute(
                 features, current_context, self.output_key
             )
             total_quantity += quantity_result
+
+        # Collect metadata if requested (for incentives)
+        if incentive_metadata_rows is not None and self.output_key == "incentive":
+            self._collect_incentive_metadata(
+                trigger, final, quantities, total_quantity, incentive_metadata_rows
+            )
+
         return total_quantity
 
-    def _compute_single_incentive(
+    def _collect_incentive_metadata(
         self,
-        features: pd.DataFrame,
-        current_context: pd.DataFrame,
         trigger: str,
         final: str,
-        quantity: RetrofitQuantity,
-        gross_cost: float,
-        incentive_metadata_rows: list[dict] | None = None,
-    ) -> pd.Series:
-        """Compute single incentive with clipping."""
-        quantity_result = quantity.compute(features, current_context, self.output_key)
-        quantity_amount = min(quantity_result.iloc[0], gross_cost)
-
-        # Collect metadata
-        if incentive_metadata_rows is not None:
+        quantities: list[RetrofitQuantity],
+        total_quantity: pd.Series,
+        incentive_metadata_rows: list[dict],
+    ) -> None:
+        """Collect metadata for incentive quantities."""
+        for quantity in quantities:
             # Extract program info from first factor that has description/source
             program_name = None
             source = None
-            for f in quantity.quantity_factors:
-                if hasattr(f, "description") and hasattr(f, "source"):
-                    program_name = f.description
-                    source = f.source
+            for factor in quantity.quantity_factors:
+                if hasattr(factor, "description") and hasattr(factor, "source"):
+                    program_name = factor.description
+                    source = factor.source
                     break
+
+            # Calculate the amount this quantity contributed
+            quantity_result = quantity.compute(pd.DataFrame(), None, self.output_key)
+            amount_applied = (
+                float(quantity_result.iloc[0]) if len(quantity_result) > 0 else 0.0
+            )
+
             incentive_metadata_rows.append({
                 "trigger": trigger,
                 "final": final,
                 "program_name": program_name,
                 "source": source,
-                "amount_applied": float(quantity_amount),
+                "amount_applied": amount_applied,
             })
-        return pd.Series(quantity_amount, index=features.index)
-
-    def _compute_multiple_incentives(
-        self,
-        features: pd.DataFrame,
-        current_context: pd.DataFrame,
-        trigger: str,
-        final: str,
-        quantities: list[RetrofitQuantity],
-        context_col: str,
-        gross_cost: float,
-        incentive_metadata_rows: list[dict] | None = None,
-    ) -> pd.Series:
-        """Compute multiple incentives sequentially with clipping."""
-        sorted_quantities = sorted(quantities, key=self._get_primary_factor_type)
-        total_quantity = pd.Series(0, index=features.index)
-        remaining_cost = gross_cost
-
-        for quantity in sorted_quantities:
-            if remaining_cost <= 0:
-                break
-
-            temp_context_df = pd.DataFrame(
-                {context_col: pd.Series(remaining_cost, index=features.index)},
-                index=features.index,
-            )
-
-            quantity_result = quantity.compute(
-                features, temp_context_df, self.output_key
-            )
-            quantity_amount = min(quantity_result.iloc[0], remaining_cost)
-            quantity_result = pd.Series(quantity_amount, index=features.index)
-
-            total_quantity += quantity_result
-            remaining_cost -= quantity_amount
-
-            # Collect metadata per applied incentive
-            if incentive_metadata_rows is not None:
-                program_name = None
-                source = None
-                for f in quantity.quantity_factors:
-                    if hasattr(f, "description") and hasattr(f, "source"):
-                        program_name = f.description
-                        source = f.source
-                        break
-                incentive_metadata_rows.append({
-                    "trigger": trigger,
-                    "final": final,
-                    "program_name": program_name,
-                    "source": source,
-                    "amount_applied": float(quantity_amount),
-                })
-
-        return total_quantity.clip(upper=gross_cost)
-
-    def _get_primary_factor_type(self, quantity: RetrofitQuantity) -> int:
-        """Get the primary factor type for ordering purposes."""
-        if any(isinstance(f, FixedQuantity) for f in quantity.quantity_factors):
-            return 0  # Fixed first
-        elif any(isinstance(f, PercentQuantity) for f in quantity.quantity_factors):
-            return 1  # Percent second
-        elif any(isinstance(f, LinearQuantity) for f in quantity.quantity_factors):
-            return 2  # Linear third
-        else:
-            return 3  # Unknown last
 
     def _combine_quantities(
         self, all_quantities: list[pd.Series], features: pd.DataFrame
@@ -2658,15 +2459,6 @@ class RetrofitQuantities(BaseModel, frozen=True):
 
 
 RETROFIT_QUANTITY_CACHE: dict[Path, RetrofitQuantities] = {}
-
-
-class IncentiveFactor(ABC):
-    """An abstract base class for all incentive factors."""
-
-    @abstractmethod
-    def compute(self, features: pd.DataFrame, costs_df: pd.DataFrame) -> pd.Series:
-        """Compute the incentive for a given feature and cost."""
-        pass
 
 
 # provided features

@@ -88,6 +88,23 @@ def test_features_with_location():
     return features
 
 
+def create_features_with_income_bracket(features, income_bracket):
+    """Create features with specific income bracket indicators."""
+    features_copy = features.copy()
+
+    # Set all income bracket indicators to False
+    features_copy["feature.homeowner.in_bracket_AllCustomers"] = False
+    features_copy["feature.homeowner.in_bracket_IncomeEligible"] = False
+
+    # Set the specific income bracket to True
+    if income_bracket == "AllCustomers":
+        features_copy["feature.homeowner.in_bracket_AllCustomers"] = True
+    elif income_bracket == "IncomeEligible":
+        features_copy["feature.homeowner.in_bracket_IncomeEligible"] = True
+
+    return features_copy
+
+
 @pytest.fixture
 def retrofit_costs():
     """Load retrofit costs for testing."""
@@ -96,17 +113,10 @@ def retrofit_costs():
 
 
 @pytest.fixture
-def all_customers_incentives():
-    """Load all customers incentives for testing."""
-    all_customers_path = Path("epengine/models/data/incentives_all_customers.json")
-    return RetrofitQuantities.Open(all_customers_path)
-
-
-@pytest.fixture
-def income_eligible_incentives():
-    """Load income eligible incentives for testing."""
-    income_eligible_path = Path("epengine/models/data/incentives_income_eligible.json")
-    return RetrofitQuantities.Open(income_eligible_path)
+def consolidated_incentives():
+    """Load consolidated incentives for testing."""
+    incentives_path = Path("epengine/models/data/incentives.json")
+    return RetrofitQuantities.Open(incentives_path)
 
 
 class TestCostCalculation:
@@ -349,40 +359,44 @@ class TestCostCalculation:
 class TestIncentiveLoading:
     """Test incentive loading and basic functionality."""
 
-    def test_incentive_loading(
-        self, all_customers_incentives, income_eligible_incentives
-    ):
+    def test_incentive_loading(self, consolidated_incentives):
         """Test incentive loading and basic functionality."""
         print(
-            f"Loaded {len(all_customers_incentives.quantities)} all customers incentive configurations"
-        )
-        print(
-            f"Loaded {len(income_eligible_incentives.quantities)} income eligible incentive configurations"
+            f"Loaded {len(consolidated_incentives.quantities)} consolidated incentive configurations"
         )
 
         # Check for specific incentive types
-        ashp_all_customers = [
+        ashp_incentives = [
             inc
-            for inc in all_customers_incentives.quantities
-            if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
-        ]
-        ashp_income_eligible = [
-            inc
-            for inc in income_eligible_incentives.quantities
+            for inc in consolidated_incentives.quantities
             if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
         ]
 
-        print(
-            f"Found {len(ashp_all_customers)} ASHP heating incentives (all customers)"
-        )
-        print(
-            f"Found {len(ashp_income_eligible)} ASHP heating incentives (income eligible)"
-        )
+        print(f"Found {len(ashp_incentives)} ASHP heating incentives")
 
-        assert len(ashp_all_customers) > 0, "Should have incentives for all customers"
-        assert len(ashp_income_eligible) > 0, (
-            "Should have incentives for income eligible customers"
-        )
+        assert len(ashp_incentives) > 0, "Should have incentives for ASHP heating"
+
+        # Check that we have both income bracket indicators in the factors
+        if ashp_incentives:
+            ashp_incentive = ashp_incentives[0]
+            has_all_customers = any(
+                hasattr(factor, "indicator_cols")
+                and "feature.homeowner.in_bracket_AllCustomers" in factor.indicator_cols
+                for factor in ashp_incentive.quantity_factors
+            )
+            has_income_eligible = any(
+                hasattr(factor, "indicator_cols")
+                and "feature.homeowner.in_bracket_IncomeEligible"
+                in factor.indicator_cols
+                for factor in ashp_incentive.quantity_factors
+            )
+
+            assert has_all_customers, (
+                "Should have AllCustomers income bracket indicators"
+            )
+            assert has_income_eligible, (
+                "Should have IncomeEligible income bracket indicators"
+            )
 
 
 class TestIncentiveCalculation:
@@ -391,8 +405,7 @@ class TestIncentiveCalculation:
     def test_incentive_calculation(
         self,
         retrofit_costs,
-        all_customers_incentives,
-        income_eligible_incentives,
+        consolidated_incentives,
         test_features_with_location,
     ):
         """Test incentive calculation functionality."""
@@ -403,19 +416,13 @@ class TestIncentiveCalculation:
             if cost.trigger_column == "Heating" and cost.final == "ASHPHeating"
         ]
 
-        ashp_all_customers = [
+        ashp_incentives = [
             inc
-            for inc in all_customers_incentives.quantities
+            for inc in consolidated_incentives.quantities
             if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
         ]
 
-        ashp_income_eligible = [
-            inc
-            for inc in income_eligible_incentives.quantities
-            if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
-        ]
-
-        if ashp_costs and ashp_all_customers and ashp_income_eligible:
+        if ashp_costs and ashp_incentives:
             # Calculate the cost first
             ashp_cost = ashp_costs[0]
             cost_result = ashp_cost.compute(test_features_with_location)
@@ -423,21 +430,25 @@ class TestIncentiveCalculation:
 
             print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
 
-            # Test all customers incentive (compute only ASHP incentives)
-            all_customer_result = all_customers_incentives.compute(
-                test_features_with_location, costs_df, final_values={"ASHPHeating"}
+            # Test all customers incentive
+            all_customers_features = create_features_with_income_bracket(
+                test_features_with_location, "AllCustomers"
             )
-            print(f"All customers result: {all_customer_result}")
+            all_customer_result = consolidated_incentives.compute(
+                all_customers_features, costs_df, final_values={"ASHPHeating"}
+            )
             all_customer_total = all_customer_result[
                 "incentive.Heating.ASHPHeating"
             ].iloc[0]
             print(f"All customers incentive: ${all_customer_total:.2f}")
 
-            # Test income eligible incentive (compute only ASHP incentives)
-            income_eligible_result = income_eligible_incentives.compute(
-                test_features_with_location, costs_df, final_values={"ASHPHeating"}
+            # Test income eligible incentive
+            income_eligible_features = create_features_with_income_bracket(
+                test_features_with_location, "IncomeEligible"
             )
-            print(f"Income eligible result: {income_eligible_result}")
+            income_eligible_result = consolidated_incentives.compute(
+                income_eligible_features, costs_df, final_values={"ASHPHeating"}
+            )
             income_eligible_total = income_eligible_result[
                 "incentive.Heating.ASHPHeating"
             ].iloc[0]
@@ -449,7 +460,6 @@ class TestIncentiveCalculation:
             )
 
             # Verify that incentives are properly clipped to the total cost
-            # (incentives can be larger than cost but will be clipped to cost amount)
             assert all_customer_total <= cost_result.iloc[0], (
                 f"All customers incentive (${all_customer_total:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
             )
@@ -468,38 +478,36 @@ class TestIncentiveCalculation:
                 f"Net cost for income eligible should be >= 0, got ${net_cost_income_eligible:.2f}"
             )
 
-    def test_incentive_eligibility(
-        self, all_customers_incentives, income_eligible_incentives
-    ):
+    def test_incentive_eligibility(self, consolidated_incentives):
         """Test incentive eligibility checking."""
         # Test that we can load and access the incentives
-        assert len(all_customers_incentives.quantities) > 0, (
-            "Should have all customers incentives"
-        )
-        assert len(income_eligible_incentives.quantities) > 0, (
-            "Should have income eligible incentives"
+        assert len(consolidated_incentives.quantities) > 0, (
+            "Should have consolidated incentives"
         )
 
-        # Test that we have different incentive amounts for the same upgrades
-        ashp_all = [
+        # Test that we have incentives for ASHP heating
+        ashp_incentives = [
             inc
-            for inc in all_customers_incentives.quantities
-            if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
-        ]
-        ashp_income = [
-            inc
-            for inc in income_eligible_incentives.quantities
+            for inc in consolidated_incentives.quantities
             if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
         ]
 
-        assert len(ashp_all) > 0, "Should have ASHP incentives for all customers"
-        assert len(ashp_income) > 0, "Should have ASHP incentives for income eligible"
+        assert len(ashp_incentives) > 0, "Should have ASHP incentives"
+
+        # Check that the incentive has both income bracket factors
+        if ashp_incentives:
+            ashp_incentive = ashp_incentives[0]
+            fixed_factors = [
+                f for f in ashp_incentive.quantity_factors if hasattr(f, "amount")
+            ]
+            assert len(fixed_factors) >= 2, (
+                "Should have at least 2 fixed incentive factors (one for each income bracket)"
+            )
 
     def test_incentive_income_level_differentiation(
         self,
         retrofit_costs,
-        all_customers_incentives,
-        income_eligible_incentives,
+        consolidated_incentives,
         test_features_with_location,
     ):
         """Test that incentives are properly differentiated by income level."""
@@ -518,58 +526,29 @@ class TestIncentiveCalculation:
 
             print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
 
-            # Find incentives for both income levels
-            all_customer_incentives = [
-                inc
-                for inc in all_customers_incentives.quantities
-                if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
-            ]
-
-            income_eligible_incentives_list = [
-                inc
-                for inc in income_eligible_incentives.quantities
-                if inc.trigger_column == "Heating" and inc.final == "ASHPHeating"
-            ]
-
-            print(f"Found {len(all_customer_incentives)} All_customers incentives")
-            print(
-                f"Found {len(income_eligible_incentives_list)} Income_eligible incentives"
+            # Test all customers incentive
+            all_customers_features = create_features_with_income_bracket(
+                test_features_with_location, "AllCustomers"
             )
+            all_customer_result = consolidated_incentives.compute(
+                all_customers_features, costs_df, final_values={"ASHPHeating"}
+            )
+            all_customer_total = all_customer_result[
+                "incentive.Heating.ASHPHeating"
+            ].iloc[0]
+            print(f"All customers incentive: ${all_customer_total:.2f}")
 
-            # Test All_customers incentives (compute only ASHP incentives)
-            all_customer_total = 0
-            if all_customer_incentives:
-                print("\nAll Customers Incentives:")
-                try:
-                    result = all_customers_incentives.compute(
-                        test_features_with_location,
-                        costs_df,
-                        final_values={"ASHPHeating"},
-                    )
-                    all_customer_total = result["incentive.Heating.ASHPHeating"].iloc[0]
-                    print(f"  Total: ${all_customer_total:.2f}")
-                except Exception as e:
-                    print(f"  Error - {e}")
-
-            # Test Income_eligible incentives (compute only ASHP incentives)
-            income_eligible_total = 0
-            if income_eligible_incentives_list:
-                print("\nIncome Eligible Incentives:")
-                try:
-                    result = income_eligible_incentives.compute(
-                        test_features_with_location,
-                        costs_df,
-                        final_values={"ASHPHeating"},
-                    )
-                    income_eligible_total = result[
-                        "incentive.Heating.ASHPHeating"
-                    ].iloc[0]
-                    print(f"  Total: ${income_eligible_total:.2f}")
-                except Exception as e:
-                    print(f"  Error - {e}")
-
-            print(f"\nTotal All Customers Incentives: ${all_customer_total:.2f}")
-            print(f"Total Income Eligible Incentives: ${income_eligible_total:.2f}")
+            # Test income eligible incentive
+            income_eligible_features = create_features_with_income_bracket(
+                test_features_with_location, "IncomeEligible"
+            )
+            income_eligible_result = consolidated_incentives.compute(
+                income_eligible_features, costs_df, final_values={"ASHPHeating"}
+            )
+            income_eligible_total = income_eligible_result[
+                "incentive.Heating.ASHPHeating"
+            ].iloc[0]
+            print(f"Income eligible incentive: ${income_eligible_total:.2f}")
 
             # Verify that we have different incentive amounts for different income levels
             assert all_customer_total > 0, (
@@ -602,8 +581,7 @@ class TestIncentiveCalculation:
     def test_incentive_clipping(
         self,
         retrofit_costs,
-        all_customers_incentives,
-        income_eligible_incentives,
+        consolidated_incentives,
         test_features_with_location,
     ):
         """Test that incentives are properly clipped to prevent negative net costs."""
@@ -625,9 +603,12 @@ class TestIncentiveCalculation:
 
             print(f"Test ASHP cost: ${test_cost:.2f}")
 
-            # Test all customers incentives (compute only ASHP incentives)
-            all_customer_result = all_customers_incentives.compute(
-                test_features_with_location, costs_df, final_values={"ASHPHeating"}
+            # Test all customers incentives
+            all_customers_features = create_features_with_income_bracket(
+                test_features_with_location, "AllCustomers"
+            )
+            all_customer_result = consolidated_incentives.compute(
+                all_customers_features, costs_df, final_values={"ASHPHeating"}
             )
             all_customer_total = all_customer_result[
                 "incentive.Heating.ASHPHeating"
@@ -639,9 +620,12 @@ class TestIncentiveCalculation:
             expected_all_customers = 10000 + (test_cost - 10000) * 0.3
             print(f"Expected all customers: ${expected_all_customers:.2f}")
 
-            # Test income eligible incentives (compute only ASHP incentives)
-            income_eligible_result = income_eligible_incentives.compute(
-                test_features_with_location, costs_df, final_values={"ASHPHeating"}
+            # Test income eligible incentives
+            income_eligible_features = create_features_with_income_bracket(
+                test_features_with_location, "IncomeEligible"
+            )
+            income_eligible_result = consolidated_incentives.compute(
+                income_eligible_features, costs_df, final_values={"ASHPHeating"}
             )
             income_eligible_total = income_eligible_result[
                 "incentive.Heating.ASHPHeating"
@@ -694,14 +678,17 @@ class TestIncentiveCalculation:
             # Get thermostat incentives
             thermostat_incentives = [
                 inc
-                for inc in all_customers_incentives.quantities
+                for inc in consolidated_incentives.quantities
                 if inc.trigger_column == "Thermostat" and inc.final == "Controls"
             ]
 
             if thermostat_incentives:
-                # Compute incentive (compute only Thermostat incentives)
-                incentive_result = all_customers_incentives.compute(
-                    test_features_with_location, costs_df, final_values={"Controls"}
+                # Compute incentive for all customers
+                all_customers_features = create_features_with_income_bracket(
+                    test_features_with_location, "AllCustomers"
+                )
+                incentive_result = consolidated_incentives.compute(
+                    all_customers_features, costs_df, final_values={"Controls"}
                 )
                 incentive_total = incentive_result[
                     "incentive.Thermostat.Controls"
@@ -724,8 +711,7 @@ class TestIncentiveCalculation:
     def test_incentive_validation(
         self,
         retrofit_costs,
-        all_customers_incentives,
-        income_eligible_incentives,
+        consolidated_incentives,
         test_features_with_location,
     ):
         """Test that incentives are properly validated and computed correctly."""
@@ -752,74 +738,62 @@ class TestIncentiveCalculation:
 
                 print(f"  Cost: ${cost_result.iloc[0]:.2f}")
 
-                # Get incentives for both income levels
-                all_customer_incentives = [
-                    inc
-                    for inc in all_customers_incentives.quantities
-                    if inc.trigger_column == trigger_column and inc.final == final_value
-                ]
-
-                income_eligible_incentives_list = [
-                    inc
-                    for inc in income_eligible_incentives.quantities
-                    if inc.trigger_column == trigger_column and inc.final == final_value
-                ]
-
                 # Test all customers incentives
-                if all_customer_incentives:
-                    try:
-                        result = all_customers_incentives.compute(
-                            test_features_with_location,
-                            costs_df,
-                            final_values={final_value},
-                        )
-                        all_customer_total = result[
-                            f"incentive.{trigger_column}.{final_value}"
-                        ].iloc[0]
-                        print(f"    All customers total: ${all_customer_total:.2f}")
-                    except Exception as e:
-                        print(f"    All customers incentive: Error - {e}")
-                        all_customer_total = 0
+                all_customers_features = create_features_with_income_bracket(
+                    test_features_with_location, "AllCustomers"
+                )
+                try:
+                    result = consolidated_incentives.compute(
+                        all_customers_features,
+                        costs_df,
+                        final_values={final_value},
+                    )
+                    all_customer_total = result[
+                        f"incentive.{trigger_column}.{final_value}"
+                    ].iloc[0]
+                    print(f"    All customers total: ${all_customer_total:.2f}")
+                except Exception as e:
+                    print(f"    All customers incentive: Error - {e}")
+                    all_customer_total = 0
 
-                    # Validate all customers incentives
-                    assert all_customer_total > 0, (
-                        "All customers should have positive incentives"
-                    )
-                    assert all_customer_total <= cost_result.iloc[0], (
-                        f"All customers incentives (${all_customer_total:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
-                    )
+                # Validate all customers incentives
+                assert all_customer_total > 0, (
+                    "All customers should have positive incentives"
+                )
+                assert all_customer_total <= cost_result.iloc[0], (
+                    f"All customers incentives (${all_customer_total:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
+                )
 
                 # Test income eligible incentives
-                if income_eligible_incentives_list:
-                    try:
-                        result = income_eligible_incentives.compute(
-                            test_features_with_location,
-                            costs_df,
-                            final_values={final_value},
-                        )
-                        income_eligible_total = result[
-                            f"incentive.{trigger_column}.{final_value}"
-                        ].iloc[0]
-                        print(
-                            f"    Income eligible total: ${income_eligible_total:.2f}"
-                        )
-                    except Exception as e:
-                        print(f"    Income eligible incentive: Error - {e}")
-                        income_eligible_total = 0
-
-                    # Validate income eligible incentives
-                    assert income_eligible_total > 0, (
-                        "Income eligible should have positive incentives"
+                income_eligible_features = create_features_with_income_bracket(
+                    test_features_with_location, "IncomeEligible"
+                )
+                try:
+                    result = consolidated_incentives.compute(
+                        income_eligible_features,
+                        costs_df,
+                        final_values={final_value},
                     )
-                    assert income_eligible_total <= cost_result.iloc[0], (
-                        f"Income eligible incentives (${income_eligible_total:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
-                    )
+                    income_eligible_total = result[
+                        f"incentive.{trigger_column}.{final_value}"
+                    ].iloc[0]
+                    print(f"    Income eligible total: ${income_eligible_total:.2f}")
+                except Exception as e:
+                    print(f"    Income eligible incentive: Error - {e}")
+                    income_eligible_total = 0
 
-                    # Verify income eligible are higher if both exist
-                    if all_customer_incentives:
-                        assert income_eligible_total >= all_customer_total, (
-                            f"Income eligible incentives (${income_eligible_total:.2f}) should be >= all customers (${all_customer_total:.2f})"
-                        )
+                # Validate income eligible incentives
+                assert income_eligible_total > 0, (
+                    "Income eligible should have positive incentives"
+                )
+                assert income_eligible_total <= cost_result.iloc[0], (
+                    f"Income eligible incentives (${income_eligible_total:.2f}) should be clipped to cost (${cost_result.iloc[0]:.2f})"
+                )
+
+                # Verify income eligible are higher if both exist
+                assert income_eligible_total >= all_customer_total, (
+                    f"Income eligible incentives (${income_eligible_total:.2f}) should be >= all customers (${all_customer_total:.2f})"
+                )
 
             else:
                 print(f"  No cost found for {trigger_column} → {final_value}")
@@ -827,7 +801,7 @@ class TestIncentiveCalculation:
     def test_incentive_metadata_functionality(
         self,
         retrofit_costs,
-        all_customers_incentives,
+        consolidated_incentives,
         test_features_with_location,
     ):
         """Test that the new incentive metadata system is working correctly."""
@@ -847,8 +821,11 @@ class TestIncentiveCalculation:
             print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
 
             # Test all customers incentive with metadata
-            all_customer_result = all_customers_incentives.compute(
-                test_features_with_location, costs_df, final_values={"ASHPHeating"}
+            all_customers_features = create_features_with_income_bracket(
+                test_features_with_location, "AllCustomers"
+            )
+            all_customer_result = consolidated_incentives.compute(
+                all_customers_features, costs_df, final_values={"ASHPHeating"}
             )
 
             # Check that the incentive_metadata column exists
