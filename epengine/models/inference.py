@@ -362,6 +362,10 @@ class SBEMInferenceRequestSpec(BaseModel):
 
     semantic_field_context: dict[str, float | str | int]
 
+    # Additional fields for cost and incentive calculations
+    income_level: str
+    county: str
+
     source_experiment: str
     bucket: str = "ml-for-bem"
 
@@ -499,9 +503,15 @@ class SBEMInferenceRequestSpec(BaseModel):
             component_map_uri=AnyUrl("s3://unused/file.pq"),
             epwzip_uri=epw_uri,
         )
-        return pd.Series({
+        base_features = pd.Series({
             k: v for k, v in spec.feature_dict.items() if k.startswith("feature.")
         })
+
+        # Add the new fields that are not part of SBEMSimulationSpec
+        base_features["feature.location.county"] = self.county
+        base_features["feature.eligibility.income_level"] = self.income_level
+
+        return base_features
 
     def make_priors(self):
         """Make the priors."""
