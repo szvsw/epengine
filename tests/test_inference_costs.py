@@ -823,3 +823,71 @@ class TestIncentiveCalculation:
 
             else:
                 print(f"  No cost found for {trigger_column} → {final_value}")
+
+    def test_incentive_metadata_functionality(
+        self,
+        retrofit_costs,
+        all_customers_incentives,
+        test_features_with_location,
+    ):
+        """Test that the new incentive metadata system is working correctly."""
+        # Test ASHP heating incentives with metadata
+        ashp_costs = [
+            cost
+            for cost in retrofit_costs.quantities
+            if cost.trigger_column == "Heating" and cost.final == "ASHPHeating"
+        ]
+
+        if ashp_costs:
+            # Calculate the cost first
+            ashp_cost = ashp_costs[0]
+            cost_result = ashp_cost.compute(test_features_with_location)
+            costs_df = pd.DataFrame({"cost.Heating": cost_result})
+
+            print(f"ASHP Heating cost: ${cost_result.iloc[0]:.2f}")
+
+            # Test all customers incentive with metadata
+            all_customer_result = all_customers_incentives.compute(
+                test_features_with_location, costs_df, final_values={"ASHPHeating"}
+            )
+
+            # Check that the incentive_metadata column exists
+            assert "incentive_metadata" in all_customer_result.columns, (
+                "incentive_metadata column should be present in incentive results"
+            )
+
+            # Get the metadata
+            metadata = all_customer_result["incentive_metadata"].iloc[0]
+            print(f"Incentive metadata: {metadata}")
+
+            # Verify metadata structure
+            assert isinstance(metadata, list), (
+                "Metadata should be a list of dictionaries"
+            )
+            assert len(metadata) > 0, "Should have at least one incentive in metadata"
+
+            # Check the first incentive metadata
+            first_incentive = metadata[0]
+            expected_keys = {
+                "trigger",
+                "final",
+                "program_name",
+                "source",
+                "amount_applied",
+            }
+            assert all(key in first_incentive for key in expected_keys), (
+                f"Metadata should contain keys: {expected_keys}"
+            )
+
+            # Verify specific values
+            assert first_incentive["trigger"] == "Heating", (
+                "Trigger should be 'Heating'"
+            )
+            assert first_incentive["final"] == "ASHPHeating", (
+                "Final should be 'ASHPHeating'"
+            )
+            assert first_incentive["amount_applied"] > 0, (
+                "Amount applied should be positive"
+            )
+
+            print("✓ Incentive metadata functionality test passed")

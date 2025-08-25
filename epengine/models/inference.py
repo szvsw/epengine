@@ -1621,7 +1621,7 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         self, n: int = 10000
     ) -> dict[
         str,
-        "SBEMDistributions | SBEMRetrofitDistributions | IncentiveMetadata",
+        "SBEMDistributions | SBEMRetrofitDistributions",
     ]:
         """Run the inference for a savings problem.
 
@@ -1739,8 +1739,6 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         (
             all_customers_incentives,
             income_eligible_incentives,
-            all_customers_metadata,
-            income_eligible_metadata,
         ) = self.compute_incentives_split(
             features_for_costs,
             all_customers_incentive_config,
@@ -1825,8 +1823,6 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             "retrofit": cost_results,
             "retrofit_with_incentives_all": cost_results_with_incentives,
             "retrofit_with_incentives_income_eligible": cost_results_with_incentives_income_eligible,
-            "incentive_metadata_all": all_customers_metadata,
-            "incentive_metadata_income_eligible": income_eligible_metadata,
         }
 
     @property
@@ -1966,7 +1962,7 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         all_customers_incentives: "RetrofitQuantities",
         income_eligible_incentives: "RetrofitQuantities",
         costs_df: pd.DataFrame,
-    ) -> tuple[pd.DataFrame, pd.DataFrame, "IncentiveMetadata", "IncentiveMetadata"]:
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Compute the incentives for the changed context fields using split incentive files."""
         # Compute features for incentive calculations after inference
         features_for_incentives = self.original.make_retrofit_incentive_features(
@@ -1993,71 +1989,9 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             if col_name not in income_eligible_df.columns:
                 income_eligible_df[col_name] = 0
 
-        # Build metadata for both income levels
-        all_customers_metadata = self._build_incentive_metadata(
-            all_customers_incentives, features, costs_df, "All_customers"
-        )
-        income_eligible_metadata = self._build_incentive_metadata(
-            income_eligible_incentives, features, costs_df, "Income_eligible"
-        )
-
         return (
             all_customers_df,
             income_eligible_df,
-            all_customers_metadata,
-            income_eligible_metadata,
-        )
-
-    def _build_incentive_metadata(
-        self,
-        incentives: "RetrofitQuantities",
-        features: pd.DataFrame,
-        costs_df: pd.DataFrame,
-        income_level: str,
-    ) -> "IncentiveMetadata":
-        """Build metadata about applied incentives."""
-        applied_incentives = []
-        total_amount = 0.0
-
-        for incentive in incentives.quantities:
-            incentive_result = incentive.compute(features, costs_df)
-            amount = incentive_result.iloc[0] if len(incentive_result) > 0 else 0.0
-
-            if amount > 0:
-                # Get details from the first incentive factor
-                first_factor = next(iter(incentive.quantity_factors))
-
-                # Determine incentive type
-                from epengine.models.inference import (
-                    FixedQuantity,
-                    LinearQuantity,
-                    PercentQuantity,
-                )
-
-                if isinstance(first_factor, FixedQuantity):
-                    incentive_type = "Fixed"
-                elif isinstance(first_factor, PercentQuantity):
-                    incentive_type = "Percent"
-                elif isinstance(first_factor, LinearQuantity):
-                    incentive_type = "Linear"
-                else:
-                    incentive_type = "Unknown"
-
-                applied_incentive = AppliedIncentive(
-                    semantic_field=incentive.trigger_column,
-                    program="Unknown",  # TODO: Add program field to RetrofitQuantity
-                    amount=amount,
-                    description=first_factor.description,
-                    source=first_factor.source,
-                    incentive_type=incentive_type,
-                )
-                applied_incentives.append(applied_incentive)
-                total_amount += amount
-
-        return IncentiveMetadata(
-            applied_incentives=applied_incentives,
-            total_incentive_amount=total_amount,
-            income_level=income_level,
         )
 
     def _compute_net_costs_for_incentives(
@@ -2446,11 +2380,25 @@ class RetrofitQuantities(BaseModel, frozen=True):
             return pd.DataFrame({f"{self.output_key}.Total": [0] * len(features)})
 
         quantities_by_trigger = self._group_quantities_by_trigger(final_values)
+        # Accumulate metadata for incentives
+        incentive_metadata_rows: list[dict] = []
         all_quantities = self._compute_quantities_by_trigger(
-            features, context_df, quantities_by_trigger
+            features, context_df, quantities_by_trigger, incentive_metadata_rows
         )
 
-        return self._combine_quantities(all_quantities, features)
+        data = self._combine_quantities(all_quantities, features)
+
+        # Attach metadata column for incentives
+        if self.output_key == "incentive":
+            # One list of dicts per row, matching index
+            metadata_series = pd.Series(
+                [incentive_metadata_rows] * len(features),
+                index=features.index,
+                name="incentive_metadata",
+            )
+            data = pd.concat([data, metadata_series], axis=1)
+
+        return data
 
     def _group_quantities_by_trigger(self, final_values: set[str] | None) -> dict:
         """Group quantities by trigger_column and final value."""
@@ -2474,12 +2422,18 @@ class RetrofitQuantities(BaseModel, frozen=True):
         features: pd.DataFrame,
         context_df: pd.DataFrame | None,
         quantities_by_trigger: dict,
+        incentive_metadata_rows: list[dict] | None = None,
     ) -> list[pd.Series]:
         """Compute quantities for each trigger and final value combination."""
         all_quantities = []
         for (trigger, final), quantities in quantities_by_trigger.items():
             total_quantity = self._compute_quantity_for_trigger(
-                features, context_df, trigger, quantities
+                features,
+                context_df,
+                trigger,
+                final,
+                quantities,
+                incentive_metadata_rows,
             )
             final_quantity = total_quantity.rename(
                 f"{self.output_key}.{trigger}.{final}"
@@ -2492,7 +2446,9 @@ class RetrofitQuantities(BaseModel, frozen=True):
         features: pd.DataFrame,
         context_df: pd.DataFrame | None,
         trigger: str,
+        final: str,
         quantities: list[RetrofitQuantity],
+        incentive_metadata_rows: list[dict] | None = None,
     ) -> pd.Series:
         """Compute the total quantity for a specific trigger."""
         current_context = context_df.copy() if context_df is not None else None
@@ -2500,7 +2456,12 @@ class RetrofitQuantities(BaseModel, frozen=True):
 
         if self.output_key == "incentive" and current_context is not None:
             total_quantity = self._compute_incentive_quantity(
-                features, current_context, trigger, quantities
+                features,
+                current_context,
+                trigger,
+                final,
+                quantities,
+                incentive_metadata_rows,
             )
         else:
             # For costs, compute normally
@@ -2517,7 +2478,9 @@ class RetrofitQuantities(BaseModel, frozen=True):
         features: pd.DataFrame,
         current_context: pd.DataFrame,
         trigger: str,
+        final: str,
         quantities: list[RetrofitQuantity],
+        incentive_metadata_rows: list[dict] | None = None,
     ) -> pd.Series:
         """Compute incentive quantity with proper clipping."""
         context_col = f"cost.{trigger}"
@@ -2529,11 +2492,24 @@ class RetrofitQuantities(BaseModel, frozen=True):
         gross_cost = current_context[context_col].iloc[0]
         if len(quantities) == 1:
             return self._compute_single_incentive(
-                features, current_context, quantities[0], gross_cost
+                features,
+                current_context,
+                trigger,
+                final,
+                quantities[0],
+                gross_cost,
+                incentive_metadata_rows,
             )
         else:
             return self._compute_multiple_incentives(
-                features, current_context, quantities, context_col, gross_cost
+                features,
+                current_context,
+                trigger,
+                final,
+                quantities,
+                context_col,
+                gross_cost,
+                incentive_metadata_rows,
             )
 
     def _compute_quantities_simple(
@@ -2555,21 +2531,45 @@ class RetrofitQuantities(BaseModel, frozen=True):
         self,
         features: pd.DataFrame,
         current_context: pd.DataFrame,
+        trigger: str,
+        final: str,
         quantity: RetrofitQuantity,
         gross_cost: float,
+        incentive_metadata_rows: list[dict] | None = None,
     ) -> pd.Series:
         """Compute single incentive with clipping."""
         quantity_result = quantity.compute(features, current_context, self.output_key)
         quantity_amount = min(quantity_result.iloc[0], gross_cost)
+
+        # Collect metadata
+        if incentive_metadata_rows is not None:
+            # Extract program info from first factor that has description/source
+            program_name = None
+            source = None
+            for f in quantity.quantity_factors:
+                if hasattr(f, "description") and hasattr(f, "source"):
+                    program_name = f.description
+                    source = f.source
+                    break
+            incentive_metadata_rows.append({
+                "trigger": trigger,
+                "final": final,
+                "program_name": program_name,
+                "source": source,
+                "amount_applied": float(quantity_amount),
+            })
         return pd.Series(quantity_amount, index=features.index)
 
     def _compute_multiple_incentives(
         self,
         features: pd.DataFrame,
         current_context: pd.DataFrame,
+        trigger: str,
+        final: str,
         quantities: list[RetrofitQuantity],
         context_col: str,
         gross_cost: float,
+        incentive_metadata_rows: list[dict] | None = None,
     ) -> pd.Series:
         """Compute multiple incentives sequentially with clipping."""
         sorted_quantities = sorted(quantities, key=self._get_primary_factor_type)
@@ -2593,6 +2593,23 @@ class RetrofitQuantities(BaseModel, frozen=True):
 
             total_quantity += quantity_result
             remaining_cost -= quantity_amount
+
+            # Collect metadata per applied incentive
+            if incentive_metadata_rows is not None:
+                program_name = None
+                source = None
+                for f in quantity.quantity_factors:
+                    if hasattr(f, "description") and hasattr(f, "source"):
+                        program_name = f.description
+                        source = f.source
+                        break
+                incentive_metadata_rows.append({
+                    "trigger": trigger,
+                    "final": final,
+                    "program_name": program_name,
+                    "source": source,
+                    "amount_applied": float(quantity_amount),
+                })
 
         return total_quantity.clip(upper=gross_cost)
 
@@ -2647,38 +2664,6 @@ class IncentiveFactor(ABC):
     def compute(self, features: pd.DataFrame, costs_df: pd.DataFrame) -> pd.Series:
         """Compute the incentive for a given feature and cost."""
         pass
-
-
-class AppliedIncentive(BaseModel):
-    """Details about a single applied incentive."""
-
-    semantic_field: str = Field(
-        ..., description="The semantic field this incentive applies to"
-    )
-    program: str = Field(..., description="The program offering the incentive")
-    amount: float = Field(..., description="The incentive amount applied")
-    description: str = Field(..., description="Description from incentives_format.json")
-    source: str = Field(..., description="Source from incentives_format.json")
-    incentive_type: str = Field(
-        ..., description="Type of incentive (Fixed, Percent, Variable)"
-    )
-
-
-class IncentiveMetadata(BaseModel):
-    """Metadata about applied incentives for a retrofit."""
-
-    applied_incentives: list[AppliedIncentive] = Field(
-        ..., description="List of all incentives that were applied"
-    )
-    total_incentive_amount: float = Field(
-        ..., description="Total incentive amount across all programs"
-    )
-    income_level: str = Field(..., description="Income level these incentives apply to")
-
-    @property
-    def serialized(self) -> BaseModel:
-        """Serialize the IncentiveMetadata into a BaseModel."""
-        return self
 
 
 # provided features
