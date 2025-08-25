@@ -1292,6 +1292,9 @@ class SBEMInferenceRequestSpec(BaseModel):
             else:
                 # Check to ensure that county can always be returned, otherwise it will exclude this cost factor - could instead consider making this raise an error?
                 cost_features[f"feature.location.in_county_{county}"] = False
+                # TODO: log a warning if the column is missing
+                logging.warning(f"County {county} not found in cost features")
+                # pd.to_dummies
 
         # Add gas availability indicator
         gas_heating_systems = ["NaturalGasHeating", "NaturalGasCondensingHeating"]
@@ -1318,7 +1321,7 @@ class SBEMInferenceRequestSpec(BaseModel):
         ]
 
         # Add constant feature for intercept terms
-        cost_features["feature.constant.one"] = 1
+        # cost_features["feature.constant.one"] = 1
 
         return cost_features
 
@@ -2099,43 +2102,6 @@ class QuantityFactor(ABC):
         pass
 
 
-class FixedQuantity(BaseModel, QuantityFactor, frozen=True):
-    """A quantity that is a fixed amount (costs, incentives, etc.)."""
-
-    amount: float
-    error_scale: float | None = Field(
-        ...,
-        description="The expected error of the quantity estimate.",
-        ge=0,
-        le=1,
-    )
-    description: str = Field(
-        ...,
-        description="A description of the fixed quantity.",
-    )
-    source: str = Field(
-        ...,
-        description="The source of the fixed quantity.",
-    )
-
-    def compute(
-        self, features: pd.DataFrame, context_df: pd.DataFrame | None = None
-    ) -> pd.Series:
-        """Compute the quantity for a given feature."""
-        if self.error_scale is None:
-            return pd.Series(
-                np.full(len(features), self.amount),
-                index=features.index,
-            )
-        else:
-            # Use absolute value of amount for standard deviation to avoid negative scale
-            std_dev = abs(self.amount) * self.error_scale
-            return pd.Series(
-                np.random.normal(self.amount, std_dev, len(features)).clip(min=0),
-                index=features.index,
-            )
-
-
 class LinearQuantity(BaseModel, QuantityFactor, frozen=True):
     """A quantity that is linear in the product of a set of indicator columns."""
 
@@ -2195,6 +2161,43 @@ class LinearQuantity(BaseModel, QuantityFactor, frozen=True):
             result = result * pd.Series(error_factor, index=features.index)
 
         return result
+
+
+class FixedQuantity(BaseModel, QuantityFactor, frozen=True):
+    """A quantity that is a fixed amount (costs, incentives, etc.)."""
+
+    amount: float
+    error_scale: float | None = Field(
+        ...,
+        description="The expected error of the quantity estimate.",
+        ge=0,
+        le=1,
+    )
+    description: str = Field(
+        ...,
+        description="A description of the fixed quantity.",
+    )
+    source: str = Field(
+        ...,
+        description="The source of the fixed quantity.",
+    )
+
+    def compute(
+        self, features: pd.DataFrame, context_df: pd.DataFrame | None = None
+    ) -> pd.Series:
+        """Compute the quantity for a given feature."""
+        if self.error_scale is None:
+            return pd.Series(
+                np.full(len(features), self.amount),
+                index=features.index,
+            )
+        else:
+            # Use absolute value of amount for standard deviation to avoid negative scale
+            std_dev = abs(self.amount) * self.error_scale
+            return pd.Series(
+                np.random.normal(self.amount, std_dev, len(features)).clip(min=0),
+                index=features.index,
+            )
 
 
 class PercentQuantity(BaseModel, QuantityFactor, frozen=True):
