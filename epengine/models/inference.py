@@ -1915,32 +1915,20 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         Returns:
             dict: Dictionary mapping income bracket names to incentive DataFrames
         """
-        # Get income brackets from the module constant
         # Compute features for incentive calculations after inference
         features_for_incentives = self.original.make_retrofit_incentive_features(
             features
         )
 
         incentives_by_bracket = {}
-
-        # Compute incentives for each income bracket
         for bracket in INCOME_BRACKETS:
-            # Create features for this specific income bracket
             bracket_features = features_for_incentives.copy()
-
-            # Set all income bracket indicators to False
             for b in INCOME_BRACKETS:
                 bracket_features[f"feature.homeowner.in_bracket_{b}"] = False
-
-            # Set the current bracket to True
             bracket_features[f"feature.homeowner.in_bracket_{bracket}"] = True
-
-            # Compute incentives for this bracket
             bracket_incentives = incentive_config.compute(bracket_features, costs_df)
-
-            # Add missing columns for all semantic features
-            all_semantic_features = set(incentive_config.all_trigger_features)
-            for feature in all_semantic_features:
+            all_trigger_features = set(incentive_config.all_trigger_features)
+            for feature in all_trigger_features:
                 col_name = f"incentive.{feature}"
                 if col_name not in bracket_incentives.columns:
                     bracket_incentives[col_name] = 0
@@ -1955,7 +1943,7 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         """Helper method to compute net costs for a given incentive dataframe."""
         net_costs = costs_df.copy()
 
-        # Compute individual net costs for each semantic field
+        # Compute indiidual net costs for each semantic field
         for col in incentives_df.columns:
             if col.startswith("incentive."):
                 semantic_field = col.split(".")[1]
@@ -2031,13 +2019,17 @@ class QuantityFactor(ABC):
 
     @abstractmethod
     def compute(
-        self, features: pd.DataFrame, context_df: pd.DataFrame | None = None
+        self,
+        features: pd.DataFrame,
+        context_df: pd.DataFrame | None = None,
+        trigger_column: str | None = None,
     ) -> pd.Series:
         """Compute the quantity for a given feature.
 
         Args:
             features: DataFrame containing building features
             context_df: Optional DataFrame containing context (e.g., costs for percentage incentives)
+            trigger_column: Optional trigger column name for selecting correct cost column
         """
         pass
 
@@ -2073,7 +2065,10 @@ class LinearQuantity(BaseModel, QuantityFactor, frozen=True):
     )
 
     def compute(
-        self, features: pd.DataFrame, context_df: pd.DataFrame | None = None
+        self,
+        features: pd.DataFrame,
+        context_df: pd.DataFrame | None = None,
+        trigger_column: str | None = None,
     ) -> pd.Series:
         """Compute the quantity for a given feature."""
         # Standard linear calculation: coefficient * product of indicator columns
@@ -2110,7 +2105,10 @@ class FixedQuantity(BaseModel, QuantityFactor, frozen=True):
     )
 
     def compute(
-        self, features: pd.DataFrame, context_df: pd.DataFrame | None = None
+        self,
+        features: pd.DataFrame,
+        context_df: pd.DataFrame | None = None,
+        trigger_column: str | None = None,
     ) -> pd.Series:
         """Compute the quantity for a given feature."""
         if self.error_scale is None:
@@ -2157,17 +2155,33 @@ class PercentQuantity(BaseModel, QuantityFactor, frozen=True):
     )
 
     def compute(
-        self, features: pd.DataFrame, context_df: pd.DataFrame | None = None
+        self,
+        features: pd.DataFrame,
+        context_df: pd.DataFrame | None = None,
+        trigger_column: str | None = None,
     ) -> pd.Series:
         """Compute the quantity for a given feature."""
         if context_df is None:
             return pd.Series(0, index=features.index)
 
+        # Find cost columns - there should typically be only one
         context_cols = [col for col in context_df.columns if col.startswith("cost.")]
         if not context_cols:
-            return pd.Series(0, index=features.index)
+            msg = f"No cost columns found in context_df. Available columns: {list(context_df.columns)}"
+            raise ValueError(msg)
 
-        context_col = context_cols[0]
+        # Select the correct cost column based on trigger_column
+        if trigger_column is not None:
+            expected_cost_col = f"cost.{trigger_column}"
+            if expected_cost_col in context_cols:
+                context_col = expected_cost_col
+            else:
+                msg = f"Required cost column '{expected_cost_col}' not found in context_df. Available cost columns: {context_cols}"
+                raise ValueError(msg)
+        else:
+            msg = f"trigger_column is required for PercentQuantity. Available cost columns: {context_cols}"
+            raise ValueError(msg)
+
         base_quantity = context_df[context_col] * self.percent
 
         if self.error_scale is not None:
@@ -2211,15 +2225,8 @@ class RetrofitQuantity(BaseModel, frozen=True):
                 if isinstance(factor, dict):
                     factor_type = factor.get("type")
                     if factor_type == "FixedQuantity":
-                        # Convert indicator_cols from list to tuple for hashability if present
-                        factor_copy = factor.copy()
-                        if "indicator_cols" in factor_copy and isinstance(
-                            factor_copy["indicator_cols"], list
-                        ):
-                            factor_copy["indicator_cols"] = tuple(
-                                factor_copy["indicator_cols"]
-                            )
-                        inferred_factors.append(FixedQuantity(**factor_copy))
+                        # FixedQuantity doesn't have indicator_cols anymore
+                        inferred_factors.append(FixedQuantity(**factor))
                     elif factor_type == "LinearQuantity":
                         # Convert indicator_cols from list to tuple for hashability
                         factor_copy = factor.copy()
@@ -2253,8 +2260,6 @@ class RetrofitQuantity(BaseModel, frozen=True):
             return pd.Series(
                 0, index=features.index, name=f"{output_key}.{self.trigger_column}"
             )
-
-        # Use custom order defined in the quantity configuration
         # Map string names to actual classes
         factor_class_map = {
             "FixedQuantity": FixedQuantity,
@@ -2278,8 +2283,14 @@ class RetrofitQuantity(BaseModel, frozen=True):
             ]
 
             for factor in type_factors:
-                # All factor types use the same compute interface
-                quantity_amount = factor.compute(features, current_context)
+                # Pass trigger_column to PercentQuantity for correct cost column selection
+                if isinstance(factor, PercentQuantity):
+                    quantity_amount = factor.compute(
+                        features, current_context, self.trigger_column
+                    )
+                else:
+                    # All other factor types use the same compute interface
+                    quantity_amount = factor.compute(features, current_context)
                 total_quantity += quantity_amount
 
         return total_quantity.rename(f"{output_key}.{self.trigger_column}")
@@ -2440,7 +2451,16 @@ class RetrofitQuantities(BaseModel, frozen=True):
                     break
 
             # Calculate the amount this quantity contributed using actual features and context
-            quantity_result = quantity.compute(features, context_df, self.output_key)
+            # Pass trigger_column to PercentQuantity for correct cost column selection
+            if any(
+                isinstance(factor, PercentQuantity)
+                for factor in quantity.quantity_factors
+            ):
+                quantity_result = quantity.compute(
+                    features, context_df, quantity.trigger_column
+                )
+            else:
+                quantity_result = quantity.compute(features, context_df)
             amount_applied = (
                 float(quantity_result.iloc[0]) if len(quantity_result) > 0 else 0.0
             )
