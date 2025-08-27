@@ -716,6 +716,36 @@
             ]
         },
         {
+            "trigger_column": "Cooling",
+            "initial": null,
+            "final": "ASHPCooling",
+            "order": ["FixedQuantity"],
+            "quantity_factors": [
+                {
+                    "type": "FixedQuantity",
+                    "amount": 334,
+                    "error_scale": 0.05,
+                    "description": "Base intercept for ASHP cost based on capacity and building characteristics",
+                    "source": "Heat pump cost model"
+                }
+            ]
+        },
+        {
+            "trigger_column": "Cooling",
+            "initial": null,
+            "final": "GSHPCooling",
+            "order": ["FixedQuantity"],
+            "quantity_factors": [
+                {
+                    "type": "FixedQuantity",
+                    "amount": 334,
+                    "error_scale": 0.05,
+                    "description": "Base intercept for GSHP cost based on capacity and building characteristics",
+                    "source": "Heat pump cost model"
+                }
+            ]
+        },
+        {
             "trigger_column": "Heating",
             "initial": null,
             "final": "GSHPHeating",
