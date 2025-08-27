@@ -964,21 +964,6 @@
                 }
             ]
         },
-        {
-            "trigger_column": "Cooling",
-            "initial": null,
-            "final": "ASHPCooling",
-            "order": ["FixedQuantity"],
-            "quantity_factors": [
-                {
-                    "type": "FixedQuantity",
-                    "amount": 15000.0,
-                    "error_scale": 0.05,
-                    "description": "<lorem>",
-                    "source": ""
-                }
-            ]
-        },
 
         {
             "trigger_column": "Distribution",

@@ -1977,6 +1977,14 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
                 if col_name not in bracket_incentives.columns:
                     bracket_incentives[col_name] = 0
 
+            # Rename bracket-specific incentive columns to avoid collisions when concatenated
+            rename_map: dict[str, str] = {}
+            for col in bracket_incentives.columns:
+                if col.startswith("incentive."):
+                    rename_map[col] = f"{col}.{bracket}"
+            if rename_map:
+                bracket_incentives = bracket_incentives.rename(columns=rename_map)
+
             incentives_by_bracket[bracket] = bracket_incentives
 
         return incentives_by_bracket
@@ -2108,6 +2116,14 @@ class LinearQuantity(BaseModel, QuantityFactor, frozen=True):
         ...,
         description="The source of the quantity factor (e.g. 'ASHRAE Fundamentals').",
     )
+    # limit: float | None = Field(
+    #     None,
+    #     description="The maximum quantity amount.",
+    # )
+    # limit_unit: str | None = Field(
+    #     None,
+    #     description="The unit of the limit.",
+    # )
     # TODO: Add a limit/cap to the quantity factor
 
     def compute(
