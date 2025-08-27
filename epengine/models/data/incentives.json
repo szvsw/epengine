@@ -10,7 +10,7 @@
                     "type": "LinearQuantity",
                     "coefficient": 10000,
                     "indicator_cols": [
-                        "feature.homeowner.in_bracket_AllCustomers"
+                        "feature.homeowner.in_bracket.AllCustomers"
                     ],
                     "error_scale": 0,
                     "description": "MassSave ASHP rebate for all customers",
@@ -22,7 +22,7 @@
                     "type": "LinearQuantity",
                     "coefficient": 15000,
                     "indicator_cols": [
-                        "feature.homeowner.in_bracket_IncomeEligible"
+                        "feature.homeowner.in_bracket.IncomeEligible"
                     ],
                     "error_scale": 0,
                     "description": "MassSave ASHP rebate for income eligible customers",
@@ -51,7 +51,7 @@
                     "type": "LinearQuantity",
                     "coefficient": 15000,
                     "indicator_cols": [
-                        "feature.homeowner.in_bracket_AllCustomers"
+                        "feature.homeowner.in_bracket.AllCustomers"
                     ],
                     "error_scale": 0,
                     "description": "MassSave GSHP rebate for all customers",
@@ -63,7 +63,7 @@
                     "type": "LinearQuantity",
                     "coefficient": 25000,
                     "indicator_cols": [
-                        "feature.homeowner.in_bracket_IncomeEligible"
+                        "feature.homeowner.in_bracket.IncomeEligible"
                     ],
                     "error_scale": 0,
                     "description": "MassSave GSHP rebate for income eligible customers",
@@ -92,7 +92,7 @@
                     "type": "LinearQuantity",
                     "coefficient": 750,
                     "indicator_cols": [
-                        "feature.homeowner.in_bracket_AllCustomers"
+                        "feature.homeowner.in_bracket.AllCustomers"
                     ],
                     "error_scale": 0,
                     "description": "MassSave HPWH rebate for all customers",
@@ -104,7 +104,7 @@
                     "type": "LinearQuantity",
                     "coefficient": 1200,
                     "indicator_cols": [
-                        "feature.homeowner.in_bracket_IncomeEligible"
+                        "feature.homeowner.in_bracket.IncomeEligible"
                     ],
                     "error_scale": 0,
                     "description": "MassSave HPWH rebate for income eligible customers",
@@ -124,7 +124,7 @@
                     "type": "LinearQuantity",
                     "coefficient": 100,
                     "indicator_cols": [
-                        "feature.homeowner.in_bracket_AllCustomers"
+                        "feature.homeowner.in_bracket.AllCustomers"
                     ],
                     "error_scale": 0,
                     "description": "MassSave smart thermostat rebate for all customers",
@@ -136,7 +136,7 @@
                     "type": "LinearQuantity",
                     "coefficient": 200,
                     "indicator_cols": [
-                        "feature.homeowner.in_bracket_IncomeEligible"
+                        "feature.homeowner.in_bracket.IncomeEligible"
                     ],
                     "error_scale": 0,
                     "description": "MassSave smart thermostat rebate for income eligible customers",
@@ -182,5 +182,6 @@
         }
     ],
     "output_key": "incentive",
-    "raise_on_duplicate_trigger": false
+    "raise_on_duplicate_trigger": false,
+    "create_metadata": false
 }

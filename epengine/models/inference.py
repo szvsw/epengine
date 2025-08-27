@@ -28,7 +28,15 @@ import geopandas as gpd
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-from pydantic import AnyUrl, BaseModel, ConfigDict, Field, create_model, field_validator
+from pydantic import (
+    AnyUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    create_model,
+    field_validator,
+    model_validator,
+)
 from shapely import Point
 
 from epengine.gis.data.epw_metadata import closest_epw
@@ -363,7 +371,6 @@ class SBEMInferenceRequestSpec(BaseModel):
     semantic_field_context: dict[str, float | str | int]
 
     # Additional fields for cost and incentive calculations
-    income_level: str
     county: str
 
     source_experiment: str
@@ -506,11 +513,8 @@ class SBEMInferenceRequestSpec(BaseModel):
         base_features = pd.Series({
             k: v for k, v in spec.feature_dict.items() if k.startswith("feature.")
         })
-
         # Add the new fields that are not part of SBEMSimulationSpec
         base_features["feature.location.county"] = self.county
-        base_features["feature.eligibility.income_level"] = self.income_level
-
         return base_features
 
     def make_priors(self):
@@ -1227,6 +1231,7 @@ class SBEMInferenceRequestSpec(BaseModel):
             df (pd.DataFrame): The features to use in prediction.
         """
         base_features = self.base_features
+        # TODO: WOuld it be quicker to create one row and then expand it instead - check the pyinstrument
         return pd.DataFrame([base_features] * n)
 
     @cached_property
@@ -1275,13 +1280,42 @@ class SBEMInferenceRequestSpec(BaseModel):
         cost_features = features.copy()
 
         # Compute heating capacity based on peak heating load
-        peak_heating_per_m2 = peak_results["Raw"]["Heating"]
+        peak_heating_per_m2 = peak_results["Heating"]
         gross_peak_kw = peak_heating_per_m2 * self.actual_conditioned_area_m2
-        effective_cop = features["feature.factors.system.heat.effective_cop"]
-        electrical_capacity_kW = gross_peak_kw / effective_cop
-        safety_factor = 1.2
-        cost_features["feature.calculated.heating_capacity_kW"] = (
-            electrical_capacity_kW * safety_factor
+
+        # TODO: check if the regression uses heating capacity or electrical capacity
+        # effective_cop = features["feature.factors.system.heat.effective_cop"]
+        # electrical_capacity_kW = gross_peak_kw / effective_cop
+        heating_capacity_kW = gross_peak_kw
+
+        safety_factor = 1.1
+        raw_capacity_kw = heating_capacity_kW * safety_factor
+
+        # Map calculated capacity to nearest available equipment size (unless above max)
+        available_sizes_kw = np.array([
+            5.3,
+            7.0,
+            8.8,
+            10.5,
+            12.3,
+            14.1,
+            17.6,
+            21.1,
+            24.6,
+            28.1,
+            31.6,
+        ])
+
+        def map_to_available_size(v: float) -> float:
+            max_size = available_sizes_kw.max()
+            if v > max_size:
+                return float(v)
+            # choose nearest available size
+            idx = int(np.argmin(np.abs(available_sizes_kw - v)))
+            return float(available_sizes_kw[idx])
+
+        cost_features["feature.calculated.heating_capacity_kW"] = raw_capacity_kw.apply(
+            map_to_available_size
         )
         COUNTIES = [
             "Berkshire",
@@ -1299,13 +1333,14 @@ class SBEMInferenceRequestSpec(BaseModel):
             "Suffolk",
             "Worcester",
         ]
-        for county in COUNTIES:
-            cost_features[f"feature.location.in_county_{county}"] = (
-                features["feature.location.county"] == county
-            )
 
         def oh_col_name_for_county(county: str) -> str:
-            return f"feature.location.in_county_{county}"
+            return f"feature.location.in_county.{county}"
+
+        for county in COUNTIES:
+            cost_features[oh_col_name_for_county(county)] = (
+                features["feature.location.county"] == county
+            )
 
         county_oh_col_names = [oh_col_name_for_county(county) for county in COUNTIES]
         # Check that each row has exactly one county set to True
@@ -1339,9 +1374,6 @@ class SBEMInferenceRequestSpec(BaseModel):
             "feature.system.has_cooling.true"
         ]
 
-        # Add constant feature for intercept terms
-        # cost_features["feature.constant.one"] = 1
-
         return cost_features
 
     def make_retrofit_incentive_features(self, features: pd.DataFrame) -> pd.DataFrame:
@@ -1364,11 +1396,6 @@ class SBEMInferenceRequestSpec(BaseModel):
             "feature.semantic.Heating"
         ].isin(OIL_HEATING_SYSTEMS)
 
-        for bracket in INCOME_BRACKETS:
-            incentive_features[f"feature.homeowner.in_bracket_{bracket}"] = (
-                incentive_features["feature.eligibility.income_level"] == bracket
-            )
-
         # Add window/wall eligibility check as one-hot encoding
         # Check if there's a window upgrade to Double or Triple pane
         window_upgrade = features["feature.semantic.Windows"].isin([
@@ -1386,6 +1413,9 @@ class SBEMInferenceRequestSpec(BaseModel):
         incentive_features["feature.eligibility.window_wall_combo"] = (
             window_upgrade & wall_upgrade
         )
+        # Add income bracket features (default to False, will be overridden per bracket)
+        for bracket in INCOME_BRACKETS:
+            incentive_features[f"feature.homeowner.in_bracket.{bracket}"] = False
 
         return incentive_features
 
@@ -1759,9 +1789,13 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         )
         retrofit_costs = self.compute_retrofit_costs(features_for_costs, cost_config)
 
+        features_for_incentives = self.original.make_retrofit_incentive_features(
+            new_features
+        )
         # Compute incentives for all income brackets
         incentives_by_bracket = self.compute_incentives_by_bracket(
-            features_for_costs,
+            new_features,
+            features_for_incentives,
             incentive_config,
             retrofit_costs,
         )
@@ -1854,6 +1888,7 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             if v != self.original.semantic_field_context[f]
         }
 
+    # TODO: Move this to RetrofitQuantities
     def select_relevant_entities(
         self, entities: "RetrofitQuantities"
     ) -> "RetrofitQuantities":
@@ -1878,14 +1913,14 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
 
             if len(entity_candidates) == 0:
                 msg = f"No {entities.output_key} entity found for {context_field} = {original_value} -> {context_value}"
-                print(msg)
+                logging.warning(msg)
             elif len(entity_candidates) > 1:
                 if entities.raise_on_duplicate_trigger:
                     msg = f"Multiple {entities.output_key} entities found for {context_field} = {original_value} -> {context_value}:\n {entity_candidates}"
                     raise ValueError(msg)
                 else:
                     msg = f"Multiple {entities.output_key} entities found for {context_field} = {original_value} -> {context_value}; selecting all."
-                    print(msg)
+                    logging.warning(msg)
                     # Include all applicable entities (e.g., federal + state incentives)
                     selected_entities.extend(entity_candidates)
             else:
@@ -1895,15 +1930,16 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             quantities=frozenset(selected_entities),
             output_key=entities.output_key,
             raise_on_duplicate_trigger=entities.raise_on_duplicate_trigger,
+            create_metadata=entities.create_metadata,
         )
 
     def compute_retrofit_costs(
-        self, features: pd.DataFrame, all_costs: "RetrofitQuantities"
+        self, features: pd.DataFrame, all_costs_config: "RetrofitQuantities"
     ) -> pd.DataFrame:
         """Compute the retrofit costs for the changed context fields."""
-        cost_entities = self.select_relevant_entities(all_costs)
+        cost_entities = self.select_relevant_entities(all_costs_config)
         costs_df = cost_entities.compute(features)
-        for feature in all_costs.all_trigger_features:
+        for feature in all_costs_config.all_trigger_features:
             col_name = f"cost.{feature}"
             if col_name not in costs_df.columns:
                 costs_df[col_name] = 0
@@ -1912,6 +1948,7 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
     def compute_incentives_by_bracket(
         self,
         features: pd.DataFrame,
+        features_for_incentives: pd.DataFrame,
         incentive_config: "RetrofitQuantities",
         costs_df: pd.DataFrame,
     ) -> dict[str, pd.DataFrame]:
@@ -1924,14 +1961,16 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         features_for_incentives = self.original.make_retrofit_incentive_features(
             features
         )
+        incentive_entities = self.select_relevant_entities(incentive_config)
 
         incentives_by_bracket = {}
         for bracket in INCOME_BRACKETS:
             bracket_features = features_for_incentives.copy()
             for b in INCOME_BRACKETS:
-                bracket_features[f"feature.homeowner.in_bracket_{b}"] = False
-            bracket_features[f"feature.homeowner.in_bracket_{bracket}"] = True
-            bracket_incentives = incentive_config.compute(bracket_features, costs_df)
+                bracket_features[f"feature.homeowner.in_bracket.{b}"] = False
+            bracket_features[f"feature.homeowner.in_bracket.{bracket}"] = True
+            bracket_incentives = incentive_entities.compute(bracket_features, costs_df)
+            # TODO: can we combine the methods of retrofit costs and incentives?
             all_trigger_features = set(incentive_config.all_trigger_features)
             for feature in all_trigger_features:
                 col_name = f"incentive.{feature}"
@@ -1948,10 +1987,11 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         """Helper method to compute net costs for a given incentive dataframe."""
         net_costs = costs_df.copy()
 
-        # Compute indiidual net costs for each semantic field
+        # Compute individual net costs for each semantic field
         for col in incentives_df.columns:
             if col.startswith("incentive."):
                 semantic_field = col.split(".")[1]
+                # TODO: Add a check that that value of semantic field is in the list of semantic fields, and raise an error
                 cost_col = f"cost.{semantic_field}"
                 if cost_col in net_costs.columns:
                     net_col = f"net_cost.{semantic_field}"
@@ -2068,6 +2108,7 @@ class LinearQuantity(BaseModel, QuantityFactor, frozen=True):
         ...,
         description="The source of the quantity factor (e.g. 'ASHRAE Fundamentals').",
     )
+    # TODO: Add a limit/cap to the quantity factor
 
     def compute(
         self,
@@ -2116,6 +2157,7 @@ class FixedQuantity(BaseModel, QuantityFactor, frozen=True):
         trigger_column: str | None = None,
     ) -> pd.Series:
         """Compute the quantity for a given feature."""
+        # TODO: Add a clip value as a boolean, and then only execute if it's true, min/max on the clipping
         if self.error_scale is None:
             return pd.Series(
                 np.full(len(features), self.amount),
@@ -2169,7 +2211,7 @@ class PercentQuantity(BaseModel, QuantityFactor, frozen=True):
         if context_df is None:
             return pd.Series(0, index=features.index)
 
-        # Find cost columns - there should typically be only one
+        # Find cost columns
         context_cols = [col for col in context_df.columns if col.startswith("cost.")]
         if not context_cols:
             msg = f"No cost columns found in context_df. Available columns: {list(context_df.columns)}"
@@ -2177,12 +2219,26 @@ class PercentQuantity(BaseModel, QuantityFactor, frozen=True):
 
         # Select the correct cost column based on trigger_column
         if trigger_column is not None:
-            expected_cost_col = f"cost.{trigger_column}"
-            if expected_cost_col in context_cols:
-                context_col = expected_cost_col
+            # Prefer detailed cost column cost.{trigger}.{final} if available by inferring from context_df
+            detailed_prefix = f"cost.{trigger_column}."
+            detailed_cols = [c for c in context_cols if c.startswith(detailed_prefix)]
+            if len(detailed_cols) == 1:
+                context_col = detailed_cols[0]
+            elif len(detailed_cols) > 1:
+                # Multiple finals present; fall back to flat trigger column
+                expected_cost_col = f"cost.{trigger_column}"
+                if expected_cost_col in context_cols:
+                    context_col = expected_cost_col
+                else:
+                    # If flat not present, choose the first detailed as best-effort
+                    context_col = detailed_cols[0]
             else:
-                msg = f"Required cost column '{expected_cost_col}' not found in context_df. Available cost columns: {context_cols}"
-                raise ValueError(msg)
+                expected_cost_col = f"cost.{trigger_column}"
+                if expected_cost_col in context_cols:
+                    context_col = expected_cost_col
+                else:
+                    msg = f"Required cost column '{expected_cost_col}' not found in context_df. Available cost columns: {context_cols}"
+                    raise ValueError(msg)
         else:
             msg = f"trigger_column is required for PercentQuantity. Available cost columns: {context_cols}"
             raise ValueError(msg)
@@ -2219,7 +2275,20 @@ class RetrofitQuantity(BaseModel, frozen=True):
         default=("FixedQuantity", "PercentQuantity", "LinearQuantity"),
         description="The order in which to apply quantity factors.",
     )
+    # TODO: Add a validator to the quantity factors to ensure that the order is valid/is not a subset of the order components
 
+    # TODO Add a model validator that checks that all the components in order are present in quantity_factors
+    @model_validator(mode="after")
+    def validate_order(self):
+        """Validate that the order is valid/is not a subset of the order components."""
+        if not set(self.order).issubset([
+            c.__class__.__name__ for c in self.quantity_factors
+        ]):
+            msg = f"Order {self.order} is not a subset of the quantity factors {self.quantity_factors}"
+            raise ValueError(msg)
+        return self
+
+    # TODO: Check if the serializing/deserializing is working
     @field_validator("quantity_factors", mode="before")
     @classmethod
     def infer_quantity_factor_types(cls, v):
@@ -2243,7 +2312,8 @@ class RetrofitQuantity(BaseModel, frozen=True):
                     elif factor_type == "PercentQuantity":
                         inferred_factors.append(PercentQuantity(**factor))
                     else:
-                        print(f"Warning: Unknown factor type '{factor_type}', skipping")
+                        msg = f"Warning: Unknown factor type '{factor_type}', skipping"
+                        logging.warning(msg)
                         continue
                 else:
                     # Already a proper type
@@ -2259,9 +2329,8 @@ class RetrofitQuantity(BaseModel, frozen=True):
     ) -> pd.Series:
         """Compute the quantity for a given feature."""
         if len(self.quantity_factors) == 0:
-            print(
-                f"No quantity factors found for {self.trigger_column} = {self.initial} -> {self.final}"
-            )
+            msg = f"No quantity factors found for {self.trigger_column} = {self.initial} -> {self.final}"
+            logging.warning(msg)
             return pd.Series(
                 0, index=features.index, name=f"{output_key}.{self.trigger_column}"
             )
@@ -2277,9 +2346,8 @@ class RetrofitQuantity(BaseModel, frozen=True):
 
         for factor_type_name in self.order:
             if factor_type_name not in factor_class_map:
-                print(
-                    f"Warning: Unknown factor type '{factor_type_name}' in order, skipping"
-                )
+                msg = f"Warning: Unknown factor type '{factor_type_name}' in order, skipping"
+                logging.warning(msg)
                 continue
 
             factor_class = factor_class_map[factor_type_name]
@@ -2313,6 +2381,10 @@ class RetrofitQuantities(BaseModel, frozen=True):
         ...,
         description="Whether to raise an error if there are duplicate triggers.",
     )
+    create_metadata: bool = Field(
+        ...,
+        description="Whether to create metadata columns for incentives.",
+    )
 
     @property
     def all_trigger_features(self) -> list[str]:
@@ -2338,13 +2410,12 @@ class RetrofitQuantities(BaseModel, frozen=True):
 
         data = self._combine_quantities(all_quantities, features)
 
-        # Attach metadata column for incentives
         if self.output_key == "incentive":
             # One list of dicts per row, matching index
             metadata_series = pd.Series(
                 [incentive_metadata_rows] * len(features),
                 index=features.index,
-                name="incentive_metadata",
+                name="incentive.metadata",
             )
             data = pd.concat([data, metadata_series], axis=1)
 
@@ -2413,12 +2484,13 @@ class RetrofitQuantities(BaseModel, frozen=True):
 
         # For incentives, clip the total amount to the cost amount
         if self.output_key == "incentive" and context_df is not None:
-            # Find the cost column for this trigger
-            cost_col = f"cost.{trigger}"
-            if cost_col in context_df.columns:
-                cost_amount = context_df[cost_col]
-                # Clip the total incentive to the cost amount
-                total_quantity = total_quantity.clip(upper=cost_amount)
+            # Prefer detailed cost for the same trigger+final; fallback to flat trigger cost
+            detailed_col = f"cost.{trigger}.{final}"
+            flat_col = f"cost.{trigger}"
+            if detailed_col in context_df.columns:
+                total_quantity = total_quantity.clip(upper=context_df[detailed_col])
+            elif flat_col in context_df.columns:
+                total_quantity = total_quantity.clip(upper=context_df[flat_col])
 
         # Collect metadata if requested (for incentives)
         if incentive_metadata_rows is not None and self.output_key == "incentive":

@@ -64,8 +64,8 @@ def test_features_with_location():
     )
 
     # Add income bracket indicators (needed for incentive calculations)
-    features["feature.homeowner.in_bracket_AllCustomers"] = False
-    features["feature.homeowner.in_bracket_IncomeEligible"] = False
+    features["feature.homeowner.in_bracket.AllCustomers"] = False
+    features["feature.homeowner.in_bracket.IncomeEligible"] = False
 
     # Add precomputed features that would normally be added by make_retrofit_cost_features
     # Heating capacity (placeholder - would normally be calculated from peak results)
@@ -75,20 +75,20 @@ def test_features_with_location():
     features["feature.factors.system.heat.effective_cop"] = 0.8  # Typical effective COP
 
     # County indicators (one-hot encoded)
-    features["feature.location.in_county_Middlesex"] = 1
-    features["feature.location.in_county_Berkshire"] = 0
-    features["feature.location.in_county_Barnstable"] = 0
-    features["feature.location.in_county_Bristol"] = 0
-    features["feature.location.in_county_Dukes"] = 0
-    features["feature.location.in_county_Essex"] = 0
-    features["feature.location.in_county_Franklin"] = 0
-    features["feature.location.in_county_Hampden"] = 0
-    features["feature.location.in_county_Hampshire"] = 0
-    features["feature.location.in_county_Nantucket"] = 0
-    features["feature.location.in_county_Norfolk"] = 0
-    features["feature.location.in_county_Plymouth"] = 0
-    features["feature.location.in_county_Suffolk"] = 0
-    features["feature.location.in_county_Worcester"] = 0
+    features["feature.location.in_county.Middlesex"] = 1
+    features["feature.location.in_county.Berkshire"] = 0
+    features["feature.location.in_county.Barnstable"] = 0
+    features["feature.location.in_county.Bristol"] = 0
+    features["feature.location.in_county.Dukes"] = 0
+    features["feature.location.in_county.Essex"] = 0
+    features["feature.location.in_county.Franklin"] = 0
+    features["feature.location.in_county.Hampden"] = 0
+    features["feature.location.in_county.Hampshire"] = 0
+    features["feature.location.in_county.Nantucket"] = 0
+    features["feature.location.in_county.Norfolk"] = 0
+    features["feature.location.in_county.Plymouth"] = 0
+    features["feature.location.in_county.Suffolk"] = 0
+    features["feature.location.in_county.Worcester"] = 0
 
     # System indicators
     features["feature.system.has_gas.true"] = 1  # Has gas heating
@@ -107,14 +107,14 @@ def create_features_with_income_bracket(features, income_bracket):
     features_copy = features.copy()
 
     # Set all income bracket indicators to False
-    features_copy["feature.homeowner.in_bracket_AllCustomers"] = False
-    features_copy["feature.homeowner.in_bracket_IncomeEligible"] = False
+    features_copy["feature.homeowner.in_bracket.AllCustomers"] = False
+    features_copy["feature.homeowner.in_bracket.IncomeEligible"] = False
 
     # Set the specific income bracket to True
     if income_bracket == "AllCustomers":
-        features_copy["feature.homeowner.in_bracket_AllCustomers"] = True
+        features_copy["feature.homeowner.in_bracket.AllCustomers"] = True
     elif income_bracket == "IncomeEligible":
-        features_copy["feature.homeowner.in_bracket_IncomeEligible"] = True
+        features_copy["feature.homeowner.in_bracket.IncomeEligible"] = True
 
     return features_copy
 
@@ -189,7 +189,7 @@ class TestCostCalculation:
                 "feature.calculated.heating_capacity_kW", [0]
             ).iloc[0]
             in_county_middlesex = test_features_with_location.get(
-                "feature.location.in_county_Middlesex", [0]
+                "feature.location.in_county.Middlesex", [0]
             ).iloc[0]
             has_gas = test_features_with_location.get(
                 "feature.system.has_gas.true", [0]
@@ -357,7 +357,7 @@ class TestCostCalculation:
         # Test that we have the expected precomputed features
         expected_features = [
             "feature.calculated.heating_capacity_kW",
-            "feature.location.in_county_Middlesex",
+            "feature.location.in_county.Middlesex",
             "feature.system.has_gas",
             "feature.system.has_cooling",
             "feature.constant.one",
@@ -395,12 +395,12 @@ class TestIncentiveLoading:
             ashp_incentive = ashp_incentives[0]
             has_all_customers = any(
                 hasattr(factor, "indicator_cols")
-                and "feature.homeowner.in_bracket_AllCustomers" in factor.indicator_cols
+                and "feature.homeowner.in_bracket.AllCustomers" in factor.indicator_cols
                 for factor in ashp_incentive.quantity_factors
             )
             has_income_eligible = any(
                 hasattr(factor, "indicator_cols")
-                and "feature.homeowner.in_bracket_IncomeEligible"
+                and "feature.homeowner.in_bracket.IncomeEligible"
                 in factor.indicator_cols
                 for factor in ashp_incentive.quantity_factors
             )
@@ -847,13 +847,13 @@ class TestIncentiveCalculation:
                 all_customers_features, costs_df, final_values={"ASHPHeating"}
             )
 
-            # Check that the incentive_metadata column exists
-            assert "incentive_metadata" in all_customer_result.columns, (
-                "incentive_metadata column should be present in incentive results"
+            # Check that the incentive.metadata column exists
+            assert "incentive.metadata" in all_customer_result.columns, (
+                "incentive.metadata column should be present in incentive results"
             )
 
             # Get the metadata
-            metadata = all_customer_result["incentive_metadata"].iloc[0]
+            metadata = all_customer_result["incentive.metadata"].iloc[0]
             print(f"Incentive metadata: {metadata}")
 
             # Verify metadata structure
