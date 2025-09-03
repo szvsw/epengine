@@ -847,43 +847,63 @@ class TestIncentiveCalculation:
                 all_customers_features, costs_df, final_values={"ASHPHeating"}
             )
 
-            # Check that the incentive.metadata column exists
-            assert "incentive.metadata" in all_customer_result.columns, (
-                "incentive.metadata column should be present in incentive results"
-            )
+            # Check metadata based on configuration
+            if consolidated_incentives.create_metadata:
+                # Note: bracket-specific metadata aggregation only works when using
+                # compute_incentives_by_bracket method in the savings calculation context.
+                # When calling compute() directly, we only get simple metadata aggregation.
+                if consolidated_incentives.metadata_aggregation == "bracket":
+                    # For bracket aggregation, metadata should be in a single column when called directly
+                    # The bracket-specific columns are only created in the savings calculation context
+                    assert "incentive.metadata" in all_customer_result.columns, (
+                        "incentive.metadata column should be present in incentive results"
+                    )
+                    metadata = all_customer_result["incentive.metadata"].iloc[0]
+                else:
+                    # For simple aggregation, metadata should be in a single column
+                    assert "incentive.metadata" in all_customer_result.columns, (
+                        "incentive.metadata column should be present in incentive results"
+                    )
+                    metadata = all_customer_result["incentive.metadata"].iloc[0]
 
-            # Get the metadata
-            metadata = all_customer_result["incentive.metadata"].iloc[0]
-            print(f"Incentive metadata: {metadata}")
+                print(f"Incentive metadata: {metadata}")
 
-            # Verify metadata structure
-            assert isinstance(metadata, list), (
-                "Metadata should be a list of dictionaries"
-            )
-            assert len(metadata) > 0, "Should have at least one incentive in metadata"
+                # Verify metadata structure
+                assert isinstance(metadata, list), (
+                    "Metadata should be a list of dictionaries"
+                )
+                assert len(metadata) > 0, (
+                    "Should have at least one incentive in metadata"
+                )
 
-            # Check the first incentive metadata
-            first_incentive = metadata[0]
-            expected_keys = {
-                "trigger",
-                "final",
-                "program_name",
-                "source",
-                "amount_applied",
-            }
-            assert all(key in first_incentive for key in expected_keys), (
-                f"Metadata should contain keys: {expected_keys}"
-            )
+                # Check the first incentive metadata
+                first_incentive = metadata[0]
+                expected_keys = {
+                    "trigger",
+                    "final",
+                    "program_name",
+                    "source",
+                    "amount_applied",
+                }
+                assert all(key in first_incentive for key in expected_keys), (
+                    f"Metadata should contain keys: {expected_keys}"
+                )
 
-            # Verify specific values
-            assert first_incentive["trigger"] == "Heating", (
-                "Trigger should be 'Heating'"
-            )
-            assert first_incentive["final"] == "ASHPHeating", (
-                "Final should be 'ASHPHeating'"
-            )
-            assert first_incentive["amount_applied"] > 0, (
-                "Amount applied should be positive"
-            )
+                # Verify specific values
+                assert first_incentive["trigger"] == "Heating", (
+                    "Trigger should be 'Heating'"
+                )
+                assert first_incentive["final"] == "ASHPHeating", (
+                    "Final should be 'ASHPHeating'"
+                )
+                assert first_incentive["amount_applied"] > 0, (
+                    "Amount applied should be positive"
+                )
+            else:
+                # Metadata should not be present when disabled
+                assert "incentive.metadata" not in all_customer_result.columns, (
+                    "incentive.metadata column should not be present when metadata is disabled"
+                )
+                print("Metadata is disabled - no metadata column expected")
 
             print("✓ Incentive metadata functionality test passed")

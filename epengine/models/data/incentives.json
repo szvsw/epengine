@@ -183,5 +183,6 @@
     ],
     "output_key": "incentive",
     "raise_on_duplicate_trigger": false,
-    "create_metadata": false
+    "create_metadata": true,
+    "metadata_aggregation": "bracket"
 }

@@ -78,7 +78,7 @@ DATASETS = (
     "FuelCost",
     "FuelEmissions",
 )
-NORMALIZATIONS = ("Normalized", "Gross")
+NORMALIZATIONS = ("Normalized", "Gross", "Net")
 
 DATASET_SEGMENT_MAP = {
     "Raw": END_USES,
@@ -174,9 +174,9 @@ class SBEMRetrofitDistributions:
     """Costs and paybacks."""
 
     costs: pd.DataFrame
-    paybacks: pd.Series
+    paybacks: pd.DataFrame
     costs_summary: pd.DataFrame
-    paybacks_summary: pd.Series
+    paybacks_summary: pd.DataFrame
 
     @property
     def serialized(self) -> BaseModel:
@@ -203,17 +203,17 @@ class SBEMRetrofitDistributions:
                     .drop(["count"])
                 )
                 field_data = col_summary.to_dict()
-            if not col.startswith(("cost.", "incentive.", "net_cost.")):
-                msg = f"Column {col} is not a cost, incentive, or net cost column"
+            if not col.startswith(("cost.", "incentive.", "net_cost.", "payback.")):
+                msg = f"Column {col} is not a cost, incentive, net cost, or payback column"
                 raise ValueError(msg)
-            field_data["units"] = "USD"
+
+            # Set units based on column type
+            if col.startswith("payback."):
+                field_data["units"] = "years"
+            else:
+                field_data["units"] = "USD"
 
             field_datas[col_name] = SummarySpec(**field_data)
-
-        field_specs["payback"] = (SummarySpec, Field(title="payback"))
-        payback_data = self.paybacks_summary.to_dict()
-        payback_data["units"] = "years"
-        field_datas["payback"] = SummarySpec(**payback_data)
 
         model = create_model(
             "RetrofitCostsSpec",
@@ -373,6 +373,11 @@ class SBEMInferenceRequestSpec(BaseModel):
     # Additional fields for cost and incentive calculations
     county: str
 
+    # Current solar system size in kW (0 if no solar)
+    current_solar_size_kw: float = Field(
+        default=0.0, ge=0, description="Current solar system size in kW"
+    )
+
     source_experiment: str
     bucket: str = "ml-for-bem"
 
@@ -515,6 +520,7 @@ class SBEMInferenceRequestSpec(BaseModel):
         })
         # Add the new fields that are not part of SBEMSimulationSpec
         base_features["feature.location.county"] = self.county
+
         return base_features
 
     def make_priors(self):
@@ -1239,6 +1245,69 @@ class SBEMInferenceRequestSpec(BaseModel):
         """The random number generator for the experiment."""
         return np.random.default_rng(42)
 
+    def add_solar_features(self, features: pd.DataFrame) -> pd.DataFrame:
+        """Add solar-related features to the features DataFrame."""
+        # Add solar yield as a base feature (Massachusetts average)
+        yield_sampler = ClippedNormalSampler(
+            mean=1100,
+            std=150,
+            clip_min=800,
+            clip_max=1400,
+        )
+        features["feature.solar.yield_kwh_per_kw_year"] = yield_sampler.sample(
+            features, len(features), self.generator
+        )
+        panel_power_density_sampler = ClippedNormalSampler(
+            mean=180,
+            std=50,
+            clip_min=120,
+            clip_max=300,
+        )
+        features["feature.solar.panel_power_density_w_per_m2"] = (
+            panel_power_density_sampler.sample(features, len(features), self.generator)
+        )
+
+        # Calculate upgraded solar coverage based on semantic field
+        onsite_solar = (
+            features["feature.semantic.OnsiteSolar"].iloc[0]
+            if "feature.semantic.OnsiteSolar" in features.columns
+            else "NoSolarPV"
+        )
+
+        if onsite_solar == "LowSolarPV":
+            features["feature.solar.upgraded_coverage"] = 0.25
+        elif onsite_solar == "MedSolarPV":
+            features["feature.solar.upgraded_coverage"] = 0.50
+        elif onsite_solar == "MaxSolarPV":
+            # Will be calculated later when we have electricity consumption data
+            features["feature.solar.upgraded_coverage"] = 1.0  # Placeholder
+        else:
+            features["feature.solar.upgraded_coverage"] = 0.0
+
+        # Add solar upgrade capacity feature (for retrofit cost calculations)
+        # This will be populated based on the solar upgrade scenario
+        features["feature.upgrade.solar_pv_kw"] = 0.0
+
+        return features
+
+    def update_max_solar_coverage(
+        self, features: pd.DataFrame, electricity_consumption: pd.Series
+    ) -> pd.DataFrame:
+        """Update the MaxSolarPV coverage when electricity consumption data is available."""
+        onsite_solar = features["feature.semantic.OnsiteSolar"].iloc[0]
+
+        if onsite_solar == "MaxSolarPV":
+            max_feasible = self.calculate_feasible_solar_coverage(
+                features, electricity_consumption
+            )
+            new_coverage = max_feasible.max()
+            features["feature.solar.upgraded_coverage"] = new_coverage
+
+        # For LowSolarPV and MedSolarPV, keep the existing coverage values (0.25 and 0.50)
+        # that were set in add_solar_features
+
+        return features
+
     def make_features(self, n: int) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Create the features to use in prediction.
 
@@ -1258,6 +1327,12 @@ class SBEMInferenceRequestSpec(BaseModel):
             axis=1,
         )
         df = priors.sample(df, n, self.generator)
+
+        # Add solar features
+        df = self.add_solar_features(df)
+
+        # Defer solar upgrade capacity calculation to the post-prediction phase
+
         original_cooling = None
         mask = None
         if "feature.semantic.Cooling" in df.columns:
@@ -1270,7 +1345,10 @@ class SBEMInferenceRequestSpec(BaseModel):
         return df, df_t
 
     def make_retrofit_cost_features(
-        self, features: pd.DataFrame, peak_results: pd.DataFrame
+        self,
+        features: pd.DataFrame,
+        peak_results: pd.DataFrame,
+        elect_eui: pd.Series,
     ) -> pd.DataFrame:
         """Compute features needed for cost calculations after inference has been run.
 
@@ -1280,16 +1358,16 @@ class SBEMInferenceRequestSpec(BaseModel):
         cost_features = features.copy()
 
         # Compute heating capacity based on peak heating load
-        peak_heating_per_m2 = peak_results["Heating"]
+        peak_heating_per_m2 = peak_results["Heating"] * 1000
         gross_peak_kw = peak_heating_per_m2 * self.actual_conditioned_area_m2
 
         # TODO: check if the regression uses heating capacity or electrical capacity
         # effective_cop = features["feature.factors.system.heat.effective_cop"]
         # electrical_capacity_kW = gross_peak_kw / effective_cop
-        heating_capacity_kW = gross_peak_kw
+        # heating_capacity_kW = gross_peak_kw
 
-        safety_factor = 1.1
-        raw_capacity_kw = heating_capacity_kW * safety_factor
+        safety_factor = 1.2
+        raw_capacity_kw = gross_peak_kw * safety_factor
 
         # Map calculated capacity to nearest available equipment size (unless above max)
         available_sizes_kw = np.array([
@@ -1310,8 +1388,8 @@ class SBEMInferenceRequestSpec(BaseModel):
             max_size = available_sizes_kw.max()
             if v > max_size:
                 return float(v)
-            # choose nearest available size
-            idx = int(np.argmin(np.abs(available_sizes_kw - v)))
+            # round up to the smallest available size that is >= v
+            idx = int(np.searchsorted(available_sizes_kw, v, side="left"))
             return float(available_sizes_kw[idx])
 
         cost_features["feature.calculated.heating_capacity_kW"] = raw_capacity_kw.apply(
@@ -1373,6 +1451,30 @@ class SBEMInferenceRequestSpec(BaseModel):
         cost_features["feature.system.has_cooling.false"] = ~cost_features[
             "feature.system.has_cooling.true"
         ]
+
+        # Add solar system size for retrofit cost calculations
+        if features["feature.semantic.OnsiteSolar"].iloc[0] in [
+            "LowSolarPV",
+            "MedSolarPV",
+            "MaxSolarPV",
+        ]:
+            # Calculate the required solar system size for the upgrade
+            electricity_consumption = elect_eui * self.actual_conditioned_area_m2
+
+            # Update MaxSolarPV coverage if needed
+            features = self.update_max_solar_coverage(features, electricity_consumption)
+            target_coverage = features["feature.solar.upgraded_coverage"].iloc[0]
+
+            required_system_size = self.calculate_upgraded_solar_system_size(
+                target_coverage,
+                features,
+                electricity_consumption,
+            )
+            cost_features["feature.upgrade.solar_pv_kw"] = required_system_size
+
+        else:
+            # No solar upgrade, set to 0
+            cost_features["feature.upgrade.solar_pv_kw"] = 0.0
 
         return cost_features
 
@@ -1471,7 +1573,7 @@ class SBEMInferenceRequestSpec(BaseModel):
             df_end_uses (pd.DataFrame): The end uses (with effective COPs applied).
 
         Returns:
-            df_disaggregated_fuels (pd.DataFrame): The disaggregated fuels.
+            df_disaggregated_fuels (pd.DataFrame): The disaggregated fuels with both actual and net electricity.
         """
         heat_fuel = df_features["feature.factors.system.heat.fuel"]
         cool_fuel = df_features["feature.factors.system.cool.fuel"]
@@ -1509,11 +1611,22 @@ class SBEMInferenceRequestSpec(BaseModel):
         lighting = df_end_uses["Lighting"]
         equipment = df_end_uses["Equipment"]
 
-        elec = pd.concat(
+        # Create ACTUAL electricity consumption DataFrame (before solar)
+        actual_electricity_consumption = pd.concat(
             [heat_elec, cool_elec, dhw_elec, lighting, equipment],
             axis=1,
             keys=["Heating", "Cooling", "Domestic Hot Water", "Lighting", "Equipment"],
         )[df_end_uses.columns]
+
+        # Ensure it's always a DataFrame, even if there's only one column - I added this for the pyright type checker
+        if isinstance(actual_electricity_consumption, pd.Series):
+            actual_electricity_consumption = actual_electricity_consumption.to_frame()
+
+        # Apply solar generation to get NET electricity consumption
+        net_electricity_consumption = self.apply_solar_to_electricity_consumption(
+            actual_electricity_consumption, df_features
+        )
+
         gas = pd.concat(
             [heat_gas, cool_gas, dhw_gas, lighting * 0, equipment * 0],
             axis=1,
@@ -1525,8 +1638,12 @@ class SBEMInferenceRequestSpec(BaseModel):
             keys=["Heating", "Cooling", "Domestic Hot Water", "Lighting", "Equipment"],
         )[df_end_uses.columns]
 
+        # Store actual electricity consumption for solar calculations
+        self._actual_electricity_consumption = actual_electricity_consumption
+
+        # Use net electricity consumption for the main fuel disaggregation
         df_disaggregated_fuels = pd.concat(
-            [elec, gas, oil],
+            [net_electricity_consumption, gas, oil],
             axis=1,
             keys=["Electricity", "NaturalGas", "Oil"],
             names=["Fuel", "EndUse"],
@@ -1622,6 +1739,7 @@ class SBEMInferenceRequestSpec(BaseModel):
         results_disaggregated_fuels = self.separate_fuel_based_end_uses(
             df_features=features, df_end_uses=results_end_uses
         )
+
         results_fuels = results_disaggregated_fuels.T.groupby(level=["Fuel"]).sum().T
         results_fuel_costs, results_end_use_costs = self.compute_costs(
             df_features=features, df_disaggregated_fuels=results_disaggregated_fuels
@@ -1660,6 +1778,7 @@ class SBEMInferenceRequestSpec(BaseModel):
             names=["Normalization"],
         )
         total = disaggregated.T.groupby(level=["Dataset"]).sum().T
+
         total_gross = total * self.actual_conditioned_area_m2
         totals = pd.concat(
             [total, total_gross],
@@ -1681,6 +1800,152 @@ class SBEMInferenceRequestSpec(BaseModel):
             disaggregations_summary=disaggregations_summary,
             totals_summary=totals_summary,
         )
+
+    def calculate_solar_generation(
+        self, system_size_kw: float | pd.Series, features: pd.DataFrame
+    ) -> pd.Series:
+        """Calculate annual solar generation for a given system size."""
+        # Use the solar yield feature that was already generated
+        solar_yield_series = features["feature.solar.yield_kwh_per_kw_year"]
+
+        annual_generation = system_size_kw * solar_yield_series
+        return annual_generation
+
+    def calculate_feasible_solar_coverage(
+        self,
+        features: pd.DataFrame,
+        actual_electricity_consumption: pd.Series | None = None,
+    ) -> pd.Series:
+        """Calculate the maximum feasible solar coverage based on roof area."""
+        # Get roof surface area
+        roof_area_m2 = features["feature.geometry.computed.roof_surface_area"]
+
+        # Solar panel assumptions
+        # panel_efficiency = 0.22
+        panel_power_density = features["feature.solar.panel_power_density_w_per_m2"]
+        max_roof_utilization = 0.50  # Only 80% of roof can be covered, assuming we have a fire safety boundary. This is a very high level estimate
+        # TODO: Account for roof angle, orientation, and shading
+
+        # Calculate maximum solar capacity possible
+        max_solar_area_m2 = roof_area_m2 * max_roof_utilization
+        max_solar_capacity_kW = (max_solar_area_m2 * panel_power_density) / 1000
+        max_local_solar_capacity_kW = 25
+        mask = max_solar_capacity_kW > max_local_solar_capacity_kW
+        # set a cap at 25 kW total system size
+        if mask.any():
+            max_solar_capacity_kW = max_solar_capacity_kW.clip(
+                upper=max_local_solar_capacity_kW
+            )
+            msg = "Max solar capacity is capped at 25 kW"
+            logging.warning(msg)
+        # Calculate annual generation at max capacity
+        max_annual_generation = self.calculate_solar_generation(
+            max_solar_capacity_kW, features
+        )
+        # Use actual electricity consumption if provided, otherwise use placeholder
+        if actual_electricity_consumption is not None:
+            total_electricity_kWh = actual_electricity_consumption
+        else:
+            msg = "No actual electricity consumption generated for feasible solar coverage calculation"
+            raise ValueError(msg)
+
+        # Calculate maximum feasible coverage
+        max_coverage = max_annual_generation / np.maximum(total_electricity_kWh, 1)
+        max_coverage = np.clip(max_coverage, 0, 1)
+
+        return pd.Series(max_coverage, index=features.index)
+
+    def calculate_upgraded_solar_system_size(
+        self,
+        target_coverage: float,
+        features: pd.DataFrame,
+        total_electricity_consumption: pd.Series,
+    ) -> pd.Series:
+        """Calculate the solar system size needed to achieve target coverage."""
+        # Calculate maximum feasible coverage
+        max_feasible_coverage = self.calculate_feasible_solar_coverage(
+            features, total_electricity_consumption
+        )
+
+        # Check feasibility and cap if necessary
+        # Cap each sample to its own maximum feasible coverage
+        actual_coverage = np.minimum(target_coverage, max_feasible_coverage)
+
+        # Log warning if any samples are being capped
+        if (actual_coverage < target_coverage).any():
+            max_feasible = max_feasible_coverage.max()
+            logging.warning(
+                f"Requested solar coverage {target_coverage:.1%} exceeds maximum feasible coverage "
+                f"{max_feasible:.1%} for some samples. Capping at maximum feasible amount."
+            )
+        # Calculate required annual generation
+        required_annual_generation = total_electricity_consumption * actual_coverage
+        # Calculate required system size (using average yield of 1300 kWh/kW/year)
+        required_system_size_kw = (
+            required_annual_generation / features["feature.solar.yield_kwh_per_kw_year"]
+        )
+
+        return pd.Series(required_system_size_kw, index=features.index)
+
+    def apply_solar_to_electricity_consumption(
+        self,
+        electricity_consumption: pd.DataFrame,
+        features: pd.DataFrame,
+    ) -> pd.DataFrame:
+        """Apply solar generation to electricity consumption to get net consumption."""
+        net_consumption = electricity_consumption.copy()
+
+        # Get the OnsiteSolar semantic field value
+        onsite_solar = (
+            features["feature.semantic.OnsiteSolar"].iloc[0]
+            if "feature.semantic.OnsiteSolar" in features.columns
+            else "NoSolarPV"
+        )
+
+        if onsite_solar == "ExistingSolarPV" and self.current_solar_size_kw > 0:
+            # Handle existing solar system using current_solar_size_kw
+            current_solar_generation = self.calculate_solar_generation(
+                self.current_solar_size_kw,
+                features,
+            )
+            current_solar_EUI = (
+                current_solar_generation / self.actual_conditioned_area_m2
+            )
+            total_electricity = electricity_consumption.sum(axis=1)
+            solar_offset = current_solar_EUI.clip(upper=total_electricity)
+
+            # Reduce each end use proportionally per row (vectorized)
+            reduction_factor = 1 - (solar_offset / total_electricity)
+            reduction_factor = reduction_factor.where(total_electricity > 0, 1.0)
+            net_consumption = electricity_consumption.mul(reduction_factor, axis=0)
+
+        elif onsite_solar in ["LowSolarPV", "MedSolarPV", "MaxSolarPV"]:
+            # Handle upgraded solar system
+            total_electricity = (
+                electricity_consumption.sum(axis=1) * self.actual_conditioned_area_m2
+            )
+
+            # Update MaxSolarPV coverage if needed
+            features = self.update_max_solar_coverage(features, total_electricity)
+            target_coverage = features["feature.solar.upgraded_coverage"].iloc[0]
+
+            upgraded_system_size = self.calculate_upgraded_solar_system_size(
+                target_coverage,
+                features,
+                total_electricity,
+            )
+            upgraded_solar_generation = self.calculate_solar_generation(
+                upgraded_system_size, features
+            )
+
+            solar_offset = upgraded_solar_generation.clip(upper=total_electricity)
+
+            # Reduce each end use proportionally per row (vectorized)
+            reduction_factor = 1 - (solar_offset / total_electricity)
+            reduction_factor = reduction_factor.where(total_electricity > 0, 1.0)
+            net_consumption = electricity_consumption.mul(reduction_factor, axis=0)
+
+        return net_consumption
 
 
 class SBEMInferenceSavingsRequestSpec(BaseModel):
@@ -1734,26 +1999,25 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             new_features, len(new_features), self.original.generator
         )
 
-        # then we run traditional inference on the new features
-        mask = None
-        original_cooling = None
-        if "feature.semantic.Cooling" in new_features.columns:
-            original_cooling = new_features["feature.semantic.Cooling"].copy()
-            mask = new_features["feature.semantic.Cooling"] == "none"
-            new_features.loc[mask, "feature.semantic.Cooling"] = "ACCentral"
-        new_transformed_features = self.original.source_feature_transform.transform(
-            new_features
+        # Create an upgraded spec with the new semantic field context
+        upgraded_spec = SBEMInferenceRequestSpec(
+            **{
+                k: v
+                for k, v in self.original.model_dump().items()
+                if k != "semantic_field_context"
+            },
+            semantic_field_context=self.upgraded_semantic_field_context,
         )
-        if mask is not None and original_cooling is not None:
-            new_features.loc[mask, "feature.semantic.Cooling"] = original_cooling.loc[
-                mask
-            ]
-        new_results_raw = self.original.predict(new_transformed_features)
+        # Run inference with the upgraded spec
+        new_results = upgraded_spec.run(n)
+        # Get peak results for cost calculations
+        new_results_raw = upgraded_spec.predict(
+            upgraded_spec.source_feature_transform.transform(
+                upgraded_spec.make_features(n)[0]
+            )
+        )
         new_results_peak = cast(pd.DataFrame, new_results_raw["Peak"])
-        new_results_energy = cast(pd.DataFrame, new_results_raw["Energy"])
-        new_results = self.original.compute_distributions(
-            new_features, new_results_energy
-        )
+        # new_results_energy = cast(pd.DataFrame, new_results_raw["Energy"])
 
         # finally, we compute the deltas and the corresponding summary
         # statistics.
@@ -1784,9 +2048,17 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         cost_config = RetrofitQuantities.Open(costs_path)
 
         # Compute features for cost calculations after inference
-        features_for_costs = self.original.make_retrofit_cost_features(
-            new_features, new_results_peak
+        # For solar upgrades, we need to use the ACTUAL electricity consumption (before solar)
+        # to calculate the system size needed, not the net consumption if there is alrearyd some solar
+        electricity_eui = upgraded_spec._actual_electricity_consumption.sum(axis=1)
+
+        # Calculate the feature distributions for solar features (yield, coverage)
+        new_features_with_solar = upgraded_spec.add_solar_features(new_features)
+
+        features_for_costs = upgraded_spec.make_retrofit_cost_features(
+            new_features_with_solar, new_results_peak, electricity_eui
         )
+
         retrofit_costs = self.compute_retrofit_costs(features_for_costs, cost_config)
 
         features_for_incentives = self.original.make_retrofit_incentive_features(
@@ -1812,8 +2084,16 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         paybacks_by_bracket = {}
         for bracket, net_costs_df in net_costs_by_bracket.items():
             paybacks_by_bracket[bracket] = self.compute_payback(
-                net_costs_df, delta_results, "net_cost.Total"
+                net_costs_df, delta_results, f"net_cost.Total.{bracket}"
             )
+
+        # Add paybacks with bracket suffixes to the main DataFrame
+        paybacks_with_suffixes = {}
+        for bracket, payback_series in paybacks_by_bracket.items():
+            paybacks_with_suffixes[f"payback.{bracket}"] = payback_series
+
+        # Add the no-incentives payback
+        paybacks_with_suffixes["payback.NoIncentives"] = payback_no_incentives
 
         # Combine all cost and incentive data
         all_costs_data = pd.concat(
@@ -1821,6 +2101,7 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
                 retrofit_costs,
                 *incentives_by_bracket.values(),
                 *net_costs_by_bracket.values(),
+                pd.DataFrame(paybacks_with_suffixes),
             ],
             axis=1,
         )
@@ -1828,8 +2109,8 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         def summarize(data: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
             return data.describe(percentiles=list(PERCENTILES.keys())).drop(["count"])
 
-        # Create summary statistics
-        retrofit_costs_summary = summarize(retrofit_costs)
+        # Create summary statistics for the entire costs data (includes costs, incentives, net costs, paybacks)
+        all_costs_summary = summarize(all_costs_data)
 
         # Create summary statistics for each bracket
         net_costs_summaries = {}
@@ -1840,21 +2121,33 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
 
         payback_no_incentives_summary = summarize(payback_no_incentives)
 
+        # Create a DataFrame with all paybacks
+        all_paybacks_df = pd.DataFrame(paybacks_with_suffixes)
+
+        # Create summary DataFrame for all paybacks
+        all_paybacks_summary_df = pd.DataFrame({
+            "payback.NoIncentives": payback_no_incentives_summary,
+            **{
+                f"payback.{bracket}": payback_summaries[bracket]
+                for bracket in payback_summaries
+            },
+        })
+
         # Create cost results for each bracket
         cost_results = SBEMRetrofitDistributions(
             costs=all_costs_data,
-            paybacks=payback_no_incentives,
-            costs_summary=cast(pd.DataFrame, retrofit_costs_summary),
-            paybacks_summary=cast(pd.Series, payback_no_incentives_summary),
+            paybacks=all_paybacks_df,
+            costs_summary=cast(pd.DataFrame, all_costs_summary),
+            paybacks_summary=cast(pd.DataFrame, all_paybacks_summary_df),
         )
 
         cost_results_by_bracket = {}
         for bracket in incentives_by_bracket:
             cost_results_by_bracket[bracket] = SBEMRetrofitDistributions(
                 costs=all_costs_data,
-                paybacks=paybacks_by_bracket[bracket],
+                paybacks=all_paybacks_df,
                 costs_summary=cast(pd.DataFrame, net_costs_summaries[bracket]),
-                paybacks_summary=cast(pd.Series, payback_summaries[bracket]),
+                paybacks_summary=cast(pd.DataFrame, all_paybacks_summary_df),
             )
 
         # Build return dictionary
@@ -1914,6 +2207,8 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             if len(entity_candidates) == 0:
                 msg = f"No {entities.output_key} entity found for {context_field} = {original_value} -> {context_value}"
                 logging.warning(msg)
+                # Debug output for solar
+
             elif len(entity_candidates) > 1:
                 if entities.raise_on_duplicate_trigger:
                     msg = f"Multiple {entities.output_key} entities found for {context_field} = {original_value} -> {context_value}:\n {entity_candidates}"
@@ -1931,6 +2226,7 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             output_key=entities.output_key,
             raise_on_duplicate_trigger=entities.raise_on_duplicate_trigger,
             create_metadata=entities.create_metadata,
+            metadata_aggregation=entities.metadata_aggregation,
         )
 
     def compute_retrofit_costs(
@@ -1958,9 +2254,6 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             dict: Dictionary mapping income bracket names to incentive DataFrames
         """
         # Compute features for incentive calculations after inference
-        features_for_incentives = self.original.make_retrofit_incentive_features(
-            features
-        )
         incentive_entities = self.select_relevant_entities(incentive_config)
 
         incentives_by_bracket = {}
@@ -1985,48 +2278,66 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
             if rename_map:
                 bracket_incentives = bracket_incentives.rename(columns=rename_map)
 
+            # Handle bracket-specific metadata if enabled
+            if (
+                incentive_config.create_metadata
+                and incentive_config.metadata_aggregation == "bracket"
+            ):
+                metadata_col = f"incentive.metadata.{bracket}"
+                if "incentive.metadata" in bracket_incentives.columns:
+                    bracket_incentives[metadata_col] = bracket_incentives[
+                        "incentive.metadata"
+                    ]
+                    bracket_incentives = bracket_incentives.drop(
+                        columns=["incentive.metadata"]
+                    )
+
             incentives_by_bracket[bracket] = bracket_incentives
 
         return incentives_by_bracket
 
     def _compute_net_costs_for_incentives(
-        self, costs_df: pd.DataFrame, incentives_df: pd.DataFrame
+        self, costs_df: pd.DataFrame, incentives_df: pd.DataFrame, bracket: str
     ) -> pd.DataFrame:
         """Helper method to compute net costs for a given incentive dataframe."""
-        net_costs = costs_df.copy()
+        # Start with an empty DataFrame, only add net cost columns
+        net_costs = pd.DataFrame(index=costs_df.index)
 
         # Compute individual net costs for each semantic field
         for col in incentives_df.columns:
             if col.startswith("incentive."):
-                semantic_field = col.split(".")[1]
+                # Handle renamed incentive columns with bracket suffixes
+                # Format: incentive.{semantic_field}.{bracket}
+                # Note: semantic_field can contain dots (e.g., "Heating.ASHPHeating")
+                parts = col.split(".")
+                if len(parts) < 3:
+                    # Skip malformed columns
+                    continue
+
+                # Last part is the bracket, everything between incentive. and .{bracket} is the semantic field
+                bracket_suffix = parts[-1]
+                semantic_field = ".".join(parts[1:-1])
+
                 # TODO: Add a check that that value of semantic field is in the list of semantic fields, and raise an error
                 cost_col = f"cost.{semantic_field}"
-                if cost_col in net_costs.columns:
-                    net_col = f"net_cost.{semantic_field}"
-                    net_costs[net_col] = net_costs[cost_col] - incentives_df[col]
+                if cost_col in costs_df.columns:
+                    net_col = f"net_cost.{semantic_field}.{bracket_suffix}"
+                    net_costs[net_col] = costs_df[cost_col] - incentives_df[col]
 
-        # calc method here should be total_cost - total_incentive
-        # Calculate net cost total: cost total minus incentive total, or sum of existing net costs
-
-        # If either column doesn't exist, fall back to summing existing net_cost columns
-        if "incentive.Total" not in incentives_df.columns:
-            net_cost_cols = [
-                col for col in net_costs.columns if col.startswith("net_cost.")
-            ]
-            if net_cost_cols:
-                net_costs["net_cost.Total"] = net_costs[net_cost_cols].sum(axis=1)
-        else:
-            net_costs["net_cost.Total"] = (
-                net_costs["cost.Total"] - incentives_df["incentive.Total"]
-            )
+        # Calculate net cost total: cost total minus incentive total
+        incentive_total_col = f"incentive.Total.{bracket}"
+        net_costs[f"net_cost.Total.{bracket}"] = (
+            costs_df["cost.Total"] - incentives_df[incentive_total_col]
+        )
         # Ensure net cost total is not negative (clip at 0) and warn when clipping
-        negatives = net_costs["net_cost.Total"] < 0
+        net_cost_total_col = f"net_cost.Total.{bracket}"
+        negatives = net_costs[net_cost_total_col] < 0
         if negatives.any():
             logging.warning(
                 "Net cost became negative after incentives; clipping to 0 for %d rows",
                 int(negatives.sum()),
             )
-            net_costs.loc[negatives, "net_cost.Total"] = 0
+            net_costs.loc[negatives, net_cost_total_col] = 0
 
         return net_costs
 
@@ -2039,7 +2350,9 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         net_costs_by_bracket = {}
 
         for bracket, incentives_df in incentives_by_bracket.items():
-            net_costs = self._compute_net_costs_for_incentives(costs_df, incentives_df)
+            net_costs = self._compute_net_costs_for_incentives(
+                costs_df, incentives_df, bracket
+            )
             net_costs_by_bracket[bracket] = net_costs
 
         return net_costs_by_bracket
@@ -2233,31 +2546,25 @@ class PercentQuantity(BaseModel, QuantityFactor, frozen=True):
             msg = f"No cost columns found in context_df. Available columns: {list(context_df.columns)}"
             raise ValueError(msg)
 
-        # Select the correct cost column based on trigger_column
-        if trigger_column is not None:
-            # Prefer detailed cost column cost.{trigger}.{final} if available by inferring from context_df
-            detailed_prefix = f"cost.{trigger_column}."
-            detailed_cols = [c for c in context_cols if c.startswith(detailed_prefix)]
-            if len(detailed_cols) == 1:
-                context_col = detailed_cols[0]
-            elif len(detailed_cols) > 1:
-                # Multiple finals present; fall back to flat trigger column
-                expected_cost_col = f"cost.{trigger_column}"
-                if expected_cost_col in context_cols:
-                    context_col = expected_cost_col
-                else:
-                    # If flat not present, choose the first detailed as best-effort
-                    context_col = detailed_cols[0]
+        detailed_prefix = f"cost.{trigger_column}."
+        detailed_cols = [c for c in context_cols if c.startswith(detailed_prefix)]
+        if len(detailed_cols) == 1:
+            context_col = detailed_cols[0]
+        elif len(detailed_cols) > 1:
+            # Multiple finals present; fall back to flat trigger column
+            expected_cost_col = f"cost.{trigger_column}"
+            if expected_cost_col in context_cols:
+                context_col = expected_cost_col
             else:
-                expected_cost_col = f"cost.{trigger_column}"
-                if expected_cost_col in context_cols:
-                    context_col = expected_cost_col
-                else:
-                    msg = f"Required cost column '{expected_cost_col}' not found in context_df. Available cost columns: {context_cols}"
-                    raise ValueError(msg)
+                # If flat not present, choose the first detailed as best-effort
+                context_col = detailed_cols[0]
         else:
-            msg = f"trigger_column is required for PercentQuantity. Available cost columns: {context_cols}"
-            raise ValueError(msg)
+            expected_cost_col = f"cost.{trigger_column}"
+            if expected_cost_col in context_cols:
+                context_col = expected_cost_col
+            else:
+                msg = f"Required cost column '{expected_cost_col}' not found in context_df. Available cost columns: {context_cols}"
+                raise ValueError(msg)
 
         base_quantity = context_df[context_col] * self.percent
 
@@ -2399,7 +2706,11 @@ class RetrofitQuantities(BaseModel, frozen=True):
     )
     create_metadata: bool = Field(
         ...,
-        description="Whether to create metadata columns for incentives.",
+        description="Whether to create metadata columns for quantities.",
+    )
+    metadata_aggregation: str | None = Field(
+        None,
+        description="How to aggregate metadata. Options: 'bracket' for bracket-specific aggregation, None for simple aggregation.",
     )
 
     @property
@@ -2418,20 +2729,20 @@ class RetrofitQuantities(BaseModel, frozen=True):
             return pd.DataFrame({f"{self.output_key}.Total": [0] * len(features)})
 
         quantities_by_trigger = self._group_quantities_by_trigger(final_values)
-        # Accumulate metadata for incentives
-        incentive_metadata_rows: list[dict] = []
+        # Accumulate metadata if requested
+        metadata_rows: list[dict] = []
         all_quantities = self._compute_quantities_by_trigger(
-            features, context_df, quantities_by_trigger, incentive_metadata_rows
+            features, context_df, quantities_by_trigger, metadata_rows
         )
 
         data = self._combine_quantities(all_quantities, features)
 
-        if self.output_key == "incentive":
-            # One list of dicts per row, matching index
+        if self.create_metadata:
+            # Always add the metadata column - aggregation logic will handle the rest
             metadata_series = pd.Series(
-                [incentive_metadata_rows] * len(features),
+                [metadata_rows] * len(features),
                 index=features.index,
-                name="incentive.metadata",
+                name=f"{self.output_key}.metadata",
             )
             data = pd.concat([data, metadata_series], axis=1)
 
@@ -2459,7 +2770,7 @@ class RetrofitQuantities(BaseModel, frozen=True):
         features: pd.DataFrame,
         context_df: pd.DataFrame | None,
         quantities_by_trigger: dict,
-        incentive_metadata_rows: list[dict] | None = None,
+        metadata_rows: list[dict] | None = None,
     ) -> list[pd.Series]:
         """Compute quantities for each trigger and final value combination."""
         all_quantities = []
@@ -2470,7 +2781,7 @@ class RetrofitQuantities(BaseModel, frozen=True):
                 trigger,
                 final,
                 quantities,
-                incentive_metadata_rows,
+                metadata_rows,
             )
             final_quantity = total_quantity.rename(
                 f"{self.output_key}.{trigger}.{final}"
@@ -2485,7 +2796,7 @@ class RetrofitQuantities(BaseModel, frozen=True):
         trigger: str,
         final: str,
         quantities: list[RetrofitQuantity],
-        incentive_metadata_rows: list[dict] | None = None,
+        metadata_rows: list[dict] | None = None,
     ) -> pd.Series:
         """Compute the total quantity for a specific trigger."""
         current_context = context_df.copy() if context_df is not None else None
@@ -2508,63 +2819,61 @@ class RetrofitQuantities(BaseModel, frozen=True):
             elif flat_col in context_df.columns:
                 total_quantity = total_quantity.clip(upper=context_df[flat_col])
 
-        # Collect metadata if requested (for incentives)
-        if incentive_metadata_rows is not None and self.output_key == "incentive":
-            self._collect_incentive_metadata(
+        # Collect metadata if requested
+        if metadata_rows is not None and self.create_metadata:
+            self._collect_metadata(
                 trigger,
                 final,
                 quantities,
                 total_quantity,
-                incentive_metadata_rows,
+                metadata_rows,
                 features,
                 current_context,
             )
 
         return total_quantity
 
-    def _collect_incentive_metadata(
+    def _collect_metadata(
         self,
         trigger: str,
         final: str,
         quantities: list[RetrofitQuantity],
         total_quantity: pd.Series,
-        incentive_metadata_rows: list[dict],
+        metadata_rows: list[dict],
         features: pd.DataFrame,
         context_df: pd.DataFrame | None = None,
     ) -> None:
-        """Collect metadata for incentive quantities."""
+        """Collect metadata for quantities."""
         for quantity in quantities:
-            # Extract program info from first factor that has description/source
-            program_name = None
-            source = None
+            # Collect metadata for each individual quantity factor that contributes
             for factor in quantity.quantity_factors:
                 if hasattr(factor, "description") and hasattr(factor, "source"):
-                    program_name = factor.description
-                    source = factor.source
-                    break
+                    # Calculate the amount this specific factor contributed
+                    if isinstance(factor, PercentQuantity):
+                        # For PercentQuantity, we need to compute it individually
+                        factor_result = factor.compute(
+                            features, context_df, quantity.trigger_column
+                        )
+                    else:
+                        # For LinearQuantity and FixedQuantity, compute individually
+                        factor_result = factor.compute(features, context_df)
 
-            # Calculate the amount this quantity contributed using actual features and context
-            # Pass trigger_column to PercentQuantity for correct cost column selection
-            if any(
-                isinstance(factor, PercentQuantity)
-                for factor in quantity.quantity_factors
-            ):
-                quantity_result = quantity.compute(
-                    features, context_df, quantity.trigger_column
-                )
-            else:
-                quantity_result = quantity.compute(features, context_df)
-            amount_applied = (
-                float(quantity_result.iloc[0]) if len(quantity_result) > 0 else 0.0
-            )
+                    amount_applied = (
+                        float(factor_result.iloc[0]) if len(factor_result) > 0 else 0.0
+                    )
 
-            incentive_metadata_rows.append({
-                "trigger": trigger,
-                "final": final,
-                "program_name": program_name,
-                "source": source,
-                "amount_applied": amount_applied,
-            })
+                    # Skip zero-amount quantities
+                    if abs(amount_applied) == 0:
+                        continue
+
+                    metadata_rows.append({
+                        "trigger": trigger,
+                        "final": final,
+                        "program_name": factor.description,
+                        "source": factor.source,
+                        "amount_applied": amount_applied,
+                        "factor_type": factor.__class__.__name__,
+                    })
 
     def _combine_quantities(
         self, all_quantities: list[pd.Series], features: pd.DataFrame

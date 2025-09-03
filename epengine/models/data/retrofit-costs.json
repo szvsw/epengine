@@ -1,9 +1,45 @@
 {
     "quantities": [
         {
-            "trigger_column": "SolarPV",
+            "trigger_column": "OnsiteSolar",
             "initial": "NoSolarPV",
-            "final": "SolarPV",
+            "final": "LowSolarPV",
+            "order": ["LinearQuantity"],
+            "quantity_factors": [
+                {
+                    "type": "LinearQuantity",
+                    "coefficient": 3040.0,
+                    "indicator_cols": ["feature.upgrade.solar_pv_kw"],
+                    "error_scale": 0.05,
+                    "units": "$/kW",
+                    "per": "solar PV capacity",
+                    "description": "PV installation cost per W ($3.04/W)",
+                    "source": "EnergySage"
+                }
+            ]
+        },
+        {
+            "trigger_column": "OnsiteSolar",
+            "initial": "NoSolarPV",
+            "final": "MedSolarPV",
+            "order": ["LinearQuantity"],
+            "quantity_factors": [
+                {
+                    "type": "LinearQuantity",
+                    "coefficient": 3040.0,
+                    "indicator_cols": ["feature.upgrade.solar_pv_kw"],
+                    "error_scale": 0.05,
+                    "units": "$/kW",
+                    "per": "solar PV capacity",
+                    "description": "PV installation cost per W ($3.04/W)",
+                    "source": "EnergySage"
+                }
+            ]
+        },
+        {
+            "trigger_column": "OnsiteSolar",
+            "initial": "NoSolarPV",
+            "final": "MaxSolarPV",
             "order": ["LinearQuantity"],
             "quantity_factors": [
                 {
@@ -1071,5 +1107,6 @@
     ],
     "output_key": "cost",
     "raise_on_duplicate_trigger": true,
-    "create_metadata": false
+    "create_metadata": false,
+    "metadata_aggregation": null
 }
