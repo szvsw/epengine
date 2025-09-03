@@ -374,7 +374,7 @@ class SBEMInferenceRequestSpec(BaseModel):
     county: str
 
     # Current solar system size in kW (0 if no solar)
-    current_solar_size_kw: float = Field(
+    current_solar_size_kW: float = Field(
         default=0.0, ge=0, description="Current solar system size in kW"
     )
 
@@ -1357,9 +1357,8 @@ class SBEMInferenceRequestSpec(BaseModel):
         # Start with existing features
         cost_features = features.copy()
 
-        # Compute heating capacity based on peak heating load
+        # MOve from W to kW
         peak_heating_per_m2 = peak_results["Heating"] * 1000
-        gross_peak_kw = peak_heating_per_m2 * self.actual_conditioned_area_m2
 
         # TODO: check if the regression uses heating capacity or electrical capacity
         # effective_cop = features["feature.factors.system.heat.effective_cop"]
@@ -1367,7 +1366,7 @@ class SBEMInferenceRequestSpec(BaseModel):
         # heating_capacity_kW = gross_peak_kw
 
         safety_factor = 1.2
-        raw_capacity_kw = gross_peak_kw * safety_factor
+        raw_capacity_kw = peak_heating_per_m2 * safety_factor
 
         # Map calculated capacity to nearest available equipment size (unless above max)
         available_sizes_kw = np.array([
@@ -1902,10 +1901,10 @@ class SBEMInferenceRequestSpec(BaseModel):
             else "NoSolarPV"
         )
 
-        if onsite_solar == "ExistingSolarPV" and self.current_solar_size_kw > 0:
+        if onsite_solar == "ExistingSolarPV" and self.current_solar_size_kW > 0:
             # Handle existing solar system using current_solar_size_kw
             current_solar_generation = self.calculate_solar_generation(
-                self.current_solar_size_kw,
+                self.current_solar_size_kW,
                 features,
             )
             current_solar_EUI = (
