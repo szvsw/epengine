@@ -1254,7 +1254,7 @@ class SBEMInferenceRequestSpec(BaseModel):
             clip_min=800,
             clip_max=1400,
         )
-        features["feature.solar.yield_kwh_per_kw_year"] = yield_sampler.sample(
+        features["feature.solar.yield_kWh_per_kW_year"] = yield_sampler.sample(
             features, len(features), self.generator
         )
         panel_power_density_sampler = ClippedNormalSampler(
@@ -1266,27 +1266,22 @@ class SBEMInferenceRequestSpec(BaseModel):
         features["feature.solar.panel_power_density_w_per_m2"] = (
             panel_power_density_sampler.sample(features, len(features), self.generator)
         )
-
         # Calculate upgraded solar coverage based on semantic field
-        onsite_solar = (
-            features["feature.semantic.OnsiteSolar"].iloc[0]
-            if "feature.semantic.OnsiteSolar" in features.columns
-            else "NoSolarPV"
+        features["feature.solar.upgraded_coverage"] = np.where(
+            features["feature.semantic.OnsiteSolar"] == "LowSolarPV",
+            0.25,
+            np.where(
+                features["feature.semantic.OnsiteSolar"] == "MedSolarPV",
+                0.50,
+                np.where(
+                    features["feature.semantic.OnsiteSolar"] == "MaxSolarPV",
+                    1.0,
+                    0.0,
+                ),
+            ),
         )
 
-        if onsite_solar == "LowSolarPV":
-            features["feature.solar.upgraded_coverage"] = 0.25
-        elif onsite_solar == "MedSolarPV":
-            features["feature.solar.upgraded_coverage"] = 0.50
-        elif onsite_solar == "MaxSolarPV":
-            # Will be calculated later when we have electricity consumption data
-            features["feature.solar.upgraded_coverage"] = 1.0  # Placeholder
-        else:
-            features["feature.solar.upgraded_coverage"] = 0.0
-
-        # Add solar upgrade capacity feature (for retrofit cost calculations)
-        # This will be populated based on the solar upgrade scenario
-        features["feature.upgrade.solar_pv_kw"] = 0.0
+        features["feature.upgrade.solar_pv_kW"] = 0.0
 
         return features
 
@@ -1294,17 +1289,34 @@ class SBEMInferenceRequestSpec(BaseModel):
         self, features: pd.DataFrame, electricity_consumption: pd.Series
     ) -> pd.DataFrame:
         """Update the MaxSolarPV coverage when electricity consumption data is available."""
-        onsite_solar = features["feature.semantic.OnsiteSolar"].iloc[0]
+        features = features.copy()
 
-        if onsite_solar == "MaxSolarPV":
+        # Set coverage values based on solar type
+        features["feature.solar.upgraded_coverage"] = np.where(
+            features["feature.semantic.OnsiteSolar"] == "MaxSolarPV",
+            features["feature.solar.upgraded_coverage"],
+            np.where(
+                features["feature.semantic.OnsiteSolar"] == "LowSolarPV",
+                0.25,
+                np.where(
+                    features["feature.semantic.OnsiteSolar"] == "MedSolarPV",
+                    0.50,
+                    0.0,
+                ),
+            ),
+        )
+
+        # Handle MaxSolarPV samples - calculate feasible coverage for each
+        max_solar_mask = features["feature.semantic.OnsiteSolar"] == "MaxSolarPV"
+        if max_solar_mask.any():
             max_feasible = self.calculate_feasible_solar_coverage(
-                features, electricity_consumption
+                features.loc[max_solar_mask],
+                electricity_consumption.loc[max_solar_mask],
             )
-            new_coverage = max_feasible.max()
-            features["feature.solar.upgraded_coverage"] = new_coverage
-
-        # For LowSolarPV and MedSolarPV, keep the existing coverage values (0.25 and 0.50)
-        # that were set in add_solar_features
+            # Use the maximum feasible coverage for each sample
+            features.loc[max_solar_mask, "feature.solar.upgraded_coverage"] = (
+                max_feasible
+            )
 
         return features
 
@@ -1366,10 +1378,10 @@ class SBEMInferenceRequestSpec(BaseModel):
         # heating_capacity_kW = gross_peak_kw
 
         safety_factor = 1.2
-        raw_capacity_kw = peak_heating_per_m2 * safety_factor
+        raw_capacity_kW = peak_heating_per_m2 * safety_factor
 
         # Map calculated capacity to nearest available equipment size (unless above max)
-        available_sizes_kw = np.array([
+        available_sizes_kW = np.array([
             5.3,
             7.0,
             8.8,
@@ -1384,14 +1396,14 @@ class SBEMInferenceRequestSpec(BaseModel):
         ])
 
         def map_to_available_size(v: float) -> float:
-            max_size = available_sizes_kw.max()
+            max_size = available_sizes_kW.max()
             if v > max_size:
                 return float(v)
             # round up to the smallest available size that is >= v
-            idx = int(np.searchsorted(available_sizes_kw, v, side="left"))
-            return float(available_sizes_kw[idx])
+            idx = int(np.searchsorted(available_sizes_kW, v, side="left"))
+            return float(available_sizes_kW[idx])
 
-        cost_features["feature.calculated.heating_capacity_kW"] = raw_capacity_kw.apply(
+        cost_features["feature.calculated.heating_capacity_kW"] = raw_capacity_kW.apply(
             map_to_available_size
         )
         COUNTIES = [
@@ -1469,11 +1481,11 @@ class SBEMInferenceRequestSpec(BaseModel):
                 features,
                 electricity_consumption,
             )
-            cost_features["feature.upgrade.solar_pv_kw"] = required_system_size
+            cost_features["feature.upgrade.solar_pv_kW"] = required_system_size
 
         else:
             # No solar upgrade, set to 0
-            cost_features["feature.upgrade.solar_pv_kw"] = 0.0
+            cost_features["feature.upgrade.solar_pv_kW"] = 0.0
 
         return cost_features
 
@@ -1617,9 +1629,9 @@ class SBEMInferenceRequestSpec(BaseModel):
             keys=["Heating", "Cooling", "Domestic Hot Water", "Lighting", "Equipment"],
         )[df_end_uses.columns]
 
-        # Ensure it's always a DataFrame, even if there's only one column - I added this for the pyright type checker
-        if isinstance(actual_electricity_consumption, pd.Series):
-            actual_electricity_consumption = actual_electricity_consumption.to_frame()
+        actual_electricity_consumption = cast(
+            pd.DataFrame, actual_electricity_consumption
+        )
 
         # Apply solar generation to get NET electricity consumption
         net_electricity_consumption = self.apply_solar_to_electricity_consumption(
@@ -1641,10 +1653,11 @@ class SBEMInferenceRequestSpec(BaseModel):
         self._actual_electricity_consumption = actual_electricity_consumption
 
         # Use net electricity consumption for the main fuel disaggregation
+
         df_disaggregated_fuels = pd.concat(
-            [net_electricity_consumption, gas, oil],
+            [actual_electricity_consumption, net_electricity_consumption, gas, oil],
             axis=1,
-            keys=["Electricity", "NaturalGas", "Oil"],
+            keys=["Electricity", "NetElectricity", "NaturalGas", "Oil"],
             names=["Fuel", "EndUse"],
         )
         return df_disaggregated_fuels
@@ -1670,13 +1683,14 @@ class SBEMInferenceRequestSpec(BaseModel):
         oil_rate = df_features["feature.fuels.price.Oil"]
 
         elec_costs = df_disaggregated_fuels["Electricity"].mul(elec_rate, axis=0)
+        net_elec_costs = df_disaggregated_fuels["NetElectricity"].mul(elec_rate, axis=0)
         gas_costs = df_disaggregated_fuels["NaturalGas"].mul(gas_rate, axis=0)
         oil_costs = df_disaggregated_fuels["Oil"].mul(oil_rate, axis=0)
 
         disaggregated_costs = pd.concat(
-            [elec_costs, gas_costs, oil_costs],
+            [elec_costs, net_elec_costs, gas_costs, oil_costs],
             axis=1,
-            keys=["Electricity", "NaturalGas", "Oil"],
+            keys=["Electricity", "NetElectricity", "NaturalGas", "Oil"],
             names=["Fuel", "EndUse"],
         )
         end_use_costs = disaggregated_costs.T.groupby(level=["EndUse"]).sum().T
@@ -1704,15 +1718,18 @@ class SBEMInferenceRequestSpec(BaseModel):
         elec_emissions = df_disaggregated_fuels["Electricity"].mul(
             elec_emissions_factors, axis=0
         )
+        net_elec_emissions = df_disaggregated_fuels["NetElectricity"].mul(
+            elec_emissions_factors, axis=0
+        )
         gas_emissions = df_disaggregated_fuels["NaturalGas"].mul(
             gas_emissions_factors, axis=0
         )
         oil_emissions = df_disaggregated_fuels["Oil"].mul(oil_emissions_factors, axis=0)
 
         disaggregated_emissions = pd.concat(
-            [elec_emissions, gas_emissions, oil_emissions],
+            [elec_emissions, net_elec_emissions, gas_emissions, oil_emissions],
             axis=1,
-            keys=["Electricity", "NaturalGas", "Oil"],
+            keys=["Electricity", "NetElectricity", "NaturalGas", "Oil"],
             names=["Fuel", "EndUse"],
         )
         end_use_emissions = disaggregated_emissions.T.groupby(level=["EndUse"]).sum().T
@@ -1801,19 +1818,19 @@ class SBEMInferenceRequestSpec(BaseModel):
         )
 
     def calculate_solar_generation(
-        self, system_size_kw: float | pd.Series, features: pd.DataFrame
+        self, system_size_kW: float | pd.Series, features: pd.DataFrame
     ) -> pd.Series:
         """Calculate annual solar generation for a given system size."""
         # Use the solar yield feature that was already generated
-        solar_yield_series = features["feature.solar.yield_kwh_per_kw_year"]
-
-        annual_generation = system_size_kw * solar_yield_series
+        solar_yield_series = features["feature.solar.yield_kWh_per_kW_year"]
+        # remove this function to be part of another function
+        annual_generation = system_size_kW * solar_yield_series
         return annual_generation
 
     def calculate_feasible_solar_coverage(
         self,
         features: pd.DataFrame,
-        actual_electricity_consumption: pd.Series | None = None,
+        actual_electricity_consumption: pd.Series,
     ) -> pd.Series:
         """Calculate the maximum feasible solar coverage based on roof area."""
         # Get roof surface area
@@ -1822,7 +1839,7 @@ class SBEMInferenceRequestSpec(BaseModel):
         # Solar panel assumptions
         # panel_efficiency = 0.22
         panel_power_density = features["feature.solar.panel_power_density_w_per_m2"]
-        max_roof_utilization = 0.50  # Only 80% of roof can be covered, assuming we have a fire safety boundary. This is a very high level estimate
+        max_roof_utilization = 0.50  # Only 50% of roof can be covered, assuming we have a fire safety boundary. This is a very high level estimate
         # TODO: Account for roof angle, orientation, and shading
 
         # Calculate maximum solar capacity possible
@@ -1838,16 +1855,12 @@ class SBEMInferenceRequestSpec(BaseModel):
             msg = "Max solar capacity is capped at 25 kW"
             logging.warning(msg)
         # Calculate annual generation at max capacity
-        max_annual_generation = self.calculate_solar_generation(
-            max_solar_capacity_kW, features
+        max_annual_generation = (
+            max_solar_capacity_kW * features["feature.solar.yield_kWh_per_kW_year"]
         )
         # Use actual electricity consumption if provided, otherwise use placeholder
-        if actual_electricity_consumption is not None:
-            total_electricity_kWh = actual_electricity_consumption
-        else:
-            msg = "No actual electricity consumption generated for feasible solar coverage calculation"
-            raise ValueError(msg)
 
+        total_electricity_kWh = actual_electricity_consumption
         # Calculate maximum feasible coverage
         max_coverage = max_annual_generation / np.maximum(total_electricity_kWh, 1)
         max_coverage = np.clip(max_coverage, 0, 1)
@@ -1865,7 +1878,6 @@ class SBEMInferenceRequestSpec(BaseModel):
         max_feasible_coverage = self.calculate_feasible_solar_coverage(
             features, total_electricity_consumption
         )
-
         # Check feasibility and cap if necessary
         # Cap each sample to its own maximum feasible coverage
         actual_coverage = np.minimum(target_coverage, max_feasible_coverage)
@@ -1880,11 +1892,11 @@ class SBEMInferenceRequestSpec(BaseModel):
         # Calculate required annual generation
         required_annual_generation = total_electricity_consumption * actual_coverage
         # Calculate required system size (using average yield of 1300 kWh/kW/year)
-        required_system_size_kw = (
-            required_annual_generation / features["feature.solar.yield_kwh_per_kw_year"]
+        required_system_size_kW = (
+            required_annual_generation / features["feature.solar.yield_kWh_per_kW_year"]
         )
 
-        return pd.Series(required_system_size_kw, index=features.index)
+        return pd.Series(required_system_size_kW, index=features.index)
 
     def apply_solar_to_electricity_consumption(
         self,
@@ -1894,55 +1906,100 @@ class SBEMInferenceRequestSpec(BaseModel):
         """Apply solar generation to electricity consumption to get net consumption."""
         net_consumption = electricity_consumption.copy()
 
-        # Get the OnsiteSolar semantic field value
-        onsite_solar = (
-            features["feature.semantic.OnsiteSolar"].iloc[0]
-            if "feature.semantic.OnsiteSolar" in features.columns
-            else "NoSolarPV"
+        # Get the OnsiteSolar semantic field value - vectorized approach
+        if "feature.semantic.OnsiteSolar" not in features.columns:
+            # No solar column, return original consumption
+            return net_consumption
+
+        onsite_solar = cast(pd.Series, features["feature.semantic.OnsiteSolar"])
+
+        # Calculate total electricity consumption per sample
+        total_electricity = np.where(
+            onsite_solar == "ExistingSolarPV",
+            electricity_consumption.sum(axis=1),
+            electricity_consumption.sum(axis=1) * self.actual_conditioned_area_m2,
         )
 
-        if onsite_solar == "ExistingSolarPV" and self.current_solar_size_kW > 0:
-            # Handle existing solar system using current_solar_size_kw
+        # Initialize solar offset array
+        solar_offset = pd.Series(0.0, index=features.index)
+
+        # Handle existing solar systems
+        existing_solar_mask = (onsite_solar == "ExistingSolarPV") & (
+            self.current_solar_size_kW > 0
+        )
+        if existing_solar_mask.any():
             current_solar_generation = self.calculate_solar_generation(
                 self.current_solar_size_kW,
-                features,
+                features.loc[existing_solar_mask],
             )
             current_solar_EUI = (
                 current_solar_generation / self.actual_conditioned_area_m2
             )
-            total_electricity = electricity_consumption.sum(axis=1)
-            solar_offset = current_solar_EUI.clip(upper=total_electricity)
+            existing_total_electricity = electricity_consumption.loc[
+                existing_solar_mask
+            ].sum(axis=1)
+            existing_solar_offset = current_solar_EUI.clip(
+                upper=existing_total_electricity
+            )
+            solar_offset.loc[existing_solar_mask] = existing_solar_offset
 
-            # Reduce each end use proportionally per row (vectorized)
-            reduction_factor = 1 - (solar_offset / total_electricity)
-            reduction_factor = reduction_factor.where(total_electricity > 0, 1.0)
-            net_consumption = electricity_consumption.mul(reduction_factor, axis=0)
-
-        elif onsite_solar in ["LowSolarPV", "MedSolarPV", "MaxSolarPV"]:
-            # Handle upgraded solar system
-            total_electricity = (
-                electricity_consumption.sum(axis=1) * self.actual_conditioned_area_m2
+        # Handle upgraded solar systems
+        upgraded_solar_mask = onsite_solar.isin([
+            "LowSolarPV",
+            "MedSolarPV",
+            "MaxSolarPV",
+        ])
+        if upgraded_solar_mask.any():
+            upgraded_features = features.loc[upgraded_solar_mask].copy()
+            upgraded_total_electricity = (
+                electricity_consumption.loc[upgraded_solar_mask].sum(axis=1)
+                * self.actual_conditioned_area_m2
             )
 
             # Update MaxSolarPV coverage if needed
-            features = self.update_max_solar_coverage(features, total_electricity)
-            target_coverage = features["feature.solar.upgraded_coverage"].iloc[0]
-
-            upgraded_system_size = self.calculate_upgraded_solar_system_size(
-                target_coverage,
-                features,
-                total_electricity,
+            upgraded_features = self.update_max_solar_coverage(
+                upgraded_features, upgraded_total_electricity
             )
+
+            # Calculate system size for each unique coverage value
+            unique_coverages = upgraded_features[
+                "feature.solar.upgraded_coverage"
+            ].unique()
+            upgraded_system_size = pd.Series(0.0, index=upgraded_features.index)
+
+            for coverage in unique_coverages:
+                coverage_mask = (
+                    upgraded_features["feature.solar.upgraded_coverage"] == coverage
+                )
+                if coverage_mask.any():
+                    coverage_features = upgraded_features.loc[coverage_mask]
+                    coverage_electricity = upgraded_total_electricity.loc[coverage_mask]
+
+                    system_size = self.calculate_upgraded_solar_system_size(
+                        coverage, coverage_features, coverage_electricity
+                    )
+                    upgraded_system_size.loc[coverage_mask] = system_size
+
             upgraded_solar_generation = self.calculate_solar_generation(
-                upgraded_system_size, features
+                upgraded_system_size, upgraded_features
             )
 
-            solar_offset = upgraded_solar_generation.clip(upper=total_electricity)
+            upgraded_solar_offset = upgraded_solar_generation.clip(
+                upper=upgraded_total_electricity
+            )
+            solar_offset.loc[upgraded_solar_mask] = upgraded_solar_offset
 
-            # Reduce each end use proportionally per row (vectorized)
-            reduction_factor = 1 - (solar_offset / total_electricity)
+        # Apply solar offset to all samples that have solar
+        solar_mask = (onsite_solar != "NoSolarPV") & (solar_offset > 0)
+        if solar_mask.any():
+            # Calculate reduction factor for each sample
+            reduction_factor = cast(pd.Series, 1 - (solar_offset / total_electricity))
             reduction_factor = reduction_factor.where(total_electricity > 0, 1.0)
-            net_consumption = electricity_consumption.mul(reduction_factor, axis=0)
+
+            # Apply reduction only to samples with solar
+            net_consumption.loc[solar_mask] = electricity_consumption.loc[
+                solar_mask
+            ].mul(reduction_factor.loc[solar_mask], axis=0)
 
         return net_consumption
 
