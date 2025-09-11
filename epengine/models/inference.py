@@ -1266,6 +1266,9 @@ class SBEMInferenceRequestSpec(BaseModel):
         features["feature.solar.panel_power_density_w_per_m2"] = (
             panel_power_density_sampler.sample(features, len(features), self.generator)
         )
+        # Set default value for OnsiteSolar if not provided
+        if "feature.semantic.OnsiteSolar" not in features.columns:
+            features["feature.semantic.OnsiteSolar"] = "NoSolarPV"
         # Calculate upgraded solar coverage based on semantic field
         features["feature.solar.upgraded_coverage"] = np.where(
             features["feature.semantic.OnsiteSolar"] == "LowSolarPV",
@@ -1943,7 +1946,6 @@ class SBEMInferenceRequestSpec(BaseModel):
             )
             solar_offset.loc[existing_solar_mask] = existing_solar_offset
 
-        # Handle upgraded solar systems
         upgraded_solar_mask = onsite_solar.isin([
             "LowSolarPV",
             "MedSolarPV",
@@ -1956,12 +1958,12 @@ class SBEMInferenceRequestSpec(BaseModel):
                 * self.actual_conditioned_area_m2
             )
 
-            # Update MaxSolarPV coverage if needed
+            # Update MaxSolarPV coverage if we need to and can't reach 100%
             upgraded_features = self.update_max_solar_coverage(
                 upgraded_features, upgraded_total_electricity
             )
 
-            # Calculate system size for each unique coverage value
+            # Calculate systm size for each covg value
             unique_coverages = upgraded_features[
                 "feature.solar.upgraded_coverage"
             ].unique()
@@ -1988,15 +1990,11 @@ class SBEMInferenceRequestSpec(BaseModel):
                 upper=upgraded_total_electricity
             )
             solar_offset.loc[upgraded_solar_mask] = upgraded_solar_offset
-
-        # Apply solar offset to all samples that have solar
         solar_mask = (onsite_solar != "NoSolarPV") & (solar_offset > 0)
         if solar_mask.any():
             # Calculate reduction factor for each sample
             reduction_factor = cast(pd.Series, 1 - (solar_offset / total_electricity))
             reduction_factor = reduction_factor.where(total_electricity > 0, 1.0)
-
-            # Apply reduction only to samples with solar
             net_consumption.loc[solar_mask] = electricity_consumption.loc[
                 solar_mask
             ].mul(reduction_factor.loc[solar_mask], axis=0)
