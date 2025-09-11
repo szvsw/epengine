@@ -9,7 +9,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 3040.0,
-                    "indicator_cols": ["feature.upgrade.solar_pv_kw"],
+                    "indicator_cols": ["feature.upgrade.solar_pv_kW"],
                     "error_scale": 0.05,
                     "units": "$/kW",
                     "per": "solar PV capacity",
@@ -27,7 +27,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 3040.0,
-                    "indicator_cols": ["feature.upgrade.solar_pv_kw"],
+                    "indicator_cols": ["feature.upgrade.solar_pv_kW"],
                     "error_scale": 0.05,
                     "units": "$/kW",
                     "per": "solar PV capacity",
@@ -45,7 +45,7 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 3040.0,
-                    "indicator_cols": ["feature.upgrade.solar_pv_kw"],
+                    "indicator_cols": ["feature.upgrade.solar_pv_kW"],
                     "error_scale": 0.05,
                     "units": "$/kW",
                     "per": "solar PV capacity",
@@ -183,7 +183,7 @@
         {
             "trigger_column": "RoofInsulation",
             "initial": "UninsulatedRoof",
-            "final": "HighlyInsulatedRoof",
+            "final": "InsulatedRoof",
             "order": ["LinearQuantity"],
             "quantity_factors": [
                 {
@@ -216,6 +216,7 @@
                 }
             ]
         },
+
         {
             "trigger_column": "Walls",
             "initial": "UninsulatedWalls",
@@ -225,6 +226,41 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 7.21,
+                    "indicator_cols": [
+                        "feature.geometry.computed.whole_bldg_facade_area",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
+                    "per": "facade area",
+                    "description": "",
+                    "source": ""
+                },
+                {
+                    "type": "LinearQuantity",
+                    "coefficient": 30.76,
+                    "indicator_cols": [
+                        "feature.geometry.computed.total_linear_facade_distance",
+                        "feature.geometry.est_uniform_linear_scaling_factor"
+                    ],
+                    "error_scale": 0.05,
+                    "units": "$/m",
+                    "per": "total linear facade distance",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+
+        {
+            "trigger_column": "Walls",
+            "initial": "UninsulatedWalls",
+            "final": "SIP",
+            "order": ["LinearQuantity"],
+            "quantity_factors": [
+                {
+                    "type": "LinearQuantity",
+                    "coefficient": 9.21,
                     "indicator_cols": [
                         "feature.geometry.computed.whole_bldg_facade_area",
                         "feature.geometry.est_uniform_linear_scaling_factor"
@@ -398,6 +434,48 @@
             "trigger_column": "AtticFloorInsulation",
             "initial": "Insulated",
             "final": "HighlyInsulated",
+            "order": ["LinearQuantity"],
+            "quantity_factors": [
+                {
+                    "type": "LinearQuantity",
+                    "coefficient": 9.58,
+                    "indicator_cols": [
+                        "feature.geometry.computed.footprint_area",
+                        "feature.geometry.est_fp_ratio"
+                    ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
+                    "per": "footprint area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "trigger_column": "AtticFloorInsulation",
+            "initial": "NoInsulation",
+            "final": "HighlyInsulated",
+            "order": ["LinearQuantity"],
+            "quantity_factors": [
+                {
+                    "type": "LinearQuantity",
+                    "coefficient": 16.58,
+                    "indicator_cols": [
+                        "feature.geometry.computed.footprint_area",
+                        "feature.geometry.est_fp_ratio"
+                    ],
+                    "error_scale": 0.05,
+                    "units": "$/m2",
+                    "per": "footprint area",
+                    "description": "",
+                    "source": ""
+                }
+            ]
+        },
+        {
+            "trigger_column": "AtticFloorInsulation",
+            "initial": "NoInsulation",
+            "final": "Insulated",
             "order": ["LinearQuantity"],
             "quantity_factors": [
                 {
@@ -796,7 +874,7 @@
                 },
                 {
                     "type": "LinearQuantity",
-                    "coefficient": 2.996,
+                    "coefficient": 3.496,
                     "indicator_cols": [
                         "feature.geometry.energy_model_conditioned_area"
                     ],
@@ -808,7 +886,7 @@
                 },
                 {
                     "type": "LinearQuantity",
-                    "coefficient": 303,
+                    "coefficient": 350,
                     "indicator_cols": [
                         "feature.calculated.heating_capacity_kW"
                     ],
