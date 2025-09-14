@@ -78,7 +78,7 @@ DATASETS = (
     "FuelCost",
     "FuelEmissions",
 )
-NORMALIZATIONS = ("Normalized", "Gross", "Net")
+NORMALIZATIONS = ("Normalized", "Gross")
 
 DATASET_SEGMENT_MAP = {
     "Raw": END_USES,
