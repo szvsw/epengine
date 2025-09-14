@@ -2011,7 +2011,7 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
     original: SBEMInferenceRequestSpec
     upgraded_semantic_field_context: dict[str, float | str | int]
 
-    def run(
+    def run(  # noqa: C901
         self, n: int = 10000
     ) -> dict[
         str,
