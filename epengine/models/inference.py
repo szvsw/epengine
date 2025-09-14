@@ -205,6 +205,8 @@ class SBEMRetrofitDistributions:
                     .describe(percentiles=list(PERCENTILES.keys()))
                     .drop(["count"])
                 )
+                # Apply the same percentile mapper to rename the index
+                col_summary.rename(index=percentile_mapper, inplace=True)
                 field_data = col_summary.to_dict()
             if not col.startswith(("cost.", "incentive.", "net_cost.", "payback.")):
                 msg = f"Column {col} is not a cost, incentive, net cost, or payback column"
