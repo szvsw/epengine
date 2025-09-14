@@ -197,6 +197,9 @@ class SBEMRetrofitDistributions:
                 field_data = self.costs_summary.loc[:, col].to_dict()
             else:
                 # If column not in summary, create a summary
+                # Skip non-numerical columns (like metadata columns)
+                if not pd.api.types.is_numeric_dtype(self.costs[col]):
+                    continue
                 col_summary = (
                     self.costs[col]
                     .describe(percentiles=list(PERCENTILES.keys()))
@@ -2008,7 +2011,7 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
     original: SBEMInferenceRequestSpec
     upgraded_semantic_field_context: dict[str, float | str | int]
 
-    def run(
+    def run(  # noqa: C901
         self, n: int = 10000
     ) -> dict[
         str,
@@ -2161,7 +2164,25 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         )
 
         def summarize(data: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
-            return data.describe(percentiles=list(PERCENTILES.keys())).drop(["count"])
+            # Filter out non-numerical columns (like metadata columns) before summarizing
+            if isinstance(data, pd.DataFrame):
+                # Only include columns that are numeric or can be converted to numeric
+                numeric_data = data.select_dtypes(include=[np.number])
+                if numeric_data.empty:
+                    # If no numeric columns, return empty summary
+                    return pd.DataFrame()
+                return numeric_data.describe(percentiles=list(PERCENTILES.keys())).drop([
+                    "count"
+                ])
+            else:
+                # For Series, check if it's numeric
+                if pd.api.types.is_numeric_dtype(data):
+                    return data.describe(percentiles=list(PERCENTILES.keys())).drop([
+                        "count"
+                    ])
+                else:
+                    # Return empty Series if not numeric
+                    return pd.Series(dtype=float)
 
         # Create summary statistics for the entire costs data (includes costs, incentives, net costs, paybacks)
         all_costs_summary = summarize(all_costs_data)
