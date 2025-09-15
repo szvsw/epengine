@@ -3040,7 +3040,14 @@ class RetrofitQuantities(BaseModel, frozen=True):
                 if detailed_cols:
                     quantities_df[flat_col] = quantities_df[detailed_cols].sum(axis=1)
 
-            total = quantities_df.sum(axis=1).rename(f"{self.output_key}.Total")
+            flat_cols_only = [
+                col for col in quantities_df.columns if col.count(".") == 1
+            ]
+            total = (
+                quantities_df[flat_cols_only]
+                .sum(axis=1)
+                .rename(f"{self.output_key}.Total")
+            )
             data = pd.concat([quantities_df, total], axis=1)
         else:
             data = pd.DataFrame({f"{self.output_key}.Total": [0] * len(features)})
