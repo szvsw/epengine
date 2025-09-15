@@ -184,8 +184,10 @@ class SBEMRetrofitDistributions:
         field_specs = {}
         field_datas = {}
         percentile_mapper = {v[1]: v[0] for v in PERCENTILES.values()}
-        self.costs_summary.rename(index=percentile_mapper, inplace=True)
-        self.paybacks_summary.rename(index=percentile_mapper, inplace=True)
+
+        # Create copies of summary dataframes with percentile mapper applied
+        costs_summary_renamed = self.costs_summary.rename(index=percentile_mapper)
+        # paybacks_summary_renamed = self.paybacks_summary.rename(index=percentile_mapper)
 
         # Process all columns in the costs dataframe
         for col in self.costs.columns:
@@ -193,8 +195,8 @@ class SBEMRetrofitDistributions:
             field_specs[col_name] = (SummarySpec, Field(title=col))
 
             # Get summary data for this column
-            if col in self.costs_summary.columns:
-                field_data = self.costs_summary.loc[:, col].to_dict()
+            if col in costs_summary_renamed.columns:
+                field_data = costs_summary_renamed.loc[:, col].to_dict()
             else:
                 # If column not in summary, create a summary
                 # Skip non-numerical columns (like metadata columns)
@@ -206,8 +208,9 @@ class SBEMRetrofitDistributions:
                     .drop(["count"])
                 )
                 # Apply the same percentile mapper to rename the index
-                col_summary.rename(index=percentile_mapper, inplace=True)
-                field_data = col_summary.to_dict()
+                col_summary_renamed = col_summary.rename(index=percentile_mapper)
+                field_data = col_summary_renamed.to_dict()
+
             if not col.startswith(("cost.", "incentive.", "net_cost.", "payback.")):
                 msg = f"Column {col} is not a cost, incentive, net cost, or payback column"
                 raise ValueError(msg)
@@ -2146,24 +2149,59 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
                 net_costs_df, delta_results, f"net_cost.Total.{bracket}"
             )
 
-        # Add paybacks with bracket suffixes to the main DataFrame
-        paybacks_with_suffixes = {}
-        for bracket, payback_series in paybacks_by_bracket.items():
-            paybacks_with_suffixes[f"payback.{bracket}"] = payback_series
+        # Create separate cost data for each bracket with only the relevant incentive/net_cost and payback columns
+        def create_bracket_costs_data(bracket: str | None = None) -> pd.DataFrame:
+            """Create cost data for a specific bracket with only its relevant incentive, net_cost, and payback columns.
 
-        # Add the no-incentives payback
-        paybacks_with_suffixes["payback.NoIncentives"] = payback_no_incentives
+            - For retrofit (no incentives): include only cost.* and a single payback column
+            - For a bracket: include cost.*, that bracket's incentive.* and net_cost.* columns (suffix stripped), and a single payback column
+            """
+            if bracket is None:
+                # No incentives view: costs + payback only
+                payback_df = pd.DataFrame({"payback": payback_no_incentives})
+                return pd.concat(
+                    [
+                        retrofit_costs,
+                        payback_df,
+                    ],
+                    axis=1,
+                )
 
-        # Combine all cost and incentive data
-        all_costs_data = pd.concat(
-            [
-                retrofit_costs,
-                *incentives_by_bracket.values(),
-                *net_costs_by_bracket.values(),
-                pd.DataFrame(paybacks_with_suffixes),
-            ],
-            axis=1,
-        )
+            # Bracket-specific view
+            incentives_df = incentives_by_bracket[bracket].copy()
+            net_costs_df = net_costs_by_bracket[bracket].copy()
+
+            # Strip the bracket suffix from incentive columns, including metadata
+            incentive_rename: dict[str, str] = {}
+            suffix = f".{bracket}"
+            for col in list(incentives_df.columns):
+                if col.startswith("incentive.") and col.endswith(suffix):
+                    incentive_rename[col] = col[: -len(suffix)]
+            if incentive_rename:
+                incentives_df = incentives_df.rename(columns=incentive_rename)
+
+            # Strip the bracket suffix from net_cost columns
+            net_cost_rename: dict[str, str] = {}
+            for col in list(net_costs_df.columns):
+                if col.startswith("net_cost.") and col.endswith(suffix):
+                    net_cost_rename[col] = col[: -len(suffix)]
+            if net_cost_rename:
+                net_costs_df = net_costs_df.rename(columns=net_cost_rename)
+
+            payback_df = pd.DataFrame({"payback": paybacks_by_bracket[bracket]})
+
+            return pd.concat(
+                [
+                    retrofit_costs,
+                    incentives_df,
+                    net_costs_df,
+                    payback_df,
+                ],
+                axis=1,
+            )
+
+        # Create the main costs data (for retrofit without incentives)
+        all_costs_data = create_bracket_costs_data()
 
         def summarize(data: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
             # Filter out non-numerical columns (like metadata columns) before summarizing
@@ -2173,15 +2211,21 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
                 if numeric_data.empty:
                     # If no numeric columns, return empty summary
                     return pd.DataFrame()
-                return numeric_data.describe(percentiles=list(PERCENTILES.keys())).drop([
-                    "count"
-                ])
+                summary = numeric_data.describe(
+                    percentiles=list(PERCENTILES.keys())
+                ).drop(["count"])
+                # Apply percentile mapper to rename the index
+                percentile_mapper = {v[1]: v[0] for v in PERCENTILES.values()}
+                return summary.rename(index=percentile_mapper)
             else:
                 # For Series, check if it's numeric
                 if pd.api.types.is_numeric_dtype(data):
-                    return data.describe(percentiles=list(PERCENTILES.keys())).drop([
+                    summary = data.describe(percentiles=list(PERCENTILES.keys())).drop([
                         "count"
                     ])
+                    # Apply percentile mapper to rename the index
+                    percentile_mapper = {v[1]: v[0] for v in PERCENTILES.values()}
+                    return summary.rename(index=percentile_mapper)
                 else:
                     # Return empty Series if not numeric
                     return pd.Series(dtype=float)
@@ -2198,33 +2242,28 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
 
         payback_no_incentives_summary = summarize(payback_no_incentives)
 
-        # Create a DataFrame with all paybacks
-        all_paybacks_df = pd.DataFrame(paybacks_with_suffixes)
-
-        # Create summary DataFrame for all paybacks
-        all_paybacks_summary_df = pd.DataFrame({
-            "payback.NoIncentives": payback_no_incentives_summary,
-            **{
-                f"payback.{bracket}": payback_summaries[bracket]
-                for bracket in payback_summaries
-            },
-        })
-
-        # Create cost results for each bracket
+        # Create cost results for retrofit (no incentives)
         cost_results = SBEMRetrofitDistributions(
             costs=all_costs_data,
-            paybacks=all_paybacks_df,
+            paybacks=pd.DataFrame({"payback": payback_no_incentives}),
             costs_summary=cast(pd.DataFrame, all_costs_summary),
-            paybacks_summary=cast(pd.DataFrame, all_paybacks_summary_df),
+            paybacks_summary=cast(
+                pd.DataFrame, pd.DataFrame({"payback": payback_no_incentives_summary})
+            ),
         )
 
+        # Create cost results for each bracket
         cost_results_by_bracket = {}
         for bracket in incentives_by_bracket:
+            bracket_costs_data = create_bracket_costs_data(bracket)
+            bracket_costs_summary = summarize(bracket_costs_data)
             cost_results_by_bracket[bracket] = SBEMRetrofitDistributions(
-                costs=all_costs_data,
-                paybacks=all_paybacks_df,
-                costs_summary=cast(pd.DataFrame, net_costs_summaries[bracket]),
-                paybacks_summary=cast(pd.DataFrame, all_paybacks_summary_df),
+                costs=bracket_costs_data,
+                paybacks=pd.DataFrame({"payback": paybacks_by_bracket[bracket]}),
+                costs_summary=cast(pd.DataFrame, bracket_costs_summary),
+                paybacks_summary=cast(
+                    pd.DataFrame, pd.DataFrame({"payback": payback_summaries[bracket]})
+                ),
             )
 
         # Build return dictionary
