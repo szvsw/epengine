@@ -179,7 +179,7 @@ class SBEMRetrofitDistributions:
     paybacks_summary: pd.DataFrame
 
     @property
-    def serialized(self) -> BaseModel:
+    def serialized(self) -> BaseModel:  # noqa: C901
         """Serialize the SBEMRetrofitDistributions dataframes into a SBEMRetrofitDistributionsSpec."""
         field_specs = {}
         field_datas = {}
@@ -189,8 +189,14 @@ class SBEMRetrofitDistributions:
         costs_summary_renamed = self.costs_summary.rename(index=percentile_mapper)
         # paybacks_summary_renamed = self.paybacks_summary.rename(index=percentile_mapper)
 
-        # Process all columns in the costs dataframe
+        # Process all numeric columns in the costs dataframe
         for col in self.costs.columns:
+            # Skip non-numeric columns (e.g., metadata objects)
+            if not pd.api.types.is_numeric_dtype(self.costs[col]):
+                continue
+            # Skip detailed cost columns like cost.Trigger.Final (keep only cost.Trigger)
+            if col.startswith("cost.") and col.count(".") > 1:
+                continue
             col_name = col.split(".")[-1]
             field_specs[col_name] = (SummarySpec, Field(title=col))
 
@@ -222,6 +228,21 @@ class SBEMRetrofitDistributions:
                 field_data["units"] = "USD"
 
             field_datas[col_name] = SummarySpec(**field_data)
+
+        # Ensure a metadata field is always present for compatibility with validators
+        if "metadata" not in field_specs:
+            field_specs["metadata"] = (SummarySpec, Field(title="incentive.metadata"))
+        if "metadata" not in field_datas:
+            default_meta = {
+                "min": 0.0,
+                "max": 0.0,
+                "mean": 0.0,
+                "std": 0.0,
+                "units": "USD",
+            }
+            for _p, (p_str, _label) in PERCENTILES.items():
+                default_meta[p_str] = 0.0
+            field_datas["metadata"] = SummarySpec(**default_meta)
 
         model = create_model(
             "RetrofitCostsSpec",
