@@ -211,12 +211,12 @@ class SBEMRetrofitDistributions:
                 col_summary_renamed = col_summary.rename(index=percentile_mapper)
                 field_data = col_summary_renamed.to_dict()
 
-            if not col.startswith(("cost.", "incentive.", "net_cost.", "payback.")):
+            if not col.startswith(("cost.", "incentive.", "net_cost.", "payback")):
                 msg = f"Column {col} is not a cost, incentive, net cost, or payback column"
                 raise ValueError(msg)
 
             # Set units based on column type
-            if col.startswith("payback."):
+            if col.startswith("payback"):
                 field_data["units"] = "years"
             else:
                 field_data["units"] = "USD"
