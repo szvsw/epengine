@@ -3022,6 +3022,24 @@ class RetrofitQuantities(BaseModel, frozen=True):
             quantities_df = pd.DataFrame()
 
         if not quantities_df.empty:
+            # Create flat columns by aggregating detailed columns for each trigger
+            flat_columns = {}
+            for col in quantities_df.columns:
+                if col.startswith(f"{self.output_key}.") and col.count(".") == 2:
+                    # This is a detailed column like cost.Heating.ASHPHeating
+                    parts = col.split(".")
+                    if len(parts) == 3:
+                        trigger = parts[1]  # e.g., "Heating"
+                        flat_col = f"{self.output_key}.{trigger}"
+                        if flat_col not in flat_columns:
+                            flat_columns[flat_col] = []
+                        flat_columns[flat_col].append(col)
+
+            # Sum up detailed columns to create flat columns
+            for flat_col, detailed_cols in flat_columns.items():
+                if detailed_cols:
+                    quantities_df[flat_col] = quantities_df[detailed_cols].sum(axis=1)
+
             total = quantities_df.sum(axis=1).rename(f"{self.output_key}.Total")
             data = pd.concat([quantities_df, total], axis=1)
         else:
