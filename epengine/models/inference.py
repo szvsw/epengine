@@ -2149,22 +2149,53 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
                 net_costs_df, delta_results, f"net_cost.Total.{bracket}"
             )
 
-        # Create separate cost data for each bracket with only the relevant payback column
+        # Create separate cost data for each bracket with only the relevant incentive/net_cost and payback columns
         def create_bracket_costs_data(bracket: str | None = None) -> pd.DataFrame:
-            """Create cost data for a specific bracket with only its relevant payback column."""
+            """Create cost data for a specific bracket with only its relevant incentive, net_cost, and payback columns.
+
+            - For retrofit (no incentives): include only cost.* and a single payback column
+            - For a bracket: include cost.*, that bracket's incentive.* and net_cost.* columns (suffix stripped), and a single payback column
+            """
             if bracket is None:
-                # For retrofit (no incentives) - use NoIncentives payback
-                payback_data = {"payback": payback_no_incentives}
-            else:
-                # For bracket-specific data - use that bracket's payback
-                payback_data = {"payback": paybacks_by_bracket[bracket]}
+                # No incentives view: costs + payback only
+                payback_df = pd.DataFrame({"payback": payback_no_incentives})
+                return pd.concat(
+                    [
+                        retrofit_costs,
+                        payback_df,
+                    ],
+                    axis=1,
+                )
+
+            # Bracket-specific view
+            incentives_df = incentives_by_bracket[bracket].copy()
+            net_costs_df = net_costs_by_bracket[bracket].copy()
+
+            # Strip the bracket suffix from incentive columns, including metadata
+            incentive_rename: dict[str, str] = {}
+            suffix = f".{bracket}"
+            for col in list(incentives_df.columns):
+                if col.startswith("incentive.") and col.endswith(suffix):
+                    incentive_rename[col] = col[: -len(suffix)]
+            if incentive_rename:
+                incentives_df = incentives_df.rename(columns=incentive_rename)
+
+            # Strip the bracket suffix from net_cost columns
+            net_cost_rename: dict[str, str] = {}
+            for col in list(net_costs_df.columns):
+                if col.startswith("net_cost.") and col.endswith(suffix):
+                    net_cost_rename[col] = col[: -len(suffix)]
+            if net_cost_rename:
+                net_costs_df = net_costs_df.rename(columns=net_cost_rename)
+
+            payback_df = pd.DataFrame({"payback": paybacks_by_bracket[bracket]})
 
             return pd.concat(
                 [
                     retrofit_costs,
-                    *incentives_by_bracket.values(),
-                    *net_costs_by_bracket.values(),
-                    pd.DataFrame(payback_data),
+                    incentives_df,
+                    net_costs_df,
+                    payback_df,
                 ],
                 axis=1,
             )
