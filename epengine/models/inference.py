@@ -68,7 +68,10 @@ INCOME_BRACKETS = [
     "IncomeEligible",
     "AllCustomers",
 ]
-FUELS = ("Oil", "NaturalGas", "Electricity")
+FUELS = ("Oil", "NaturalGas", "Electricity", "NetElectricity")
+# Note: NetElectricity represents electricity consumption after solar generation is applied.
+# It is used in cost calculations to avoid double-counting when both raw Electricity
+# and NetElectricity are present in the fuel disaggregation.
 DATASETS = (
     "Raw",
     "EndUse",
@@ -1825,7 +1828,49 @@ class SBEMInferenceRequestSpec(BaseModel):
             keys=["Normalized", "Gross"],
             names=["Normalization"],
         )
-        total = disaggregated.T.groupby(level=["Dataset"]).sum().T
+        # Compute totals per dataset, avoiding double-counting for FuelCost
+        datasets_for_totals = [
+            "Raw",
+            "EndUse",
+            "Fuel",
+            "EndUseCost",
+            "EndUseEmissions",
+            "FuelCost",
+            "FuelEmissions",
+        ]
+
+        total_parts: list[pd.Series] = []
+        total_keys: list[str] = []
+
+        for dataset in datasets_for_totals:
+            if dataset == "FuelCost":
+                # Sum only NetElectricity + NaturalGas + Oil to avoid double-counting Electricity
+                if "FuelCost" in disaggregated.columns.get_level_values("Dataset"):
+                    fc = disaggregated.loc[:, ("FuelCost", slice(None))]
+                    # keep only the relevant fuels if present
+                    fuels = [
+                        c
+                        for c in fc.columns.get_level_values("Segment")
+                        if c in ("NetElectricity", "NaturalGas", "Oil")
+                    ]
+                    if fuels:
+                        s = fc.loc[:, (slice(None), fuels)].sum(axis=1)
+                    else:
+                        s = pd.Series(0.0, index=disaggregated.index)
+                else:
+                    s = pd.Series(0.0, index=disaggregated.index)
+            else:
+                # Default behavior: sum all segments for the dataset
+                if dataset in disaggregated.columns.get_level_values("Dataset"):
+                    s = disaggregated.xs(dataset, level="Dataset", axis=1).sum(axis=1)
+                else:
+                    s = pd.Series(0.0, index=disaggregated.index)
+
+            total_parts.append(s)
+            total_keys.append(dataset)
+
+        total = pd.concat(total_parts, axis=1)
+        total.columns = pd.Index(total_keys, name="Dataset")
 
         total_gross = total * self.actual_conditioned_area_m2
         totals = pd.concat(
