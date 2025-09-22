@@ -37,7 +37,9 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from shapely import Point
+from pydantic.fields import FieldInfo
+from shapely import Point, Polygon
+from shapely import wkt as shapely_wkt
 
 from epengine.gis.data.epw_metadata import closest_epw
 from epengine.models.sampling import (
@@ -68,7 +70,10 @@ INCOME_BRACKETS = [
     "IncomeEligible",
     "AllCustomers",
 ]
-FUELS = ("Oil", "NaturalGas", "Electricity")
+FUELS = ("Oil", "NaturalGas", "Electricity", "NetElectricity")
+# Note: NetElectricity represents electricity consumption after solar generation is applied.
+# It is used in cost calculations to avoid double-counting when both raw Electricity
+# and NetElectricity are present in the fuel disaggregation.
 DATASETS = (
     "Raw",
     "EndUse",
@@ -122,6 +127,8 @@ class SBEMDistributions:
     totals: pd.DataFrame
     disaggregations_summary: pd.DataFrame
     totals_summary: pd.DataFrame
+    # Optional: WKT vertices for bottom-floor house corners
+    vertices_wkt: list[str] | None = None
 
     @property
     def serialized(self) -> BaseModel:
@@ -163,9 +170,47 @@ class SBEMDistributions:
             total_dict_data[normalization] = normalization_data
         totals_dict = TotalsSpec.model_validate(total_dict_data)
 
+        # Geometry serialization
+        geometry_scalars_map = {
+            "short_edge": ("feature.geometry.short_edge", "m"),
+            "long_edge": ("feature.geometry.long_edge", "m"),
+            "perimeter": ("feature.geometry.computed.perimeter", "m"),
+            "f2f_height": ("feature.geometry.f2f_height", "m"),
+            "footprint_area": ("feature.geometry.computed.footprint_area", "m2"),
+        }
+        geometry_scalars_data: dict[str, SummarySpecBase] = {}
+        geometry_scalars_fields: dict[str, tuple[type[SummarySpecBase], FieldInfo]] = {}
+        for field_name, (feature_col, units) in geometry_scalars_map.items():
+            if feature_col in self.features.columns:
+                series = self.features[feature_col]
+                summary = (
+                    series.describe(percentiles=list(PERCENTILES.keys())).drop([
+                        "count"
+                    ])  # type: ignore[reportCallIssue]
+                )
+                summary_renamed = summary.rename(index=percentile_mapper).to_dict()
+                summary_renamed["units"] = units
+                geometry_scalars_fields[field_name] = (
+                    SummarySpec,
+                    Field(title=feature_col),
+                )
+                geometry_scalars_data[field_name] = SummarySpec(**summary_renamed)
+        # Prepare simple dicts for GeometrySpec
+        vertices_values: dict[str, str] = {}
+        if self.vertices_wkt is not None and len(self.vertices_wkt) >= 4:
+            for i in range(4):
+                key = f"Corner{i + 1}"
+                vertices_values[key] = self.vertices_wkt[i]
+
+        geometry_dict = GeometrySpec.model_validate({
+            "Scalars": geometry_scalars_data,
+            "Vertices": vertices_values,
+        })
+
         return SBEMInferenceResponseSpec(
             Disaggregation=disagg_dict,
             Total=totals_dict,
+            Geometry=geometry_dict,
         )
 
 
@@ -335,13 +380,16 @@ def create_totals_spec(TotalSpec: type[BaseModel]):
 
 
 def create_sbem_inference_response_spec(
-    DisaggregationsSpec: type[BaseModel], TotalsSpec: type[BaseModel]
+    DisaggregationsSpec: type[BaseModel],
+    TotalsSpec: type[BaseModel],
+    GeometrySpec: type[BaseModel],
 ):
     """Create a sbem inference response spec with the disaggregations and totals as fields."""
     return create_model(
         "SBEMInferenceResponseSpec",
         Disaggregation=(DisaggregationsSpec, Field(title="Disaggregation")),
         Total=(TotalsSpec, Field(title="Total")),
+        Geometry=(GeometrySpec, Field(title="Geometry")),
         __config__=ConfigDict(extra="forbid"),
     )
 
@@ -368,8 +416,22 @@ DisaggregationSpec = create_disaggregation_spec(
 DisaggregationsSpec = create_disaggregations_spec(DisaggregationSpec)
 TotalSpec = create_total_spec(SummarySpec)
 TotalsSpec = create_totals_spec(TotalSpec)
+
+
+def create_geometry_spec():
+    """Create GeometrySpec. Scalars is a mapping of name->SummarySpec; Vertices is a mapping of name->WKT string."""
+    return create_model(
+        "GeometrySpec",
+        Scalars=(dict[str, SummarySpec], Field(title="Scalars")),
+        Vertices=(dict[str, str], Field(title="Vertices")),
+        __config__=ConfigDict(extra="forbid"),
+    )
+
+
+GeometrySpec = create_geometry_spec()
+
 SBEMInferenceResponseSpec = create_sbem_inference_response_spec(
-    DisaggregationsSpec, TotalsSpec
+    DisaggregationsSpec, TotalsSpec, GeometrySpec
 )
 SBEMInferenceSavingsResponseSpec = create_sbem_inference_savings_response_spec(
     SBEMInferenceResponseSpec
@@ -1825,7 +1887,49 @@ class SBEMInferenceRequestSpec(BaseModel):
             keys=["Normalized", "Gross"],
             names=["Normalization"],
         )
-        total = disaggregated.T.groupby(level=["Dataset"]).sum().T
+        # Compute totals per dataset, avoiding double-counting for FuelCost
+        datasets_for_totals = [
+            "Raw",
+            "EndUse",
+            "Fuel",
+            "EndUseCost",
+            "EndUseEmissions",
+            "FuelCost",
+            "FuelEmissions",
+        ]
+
+        total_parts: list[pd.Series] = []
+        total_keys: list[str] = []
+
+        for dataset in datasets_for_totals:
+            if dataset == "FuelCost":
+                # Sum only NetElectricity + NaturalGas + Oil to avoid double-counting Electricity
+                if "FuelCost" in disaggregated.columns.get_level_values("Dataset"):
+                    fc = disaggregated.loc[:, ("FuelCost", slice(None))]
+                    # keep only the relevant fuels if present
+                    fuels = [
+                        c
+                        for c in fc.columns.get_level_values("Segment")
+                        if c in ("NetElectricity", "NaturalGas", "Oil")
+                    ]
+                    if fuels:
+                        s = fc.loc[:, (slice(None), fuels)].sum(axis=1)
+                    else:
+                        s = pd.Series(0.0, index=disaggregated.index)
+                else:
+                    s = pd.Series(0.0, index=disaggregated.index)
+            else:
+                # Default behavior: sum all segments for the dataset
+                if dataset in disaggregated.columns.get_level_values("Dataset"):
+                    s = disaggregated.xs(dataset, level="Dataset", axis=1).sum(axis=1)
+                else:
+                    s = pd.Series(0.0, index=disaggregated.index)
+
+            total_parts.append(s)
+            total_keys.append(dataset)
+
+        total = pd.concat(total_parts, axis=1)
+        total.columns = pd.Index(total_keys, name="Dataset")
 
         total_gross = total * self.actual_conditioned_area_m2
         totals = pd.concat(
@@ -1841,12 +1945,25 @@ class SBEMInferenceRequestSpec(BaseModel):
             "count"
         ])
 
+        # Compute bottom-floor vertices POINT WKT strings from rotated rectangle
+        vertices_wkt: list[str] | None = None
+        try:
+            geom = shapely_wkt.loads(self.rotated_rectangle)
+            if isinstance(geom, Polygon):
+                coords = list(geom.exterior.coords)[:-1]
+                # Ensure we have 4 distinct corners; if more, take first 4 - #TODO: Should check the edge cases where we have oddly shaped buildings and this is not true
+                corners = coords[:4]
+                vertices_wkt = [Point(x, y).wkt for x, y in corners]
+        except Exception as err:
+            logging.warning("Failed to parse rotated_rectangle for vertices: %s", err)
+
         return SBEMDistributions(
             features=features,
             disaggregations=disaggregations,
             totals=totals,
             disaggregations_summary=disaggregations_summary,
             totals_summary=totals_summary,
+            vertices_wkt=vertices_wkt,
         )
 
     def calculate_solar_generation(
