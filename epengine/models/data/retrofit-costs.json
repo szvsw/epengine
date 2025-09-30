@@ -1071,7 +1071,7 @@
             "quantity_factors": [
                 {
                     "type": "FixedQuantity",
-                    "amount": 334,
+                    "amount": 1334,
                     "error_scale": 0.05,
                     "description": "Base intercept for GSHP cost based on capacity and building characteristics",
                     "source": "Heat pump cost model"

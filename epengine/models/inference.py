@@ -37,9 +37,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from pydantic.fields import FieldInfo
-from shapely import Point, Polygon
-from shapely import wkt as shapely_wkt
+from shapely import Point
 
 from epengine.gis.data.epw_metadata import closest_epw
 from epengine.models.sampling import (
@@ -71,7 +69,6 @@ INCOME_BRACKETS = [
     "AllCustomers",
 ]
 FUELS = ("Oil", "NaturalGas", "Electricity", "NetElectricity")
-# Note: NetElectricity represents electricity consumption after solar generation is applied.
 # It is used in cost calculations to avoid double-counting when both raw Electricity
 # and NetElectricity are present in the fuel disaggregation.
 DATASETS = (
@@ -84,6 +81,8 @@ DATASETS = (
     "FuelEmissions",
 )
 NORMALIZATIONS = ("Normalized", "Gross")
+
+_has_warned_max_solar_capacity_cap = False
 
 DATASET_SEGMENT_MAP = {
     "Raw": END_USES,
@@ -127,8 +126,6 @@ class SBEMDistributions:
     totals: pd.DataFrame
     disaggregations_summary: pd.DataFrame
     totals_summary: pd.DataFrame
-    # Optional: WKT vertices for bottom-floor house corners
-    vertices_wkt: list[str] | None = None
 
     @property
     def serialized(self) -> BaseModel:
@@ -170,47 +167,9 @@ class SBEMDistributions:
             total_dict_data[normalization] = normalization_data
         totals_dict = TotalsSpec.model_validate(total_dict_data)
 
-        # Geometry serialization
-        geometry_scalars_map = {
-            "short_edge": ("feature.geometry.short_edge", "m"),
-            "long_edge": ("feature.geometry.long_edge", "m"),
-            "perimeter": ("feature.geometry.computed.perimeter", "m"),
-            "f2f_height": ("feature.geometry.f2f_height", "m"),
-            "footprint_area": ("feature.geometry.computed.footprint_area", "m2"),
-        }
-        geometry_scalars_data: dict[str, SummarySpecBase] = {}
-        geometry_scalars_fields: dict[str, tuple[type[SummarySpecBase], FieldInfo]] = {}
-        for field_name, (feature_col, units) in geometry_scalars_map.items():
-            if feature_col in self.features.columns:
-                series = self.features[feature_col]
-                summary = (
-                    series.describe(percentiles=list(PERCENTILES.keys())).drop([
-                        "count"
-                    ])  # type: ignore[reportCallIssue]
-                )
-                summary_renamed = summary.rename(index=percentile_mapper).to_dict()
-                summary_renamed["units"] = units
-                geometry_scalars_fields[field_name] = (
-                    SummarySpec,
-                    Field(title=feature_col),
-                )
-                geometry_scalars_data[field_name] = SummarySpec(**summary_renamed)
-        # Prepare simple dicts for GeometrySpec
-        vertices_values: dict[str, str] = {}
-        if self.vertices_wkt is not None and len(self.vertices_wkt) >= 4:
-            for i in range(4):
-                key = f"Corner{i + 1}"
-                vertices_values[key] = self.vertices_wkt[i]
-
-        geometry_dict = GeometrySpec.model_validate({
-            "Scalars": geometry_scalars_data,
-            "Vertices": vertices_values,
-        })
-
         return SBEMInferenceResponseSpec(
             Disaggregation=disagg_dict,
             Total=totals_dict,
-            Geometry=geometry_dict,
         )
 
 
@@ -274,20 +233,31 @@ class SBEMRetrofitDistributions:
 
             field_datas[col_name] = SummarySpec(**field_data)
 
-        # Ensure a metadata field is always present for compatibility with validators
-        if "metadata" not in field_specs:
-            field_specs["metadata"] = (SummarySpec, Field(title="incentive.metadata"))
-        if "metadata" not in field_datas:
-            default_meta = {
-                "min": 0.0,
-                "max": 0.0,
-                "mean": 0.0,
-                "std": 0.0,
-                "units": "USD",
-            }
-            for _p, (p_str, _label) in PERCENTILES.items():
-                default_meta[p_str] = 0.0
-            field_datas["metadata"] = SummarySpec(**default_meta)
+        # Attach incentive metadata as a raw dictionary, if present in the costs frame
+        # Prefer bracket-specific metadata if available; fallback to generic incentive.metadata
+        metadata_col_name = None
+        if any(c.startswith("incentive.metadata.") for c in self.costs.columns):
+            # Pick the first bracket-specific metadata column deterministically (sorted)
+            meta_cols = sorted([
+                c for c in self.costs.columns if c.startswith("incentive.metadata.")
+            ])
+            metadata_col_name = meta_cols[0]
+        elif "incentive.metadata" in self.costs.columns:
+            metadata_col_name = "incentive.metadata"
+
+        if metadata_col_name is not None:
+            # Take the first non-null metadata entry
+            meta_series = self.costs[metadata_col_name]
+            first_non_null_idx = meta_series.first_valid_index()
+            raw_meta = (
+                meta_series.loc[first_non_null_idx]
+                if first_non_null_idx is not None
+                else []
+            )
+            # Normalize to a dictionary with an 'items' key containing a list of program dicts
+            meta_dict = {"items": raw_meta if isinstance(raw_meta, list) else []}
+            field_specs["metadata"] = (dict, Field(title=metadata_col_name))
+            field_datas["metadata"] = meta_dict
 
         model = create_model(
             "RetrofitCostsSpec",
@@ -382,14 +352,12 @@ def create_totals_spec(TotalSpec: type[BaseModel]):
 def create_sbem_inference_response_spec(
     DisaggregationsSpec: type[BaseModel],
     TotalsSpec: type[BaseModel],
-    GeometrySpec: type[BaseModel],
 ):
     """Create a sbem inference response spec with the disaggregations and totals as fields."""
     return create_model(
         "SBEMInferenceResponseSpec",
         Disaggregation=(DisaggregationsSpec, Field(title="Disaggregation")),
         Total=(TotalsSpec, Field(title="Total")),
-        Geometry=(GeometrySpec, Field(title="Geometry")),
         __config__=ConfigDict(extra="forbid"),
     )
 
@@ -418,20 +386,8 @@ TotalSpec = create_total_spec(SummarySpec)
 TotalsSpec = create_totals_spec(TotalSpec)
 
 
-def create_geometry_spec():
-    """Create GeometrySpec. Scalars is a mapping of name->SummarySpec; Vertices is a mapping of name->WKT string."""
-    return create_model(
-        "GeometrySpec",
-        Scalars=(dict[str, SummarySpec], Field(title="Scalars")),
-        Vertices=(dict[str, str], Field(title="Vertices")),
-        __config__=ConfigDict(extra="forbid"),
-    )
-
-
-GeometrySpec = create_geometry_spec()
-
 SBEMInferenceResponseSpec = create_sbem_inference_response_spec(
-    DisaggregationsSpec, TotalsSpec, GeometrySpec
+    DisaggregationsSpec, TotalsSpec
 )
 SBEMInferenceSavingsResponseSpec = create_sbem_inference_savings_response_spec(
     SBEMInferenceResponseSpec
@@ -464,7 +420,6 @@ class SBEMInferenceRequestSpec(BaseModel):
     # Additional fields for cost and incentive calculations
     county: str
 
-    # Current solar system size in kW (0 if no solar)
     current_solar_size_kW: float = Field(
         default=0.0, ge=0, description="Current solar system size in kW"
     )
@@ -1945,25 +1900,12 @@ class SBEMInferenceRequestSpec(BaseModel):
             "count"
         ])
 
-        # Compute bottom-floor vertices POINT WKT strings from rotated rectangle
-        vertices_wkt: list[str] | None = None
-        try:
-            geom = shapely_wkt.loads(self.rotated_rectangle)
-            if isinstance(geom, Polygon):
-                coords = list(geom.exterior.coords)[:-1]
-                # Ensure we have 4 distinct corners; if more, take first 4 - #TODO: Should check the edge cases where we have oddly shaped buildings and this is not true
-                corners = coords[:4]
-                vertices_wkt = [Point(x, y).wkt for x, y in corners]
-        except Exception as err:
-            logging.warning("Failed to parse rotated_rectangle for vertices: %s", err)
-
         return SBEMDistributions(
             features=features,
             disaggregations=disaggregations,
             totals=totals,
             disaggregations_summary=disaggregations_summary,
             totals_summary=totals_summary,
-            vertices_wkt=vertices_wkt,
         )
 
     def calculate_solar_generation(
@@ -2001,8 +1943,10 @@ class SBEMInferenceRequestSpec(BaseModel):
             max_solar_capacity_kW = max_solar_capacity_kW.clip(
                 upper=max_local_solar_capacity_kW
             )
-            msg = "Max solar capacity is capped at 25 kW"
-            logging.warning(msg)
+            global _has_warned_max_solar_capacity_cap
+            if not _has_warned_max_solar_capacity_cap:
+                logging.warning("Max solar capacity is capped at 25 kW")
+                _has_warned_max_solar_capacity_cap = True
         # Calculate annual generation at max capacity
         max_annual_generation = (
             max_solar_capacity_kW * features["feature.solar.yield_kWh_per_kW_year"]
@@ -2040,7 +1984,6 @@ class SBEMInferenceRequestSpec(BaseModel):
             )
         # Calculate required annual generation
         required_annual_generation = total_electricity_consumption * actual_coverage
-        # Calculate required system size (using average yield of 1300 kWh/kW/year)
         required_system_size_kW = (
             required_annual_generation / features["feature.solar.yield_kWh_per_kW_year"]
         )
