@@ -318,6 +318,12 @@ def simulate():
     type=click.FloatRange(min=2.5),
 )
 @click.option(
+    "--exposed-basement-frac",
+    help="The fraction of the basement that is exposed to the outside.",
+    prompt="Exposed basement fraction",
+    type=click.FloatRange(min=0, max=1),
+)
+@click.option(
     "--basement",
     help="The basement status of the model.",
     prompt="Basement",
@@ -350,6 +356,7 @@ def sbembox(  # noqa: C901
     wwr: float,
     num_floors: int,
     f2f_height: float,
+    exposed_basement_frac: float,
     basement: Literal[
         "none",
         "unoccupied_unconditioned",
@@ -496,6 +503,7 @@ def sbembox(  # noqa: C901
         num_floors=num_floors,
         f2f_height=f2f_height,
         epwzip_uri=epw_uri,
+        exposed_basement_frac=exposed_basement_frac,
         basement=basement,
         attic=attic,
     )
