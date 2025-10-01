@@ -1,22 +1,22 @@
 .PHONY: install
-install: ## Install the poetry environment and install the pre-commit hooks
-	@make uv-sync-cpu
-	@uv run pre-commit install
-	@uv run epi prisma generate
-
-.PHONY: install-cuda
-install-cuda: ## Install the poetry environment and install the pre-commit hooks
+install: ## Install the uv environment and install the pre-commit hooks
 	@make uv-sync-cuda
 	@uv run pre-commit install
 	@uv run epi prisma generate
 
+.PHONY: install-cpu
+install-cpu: ## Install the uv environment and install the pre-commit hooks
+	@make uv-sync-cpu
+	@uv run pre-commit install
+	@uv run epi prisma generate
+
 .PHONY: uv-sync-cuda
-uv-sync-cuda: ## Install the poetry environment and install the pre-commit hooks
+uv-sync-cuda: ## Install the uv environment
 	@echo "🚀 Creating virtual environment using uv"
 	@uv sync --all-groups --all-extras --no-extra cpu
 
 .PHONY: uv-sync-cpu
-uv-sync-cpu: ## Install the poetry environment and install the pre-commit hooks
+uv-sync-cpu: ## Install the uv environment
 	@echo "🚀 Creating virtual environment using uv"
 	@uv sync --all-groups --all-extras --no-extra cu128
 
