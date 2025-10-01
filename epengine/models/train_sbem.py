@@ -409,6 +409,9 @@ class SampleSpec(StageSpec):
         # sample the type literal
         df["basement"] = self.random_generator.choice(options, size=len(df), p=weights)
         df["attic"] = self.random_generator.choice(options, size=len(df), p=weights)
+        df["exposed_basement_frac"] = self.random_generator.uniform(
+            0.1, 0.5, size=len(df)
+        )
         return df
 
     def sample_wwrs(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -1054,7 +1057,7 @@ class TrainWithCVSpec(StageSpec):
     def allocate(self, s3_client: S3ClientType):
         """Allocate the task."""
         # 1. turn the schedule into a parquet dataframe
-        df = pd.DataFrame([m.model_dump() for m in self.schedule])
+        df = pd.DataFrame([m.model_dump(mode="json") for m in self.schedule])
         bucket = self.progressive_training_spec.bucket
         with tempfile.TemporaryDirectory() as tempdir:
             temp_path = Path(tempdir) / "train_specs.parquet"
