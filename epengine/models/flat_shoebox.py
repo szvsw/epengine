@@ -21,7 +21,7 @@ class FlatShoeboxSimulationSpec(LeafSpec, FlatModel):
         _idf, results, _err_text = self.simulate()
         log_fn("Flat shoebox simulation complete.")
 
-        dumped_self = self.model_dump()
+        dumped_self = self.model_dump(mode="json")
         index = pd.MultiIndex.from_tuples(
             [tuple(dumped_self.values())],
             names=list(dumped_self.keys()),
