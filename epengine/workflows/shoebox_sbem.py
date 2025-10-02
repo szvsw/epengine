@@ -166,6 +166,7 @@ if __name__ == "__main__":
         },
         basement="none",
         attic="none",
+        exposed_basement_frac=0.12,
     )
     specs = [
         spec.model_copy(deep=True, update={"sort_index": i}) for i in range(n_sims)

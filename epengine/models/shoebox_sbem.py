@@ -334,6 +334,12 @@ class SBEMSimulationSpec(LeafSpec):
     attic: BasementAtticOccupationConditioningStatus = Field(
         ..., description="The type of attic in the building."
     )
+    exposed_basement_frac: float = Field(
+        ...,
+        description="The fraction of the basement that is exposed to the air.",
+        gt=0,
+        lt=1,
+    )
 
     # TODO: add fp area? gfa?
     # footprint_area: float = Field(
@@ -361,6 +367,7 @@ class SBEMSimulationSpec(LeafSpec):
             "feature.geometry.energy_model_conditioned_area": self.energy_model_conditioned_area,
             "feature.geometry.energy_model_occupied_area": self.energy_model_occupied_area,
             "feature.geometry.attic_height": self.attic_height or 0,
+            "feature.geometry.exposed_basement_frac": self.exposed_basement_frac,
         }
 
         # TODO: consider passing in
@@ -637,6 +644,7 @@ class SBEMSimulationSpec(LeafSpec):
                 basement=self.has_basement,
                 zoning=self.use_core_perim_zoning,
                 roof_height=self.attic_height,
+                exposed_basement_frac=self.exposed_basement_frac,
             ),
         )
 
@@ -721,7 +729,7 @@ if __name__ == "__main__":
         short_edge=10,
         aspect_ratio=1,
         rotated_rectangle_area_ratio=1,
-        long_edge_angle=0.23,
+        long_edge_angle=0,
         wwr=0.15,
         f2f_height=3.5,
         neighbor_polys=["POLYGON ((-10 0, -10 10, -5 10, -5 0, -10 0))"],
@@ -736,9 +744,9 @@ if __name__ == "__main__":
             "AtticFloorInsulation": "Insulated",
             "AtticVentilation": "VentilatedAttic",
             "BasementCeilingInsulation": "UninsulatedCeiling",
-            "BasementWallsInsulation": "InsulatedWalls",
+            "BasementWallsInsulation": "UninsulatedWalls",
             "Cooling": "ACWindow",
-            "DHW": "HPWH",
+            "DHW": "NaturalGasDHW",
             "Distribution": "AirDuctsConditionedUninsulated",
             "Equipment": "HighEfficiencyEquipment",
             "GroundSlabInsulation": "UninsulatedGroundSlab",
@@ -747,13 +755,14 @@ if __name__ == "__main__":
             "Region": "MA",
             "RoofInsulation": "InsulatedRoof",
             "Thermostat": "NoControls",
-            "Typology": "MFH",
-            "Walls": "FullInsulationWallsCavityExterior",
-            "Weatherization": "LeakyEnvelope",
+            "Typology": "SFH",
+            "Walls": "SomeInsulationWalls",
+            "Weatherization": "SomewhatLeakyEnvelope",
             "Windows": "SinglePane",
         },
-        basement="unoccupied_unconditioned",
-        attic="unoccupied_unconditioned",
+        basement="unoccupied_conditioned",
+        attic="none",
+        exposed_basement_frac=0.25,
     )
 
     s = time.time()
@@ -765,17 +774,20 @@ if __name__ == "__main__":
         cast(pd.DataFrame, results.reset_index(drop=True)["Energy"]["Raw"])
         .stack(level="Month", future_stack=True)
         .sum()
+        .Heating
     )
-    print(results["Raw"].sum().sum())
-    print("----")
-    print("----")
-    print(
-        results.reset_index(drop=True)["End Uses"]
-        .stack(level="Month", future_stack=True)
-        .sum()
-    )
-    print(results["End Uses"].sum().sum())
-    print(results["End Uses"].sum().sum() * spec.energy_model_conditioned_area)
+    # print(results["Energy"]["Raw"].sum().sum())
+    # print("----")
+    # print("----")
+    # print(
+    #     results.reset_index(drop=True)["Energy"]["End Uses"]
+    #     .stack(level="Month", future_stack=True)
+    #     .sum()
+    # )
+    # print(results["Energy"]["End Uses"].sum().sum())
+    # print(
+    #     results["Energy"]["End Uses"].sum().sum() * spec.energy_model_conditioned_area
+    # )
     print("----")
     # print("----")
     # print(

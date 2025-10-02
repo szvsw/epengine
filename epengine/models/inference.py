@@ -560,6 +560,7 @@ class SBEMInferenceRequestSpec(BaseModel):
             semantic_fields_uri=AnyUrl("s3://unused/file.pq"),
             component_map_uri=AnyUrl("s3://unused/file.pq"),
             epwzip_uri=epw_uri,
+            exposed_basement_frac=0.12,
         )
         base_features = pd.Series({
             k: v for k, v in spec.feature_dict.items() if k.startswith("feature.")
@@ -572,6 +573,18 @@ class SBEMInferenceRequestSpec(BaseModel):
     def make_priors(self):
         """Make the priors."""
         prior_dict: dict[str, Prior] = {}
+
+        exposed_basement_frac_prior = UnconditionalPrior(
+            sampler=ClippedNormalSampler(
+                mean=0.25,
+                std=0.05,
+                clip_min=0.1,
+                clip_max=0.45,
+            )
+        )
+        prior_dict["feature.geometry.exposed_basement_frac"] = (
+            exposed_basement_frac_prior
+        )
 
         wwr_prior = UnconditionalPrior(
             sampler=ClippedNormalSampler(
