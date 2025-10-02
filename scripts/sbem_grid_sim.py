@@ -72,6 +72,7 @@ def run_with_semantic_envelopes(
         },
         basement="none",
         attic="none",
+        exposed_basement_frac=0.25,
     )
     _, res, _ = spec.run()
 
