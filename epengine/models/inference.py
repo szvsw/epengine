@@ -1787,20 +1787,18 @@ class SBEMInferenceRequestSpec(BaseModel):
             keys=["Electricity", "NetElectricity", "NaturalGas", "Oil"],
             names=["Fuel", "EndUse"],
         )
-        # EndUseCost should avoid double-counting raw Electricity; only include NetElectricity + fuels
-        allowed_end_use_costs = pd.concat(
-            [net_elec_costs, gas_costs, oil_costs],
+        base_end_use_costs = pd.concat(
+            [elec_costs, gas_costs, oil_costs],
             axis=1,
-            keys=["NetElectricity", "NaturalGas", "Oil"],
+            keys=["Electricity", "NaturalGas", "Oil"],
             names=["Fuel", "EndUse"],
         )
         end_use_costs = cast(
             pd.DataFrame,
-            allowed_end_use_costs.groupby(level="EndUse", axis=1).sum(),
+            base_end_use_costs.groupby(level="EndUse", axis=1).sum(),
         )
-
-        if "Solar" not in end_use_costs.columns:
-            end_use_costs["Solar"] = 0.0
+        solar_cost_total = net_elec_costs.sum(axis=1) - elec_costs.sum(axis=1)
+        end_use_costs["Solar"] = solar_cost_total
         fuel_costs = cast(
             pd.DataFrame, disaggregated_costs.T.groupby(level=["Fuel"]).sum().T
         )
@@ -1841,14 +1839,24 @@ class SBEMInferenceRequestSpec(BaseModel):
             keys=["Electricity", "NetElectricity", "NaturalGas", "Oil"],
             names=["Fuel", "EndUse"],
         )
+        allowed_end_use_emissions = pd.concat(
+            [elec_emissions, gas_emissions, oil_emissions],
+            axis=1,
+            keys=["Electricity", "NaturalGas", "Oil"],
+            names=["Fuel", "EndUse"],
+        )
         end_use_emissions = cast(
             pd.DataFrame,
-            disaggregated_emissions.groupby(level="EndUse", axis=1).sum(),
+            allowed_end_use_emissions.groupby(level="EndUse", axis=1).sum(),
         )
-        if "Solar" not in end_use_emissions.columns:
-            end_use_emissions["Solar"] = 0.0
+        solar_emissions_total = net_elec_emissions.sum(axis=1) - elec_emissions.sum(
+            axis=1
+        )
+        end_use_emissions["Solar"] = solar_emissions_total
+
         fuel_emissions = cast(
-            pd.DataFrame, disaggregated_emissions.T.groupby(level=["Fuel"]).sum().T
+            pd.DataFrame,
+            disaggregated_emissions.groupby(level="Fuel", axis=1).sum(),
         )
 
         return fuel_emissions, end_use_emissions
@@ -1932,8 +1940,7 @@ class SBEMInferenceRequestSpec(BaseModel):
             # Default: sum all segments for the dataset if present
             if dataset in disaggregated.columns.get_level_values("Dataset"):
                 cols = disaggregated.xs(dataset, level="Dataset", axis=1)
-                if dataset == "FuelCost":
-                    # Only count NetElectricity + NaturalGas + Oil for FuelCost
+                if dataset in ("FuelCost", "FuelEmissions"):
                     allowed = [
                         c
                         for c in cols.columns
