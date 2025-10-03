@@ -1794,8 +1794,16 @@ class SBEMInferenceRequestSpec(BaseModel):
             keys=["NetElectricity", "NaturalGas", "Oil"],
             names=["Fuel", "EndUse"],
         )
-        end_use_costs = allowed_end_use_costs.T.groupby(level=["EndUse"]).sum().T
-        fuel_costs = disaggregated_costs.T.groupby(level=["Fuel"]).sum().T
+        end_use_costs = cast(
+            pd.DataFrame,
+            allowed_end_use_costs.groupby(level="EndUse", axis=1).sum(),
+        )
+
+        if "Solar" not in end_use_costs.columns:
+            end_use_costs["Solar"] = 0.0
+        fuel_costs = cast(
+            pd.DataFrame, disaggregated_costs.T.groupby(level=["Fuel"]).sum().T
+        )
 
         return fuel_costs, end_use_costs
 
@@ -1833,8 +1841,15 @@ class SBEMInferenceRequestSpec(BaseModel):
             keys=["Electricity", "NetElectricity", "NaturalGas", "Oil"],
             names=["Fuel", "EndUse"],
         )
-        end_use_emissions = disaggregated_emissions.T.groupby(level=["EndUse"]).sum().T
-        fuel_emissions = disaggregated_emissions.T.groupby(level=["Fuel"]).sum().T
+        end_use_emissions = cast(
+            pd.DataFrame,
+            disaggregated_emissions.groupby(level="EndUse", axis=1).sum(),
+        )
+        if "Solar" not in end_use_emissions.columns:
+            end_use_emissions["Solar"] = 0.0
+        fuel_emissions = cast(
+            pd.DataFrame, disaggregated_emissions.T.groupby(level=["Fuel"]).sum().T
+        )
 
         return fuel_emissions, end_use_emissions
 
