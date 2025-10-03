@@ -61,7 +61,8 @@ from epengine.models.shoebox_sbem import (
 )
 from epengine.models.transforms import CategoricalFeature, RegressorInputSpec
 
-END_USES = ("Lighting", "Equipment", "DomesticHotWater", "Heating", "Cooling")
+END_USES = ("Lighting", "Equipment", "DomesticHotWater", "Heating", "Cooling", "Solar")
+RAW_END_USES = ("Lighting", "Equipment", "DomesticHotWater", "Heating", "Cooling")
 OIL_HEATING_SYSTEMS = ["OilHeating"]
 NG_HEATING_SYSTEMS = ["NaturalGasHeating", "NaturalGasCondensingHeating"]
 INCOME_BRACKETS = [
@@ -85,7 +86,7 @@ NORMALIZATIONS = ("Normalized", "Gross")
 _has_warned_max_solar_capacity_cap = False
 
 DATASET_SEGMENT_MAP = {
-    "Raw": END_USES,
+    "Raw": RAW_END_USES,
     "EndUse": END_USES,
     "Fuel": FUELS,
     "EndUseCost": END_USES,
@@ -189,22 +190,16 @@ class SBEMRetrofitDistributions:
         field_datas = {}
         percentile_mapper = {v[1]: v[0] for v in PERCENTILES.values()}
 
-        # Create copies of summary dataframes with percentile mapper applied
         costs_summary_renamed = self.costs_summary.rename(index=percentile_mapper)
-        # paybacks_summary_renamed = self.paybacks_summary.rename(index=percentile_mapper)
 
-        # Process all numeric columns in the costs dataframe
         for col in self.costs.columns:
-            # Skip non-numeric columns (e.g., metadata objects)
             if not pd.api.types.is_numeric_dtype(self.costs[col]):
                 continue
-            # Skip detailed cost columns like cost.Trigger.Final (keep only cost.Trigger)
             if col.startswith("cost.") and col.count(".") > 1:
                 continue
             col_name = col.split(".")[-1]
             field_specs[col_name] = (SummarySpec, Field(title=col))
 
-            # Get summary data for this column
             if col in costs_summary_renamed.columns:
                 field_data = costs_summary_renamed.loc[:, col].to_dict()
             else:
@@ -295,6 +290,16 @@ def create_end_use_disaggregation_spec(SummarySpec: type[SummarySpecBase]):
     )
 
 
+def create_raw_end_use_disaggregation_spec(SummarySpec: type[SummarySpecBase]):
+    """Create a raw end use disaggregation spec WITHOUT Solar as a field."""
+    fields = {}
+    for end_use in RAW_END_USES:
+        fields[end_use] = (SummarySpec, Field(title=end_use))
+    return create_model(
+        "RawEndUseDisaggregationSpec", **fields, __config__=ConfigDict(extra="forbid")
+    )
+
+
 def create_fuel_disaggregation_spec(SummarySpec: type[SummarySpecBase]):
     """Create a fuel disaggregation spec with the fuels as fields."""
     fields = {}
@@ -306,12 +311,16 @@ def create_fuel_disaggregation_spec(SummarySpec: type[SummarySpecBase]):
 
 
 def create_disaggregation_spec(
-    EndUseDisaggregationSpec: type[BaseModel], FuelDisaggregationSpec: type[BaseModel]
+    EndUseDisaggregationSpec: type[BaseModel],
+    RawEndUseDisaggregationSpec: type[BaseModel],
+    FuelDisaggregationSpec: type[BaseModel],
 ):
     """Create a disaggregation spec with the datasets as fields."""
     fields = {}
     for dataset, dataset_segments in DATASET_SEGMENT_MAP.items():
-        if dataset_segments == END_USES:
+        if dataset == "Raw":
+            fields[dataset] = (RawEndUseDisaggregationSpec, Field(title=dataset))
+        elif dataset_segments == END_USES:
             fields[dataset] = (EndUseDisaggregationSpec, Field(title=dataset))
         elif dataset_segments == FUELS:
             fields[dataset] = (FuelDisaggregationSpec, Field(title=dataset))
@@ -377,9 +386,10 @@ def create_sbem_inference_savings_response_spec(
 
 SummarySpec = create_summary_spec()
 EndUseDisaggregationSpec = create_end_use_disaggregation_spec(SummarySpec)
+RawEndUseDisaggregationSpec = create_raw_end_use_disaggregation_spec(SummarySpec)
 FuelDisaggregationSpec = create_fuel_disaggregation_spec(SummarySpec)
 DisaggregationSpec = create_disaggregation_spec(
-    EndUseDisaggregationSpec, FuelDisaggregationSpec
+    EndUseDisaggregationSpec, RawEndUseDisaggregationSpec, FuelDisaggregationSpec
 )
 DisaggregationsSpec = create_disaggregations_spec(DisaggregationSpec)
 TotalSpec = create_total_spec(SummarySpec)
@@ -1701,20 +1711,42 @@ class SBEMInferenceRequestSpec(BaseModel):
         )
 
         gas = pd.concat(
-            [heat_gas, cool_gas, dhw_gas, lighting * 0, equipment * 0],
+            [
+                heat_gas,
+                cool_gas,
+                dhw_gas,
+                lighting * 0,
+                equipment * 0,
+            ],
             axis=1,
-            keys=["Heating", "Cooling", "Domestic Hot Water", "Lighting", "Equipment"],
+            keys=[
+                "Heating",
+                "Cooling",
+                "Domestic Hot Water",
+                "Lighting",
+                "Equipment",
+            ],
         )[df_end_uses.columns]
         oil = pd.concat(
-            [heat_oil, cool_oil, dhw_oil, lighting * 0, equipment * 0],
+            [
+                heat_oil,
+                cool_oil,
+                dhw_oil,
+                lighting * 0,
+                equipment * 0,
+            ],
             axis=1,
-            keys=["Heating", "Cooling", "Domestic Hot Water", "Lighting", "Equipment"],
+            keys=[
+                "Heating",
+                "Cooling",
+                "Domestic Hot Water",
+                "Lighting",
+                "Equipment",
+            ],
         )[df_end_uses.columns]
 
         # Store actual electricity consumption for solar calculations
         self._actual_electricity_consumption = actual_electricity_consumption
-
-        # Use net electricity consumption for the main fuel disaggregation
 
         df_disaggregated_fuels = pd.concat(
             [actual_electricity_consumption, net_electricity_consumption, gas, oil],
@@ -1755,8 +1787,21 @@ class SBEMInferenceRequestSpec(BaseModel):
             keys=["Electricity", "NetElectricity", "NaturalGas", "Oil"],
             names=["Fuel", "EndUse"],
         )
-        end_use_costs = disaggregated_costs.T.groupby(level=["EndUse"]).sum().T
-        fuel_costs = disaggregated_costs.T.groupby(level=["Fuel"]).sum().T
+        base_end_use_costs = pd.concat(
+            [elec_costs, gas_costs, oil_costs],
+            axis=1,
+            keys=["Electricity", "NaturalGas", "Oil"],
+            names=["Fuel", "EndUse"],
+        )
+        end_use_costs = cast(
+            pd.DataFrame,
+            base_end_use_costs.groupby(level="EndUse", axis=1).sum(),
+        )
+        solar_cost_total = net_elec_costs.sum(axis=1) - elec_costs.sum(axis=1)
+        end_use_costs["Solar"] = solar_cost_total
+        fuel_costs = cast(
+            pd.DataFrame, disaggregated_costs.T.groupby(level=["Fuel"]).sum().T
+        )
 
         return fuel_costs, end_use_costs
 
@@ -1794,8 +1839,25 @@ class SBEMInferenceRequestSpec(BaseModel):
             keys=["Electricity", "NetElectricity", "NaturalGas", "Oil"],
             names=["Fuel", "EndUse"],
         )
-        end_use_emissions = disaggregated_emissions.T.groupby(level=["EndUse"]).sum().T
-        fuel_emissions = disaggregated_emissions.T.groupby(level=["Fuel"]).sum().T
+        allowed_end_use_emissions = pd.concat(
+            [elec_emissions, gas_emissions, oil_emissions],
+            axis=1,
+            keys=["Electricity", "NaturalGas", "Oil"],
+            names=["Fuel", "EndUse"],
+        )
+        end_use_emissions = cast(
+            pd.DataFrame,
+            allowed_end_use_emissions.groupby(level="EndUse", axis=1).sum(),
+        )
+        solar_emissions_total = net_elec_emissions.sum(axis=1) - elec_emissions.sum(
+            axis=1
+        )
+        end_use_emissions["Solar"] = solar_emissions_total
+
+        fuel_emissions = cast(
+            pd.DataFrame,
+            disaggregated_emissions.groupby(level="Fuel", axis=1).sum(),
+        )
 
         return fuel_emissions, end_use_emissions
 
@@ -1817,6 +1879,11 @@ class SBEMInferenceRequestSpec(BaseModel):
         results_disaggregated_fuels = self.separate_fuel_based_end_uses(
             df_features=features, df_end_uses=results_end_uses
         )
+        solar_end_use_total = results_disaggregated_fuels["NetElectricity"].sum(
+            axis=1
+        ) - results_disaggregated_fuels["Electricity"].sum(axis=1)
+        results_end_uses = results_end_uses.copy()
+        results_end_uses["Solar"] = solar_end_use_total
 
         results_fuels = results_disaggregated_fuels.T.groupby(level=["Fuel"]).sum().T
         results_fuel_costs, results_end_use_costs = self.compute_costs(
@@ -1870,28 +1937,24 @@ class SBEMInferenceRequestSpec(BaseModel):
         total_keys: list[str] = []
 
         for dataset in datasets_for_totals:
-            if dataset == "FuelCost":
-                # Sum only NetElectricity + NaturalGas + Oil to avoid double-counting Electricity
-                if "FuelCost" in disaggregated.columns.get_level_values("Dataset"):
-                    fc = disaggregated.loc[:, ("FuelCost", slice(None))]
-                    # keep only the relevant fuels if present
-                    fuels = [
+            # Default: sum all segments for the dataset if present
+            if dataset in disaggregated.columns.get_level_values("Dataset"):
+                cols = disaggregated.xs(dataset, level="Dataset", axis=1)
+                if dataset in ("FuelCost", "FuelEmissions"):
+                    allowed = [
                         c
-                        for c in fc.columns.get_level_values("Segment")
+                        for c in cols.columns
                         if c in ("NetElectricity", "NaturalGas", "Oil")
                     ]
-                    if fuels:
-                        s = fc.loc[:, (slice(None), fuels)].sum(axis=1)
-                    else:
-                        s = pd.Series(0.0, index=disaggregated.index)
+                    s = (
+                        cols.loc[:, allowed].sum(axis=1)
+                        if len(allowed) > 0
+                        else pd.Series(0.0, index=disaggregated.index)
+                    )
                 else:
-                    s = pd.Series(0.0, index=disaggregated.index)
+                    s = cols.sum(axis=1)
             else:
-                # Default behavior: sum all segments for the dataset
-                if dataset in disaggregated.columns.get_level_values("Dataset"):
-                    s = disaggregated.xs(dataset, level="Dataset", axis=1).sum(axis=1)
-                else:
-                    s = pd.Series(0.0, index=disaggregated.index)
+                s = pd.Series(0.0, index=disaggregated.index)
 
             total_parts.append(s)
             total_keys.append(dataset)
