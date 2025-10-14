@@ -2217,24 +2217,12 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         new_features = changed_priors.sample(
             new_features, len(new_features), self.original.generator
         )
-
-        # Create an upgraded spec with the new semantic field context
-        upgraded_spec = SBEMInferenceRequestSpec(
-            **{
-                k: v
-                for k, v in self.original.model_dump().items()
-                if k != "semantic_field_context"
-            },
-            semantic_field_context=self.upgraded_semantic_field_context,
+        new_transformed_features = self.original.source_feature_transform.transform(
+            new_features
         )
-        # Run inference with the upgraded spec
-        new_results = upgraded_spec.run(n)
         # Get peak results for cost calculations
-        new_results_raw = upgraded_spec.predict(
-            upgraded_spec.source_feature_transform.transform(
-                upgraded_spec.make_features(n)[0]
-            )
-        )
+        new_results_raw = self.original.predict(new_transformed_features)
+        new_results = self.original.compute_distributions(new_features, new_results_raw)
         new_results_peak = cast(pd.DataFrame, new_results_raw["Peak"])
         # new_results_energy = cast(pd.DataFrame, new_results_raw["Energy"])
 
@@ -2269,6 +2257,15 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         # Compute features for cost calculations after inference
         # For solar upgrades, we need to use the ACTUAL electricity consumption (before solar)
         # to calculate the system size needed, not the net consumption if there is alrearyd some solar
+        upgraded_spec = SBEMInferenceRequestSpec(
+            **{
+                k: v
+                for k, v in self.original.model_dump().items()
+                if k != "semantic_field_context"
+            },
+            semantic_field_context=self.upgraded_semantic_field_context,
+        )
+
         electricity_eui = upgraded_spec._actual_electricity_consumption.sum(axis=1)
 
         # Calculate the feature distributions for solar features (yield, coverage)
