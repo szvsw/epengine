@@ -414,12 +414,14 @@ class ConditionalPrior(BaseModel, PriorABC):
 
         final = np.full(n, np.nan)
 
+        any_matched_mask = np.full(n, False)
         for match_val, samples_for_match_val in conditional_samples.items():
             mask = test_feature == match_val
+            any_matched_mask = any_matched_mask | mask
             final = np.where(mask, samples_for_match_val, final)
 
         if self.fallback_prior is not None:
-            mask = np.isnan(final)
+            mask = ~any_matched_mask
             final = np.where(
                 mask, self.fallback_prior.sample(context, n, generator), final
             )
