@@ -39,7 +39,7 @@
         {
             "trigger_column": "OnsiteSolar",
             "initial": "NoSolarPV",
-            "final": "HighSolarPV",
+            "final": "MaxSolarPV",
             "order": ["LinearQuantity"],
             "quantity_factors": [
                 {
