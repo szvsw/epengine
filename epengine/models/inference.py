@@ -1291,7 +1291,6 @@ class SBEMInferenceRequestSpec(BaseModel):
         # Ensure solar priors are part of the main Priors set, so changes to
         # feature.semantic.OnsiteSolar appear in the dependency graph and are
         # picked up by select_prior_tree_for_changed_features.
-
         # Annual yield kWh/kW-year
         solar_yield_prior = UnconditionalPrior(
             sampler=ClippedNormalSampler(
@@ -1407,8 +1406,6 @@ class SBEMInferenceRequestSpec(BaseModel):
             )
 
         # Set default value for OnsiteSolar if not provided
-        if "feature.semantic.OnsiteSolar" not in features.columns:
-            features["feature.semantic.OnsiteSolar"] = "NoSolarPV"
 
         # Create a consolidated upgraded coverage column for downstream cost logic, if missing
         if "feature.solar.upgraded_coverage" not in features.columns:
@@ -1483,6 +1480,8 @@ class SBEMInferenceRequestSpec(BaseModel):
             df_t (pd.DataFrame): The transformed features to use in prediction.
         """
         df = self.make_inference_features(n)
+        if "feature.semantic.OnsiteSolar" not in df.columns:
+            df["feature.semantic.OnsiteSolar"] = "NoSolarPV"
         priors = self.make_priors()
         # TODO: we should consider removing all features which are in the priors
         # to ensure that there are no strange overwrite behaviors...
@@ -2273,14 +2272,12 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         changed_feature_fields, changed_context_fields = self.changed_context_fields
 
         changed_feature_names = set(changed_feature_fields.keys())
-        print("CHANGED FEATURE NAMES", changed_feature_names)
 
         # then we will get the priors that must be re-run as they are downstream
         # of the changed features.
         changed_priors = original_priors.select_prior_tree_for_changed_features(
             changed_feature_names
         )
-        print(changed_priors.sampled_features.keys())
 
         # then we will take the original features and update the changed semantic
         # features.
@@ -2292,7 +2289,6 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         new_features = changed_priors.sample(
             new_features, len(new_features), self.original.generator
         )
-        print(new_features.columns)
         new_transformed_features = self.original.source_feature_transform.transform(
             new_features
         )
