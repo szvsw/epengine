@@ -1287,6 +1287,70 @@ class SBEMInferenceRequestSpec(BaseModel):
         prior_dict["feature.fuels.emissions.NaturalGas"] = gas_emissions_prior
         prior_dict["feature.fuels.emissions.Oil"] = oil_emissions_prior
 
+        # --- Solar-related priors ---
+        # Ensure solar priors are part of the main Priors set, so changes to
+        # feature.semantic.OnsiteSolar appear in the dependency graph and are
+        # picked up by select_prior_tree_for_changed_features.
+
+        # Annual yield kWh/kW-year
+        solar_yield_prior = UnconditionalPrior(
+            sampler=ClippedNormalSampler(
+                mean=1100,
+                std=150,
+                clip_min=800,
+                clip_max=1400,
+            )
+        )
+        prior_dict["feature.solar.yield_kWh_per_kW_year"] = solar_yield_prior
+
+        # Panel power density W/m2
+        panel_power_density_prior = UnconditionalPrior(
+            sampler=ClippedNormalSampler(
+                mean=180,
+                std=50,
+                clip_min=120,
+                clip_max=300,
+            )
+        )
+        prior_dict["feature.solar.panel_power_density_w_per_m2"] = (
+            panel_power_density_prior
+        )
+
+        # Upgraded coverage depends on semantic OnsiteSolar choice
+        solar_coverage_prior = ConditionalPrior(
+            source_feature="feature.semantic.OnsiteSolar",
+            fallback_prior=None,
+            conditions=[
+                ConditionalPriorCondition(
+                    match_val="LowSolarPV", sampler=FixedValueSampler(value=0.25)
+                ),
+                ConditionalPriorCondition(
+                    match_val="MedSolarPV", sampler=FixedValueSampler(value=0.50)
+                ),
+                ConditionalPriorCondition(
+                    match_val="MaxSolarPV", sampler=FixedValueSampler(value=1.0)
+                ),
+                ConditionalPriorCondition(
+                    match_val="NoSolarPV", sampler=FixedValueSampler(value=0.0)
+                ),
+                ConditionalPriorCondition(
+                    match_val="ExistingSolarPV", sampler=FixedValueSampler(value=0.0)
+                ),
+            ],
+        )
+        prior_dict["feature.solar.upgraded_coverage"] = solar_coverage_prior
+
+        # Max roof utilization for PV placement
+        max_roof_utilization_prior = UnconditionalPrior(
+            sampler=ClippedNormalSampler(
+                mean=0.75,
+                std=0.05,
+                clip_min=0.6,
+                clip_max=0.9,
+            )
+        )
+        prior_dict["feature.solar.max_roof_utilization"] = max_roof_utilization_prior
+
         # TODO: optionally create the matrix for moving raw values to
         # various energy end uses, fuels, emissions, costs.
 
@@ -1314,44 +1378,74 @@ class SBEMInferenceRequestSpec(BaseModel):
         """The random number generator for the experiment."""
         return np.random.default_rng(42)
 
+    # TODO: remove this function?
     def add_solar_features(self, features: pd.DataFrame) -> pd.DataFrame:
         """Add solar-related features to the features DataFrame."""
-        # Add solar yield as a base feature (Massachusetts average)
-        yield_sampler = ClippedNormalSampler(
-            mean=1100,
-            std=150,
-            clip_min=800,
-            clip_max=1400,
-        )
-        features["feature.solar.yield_kWh_per_kW_year"] = yield_sampler.sample(
-            features, len(features), self.generator
-        )
-        panel_power_density_sampler = ClippedNormalSampler(
-            mean=180,
-            std=50,
-            clip_min=120,
-            clip_max=300,
-        )
-        features["feature.solar.panel_power_density_w_per_m2"] = (
-            panel_power_density_sampler.sample(features, len(features), self.generator)
-        )
+        # Do not overwrite if priors already sampled these columns
+        if "feature.solar.yield_kWh_per_kW_year" not in features.columns:
+            yield_sampler = ClippedNormalSampler(
+                mean=1100,
+                std=150,
+                clip_min=800,
+                clip_max=1400,
+            )
+            features["feature.solar.yield_kWh_per_kW_year"] = yield_sampler.sample(
+                features, len(features), self.generator
+            )
+
+        if "feature.solar.panel_power_density_w_per_m2" not in features.columns:
+            panel_power_density_sampler = ClippedNormalSampler(
+                mean=180,
+                std=50,
+                clip_min=120,
+                clip_max=300,
+            )
+            features["feature.solar.panel_power_density_w_per_m2"] = (
+                panel_power_density_sampler.sample(
+                    features, len(features), self.generator
+                )
+            )
+
         # Set default value for OnsiteSolar if not provided
         if "feature.semantic.OnsiteSolar" not in features.columns:
             features["feature.semantic.OnsiteSolar"] = "NoSolarPV"
-        # Calculate upgraded solar coverage based on semantic field
-        features["feature.solar.upgraded_coverage"] = np.where(
-            features["feature.semantic.OnsiteSolar"] == "LowSolarPV",
-            0.25,
-            np.where(
-                features["feature.semantic.OnsiteSolar"] == "MedSolarPV",
-                0.50,
-                np.where(
-                    features["feature.semantic.OnsiteSolar"] == "MaxSolarPV",
-                    1.0,
-                    0.0,
-                ),
-            ),
-        )
+
+        # Create a consolidated upgraded coverage column for downstream cost logic, if missing
+        if "feature.solar.upgraded_coverage" not in features.columns:
+            coverage_prior = ConditionalPrior(
+                source_feature="feature.semantic.OnsiteSolar",
+                fallback_prior=None,
+                conditions=[
+                    ConditionalPriorCondition(
+                        match_val="LowSolarPV", sampler=FixedValueSampler(value=0.25)
+                    ),
+                    ConditionalPriorCondition(
+                        match_val="MedSolarPV", sampler=FixedValueSampler(value=0.50)
+                    ),
+                    ConditionalPriorCondition(
+                        match_val="MaxSolarPV", sampler=FixedValueSampler(value=1.0)
+                    ),
+                    ConditionalPriorCondition(
+                        match_val="NoSolarPV", sampler=FixedValueSampler(value=0.0)
+                    ),
+                ],
+            )
+            features["feature.solar.upgraded_coverage"] = coverage_prior.sample(
+                features, len(features), self.generator
+            )
+
+        if "feature.solar.max_roof_utilization" not in features.columns:
+            max_roof_utilization_sampler = ClippedNormalSampler(
+                mean=0.75,
+                std=0.05,
+                clip_min=0.6,
+                clip_max=0.9,
+            )
+            features["feature.solar.max_roof_utilization"] = (
+                max_roof_utilization_sampler.sample(
+                    features, len(features), self.generator
+                )
+            )
 
         features["feature.upgrade.solar_pv_kW"] = 0.0
 
@@ -1362,23 +1456,9 @@ class SBEMInferenceRequestSpec(BaseModel):
     ) -> pd.DataFrame:
         """Update the MaxSolarPV coverage when electricity consumption data is available."""
         features = features.copy()
-
-        # Set coverage values based on solar type
-        features["feature.solar.upgraded_coverage"] = np.where(
-            features["feature.semantic.OnsiteSolar"] == "MaxSolarPV",
-            features["feature.solar.upgraded_coverage"],
-            np.where(
-                features["feature.semantic.OnsiteSolar"] == "LowSolarPV",
-                0.25,
-                np.where(
-                    features["feature.semantic.OnsiteSolar"] == "MedSolarPV",
-                    0.50,
-                    0.0,
-                ),
-            ),
-        )
-
+        # Base coverage values for non-Max choices
         # Handle MaxSolarPV samples - calculate feasible coverage for each
+        base_coverage = features["feature.solar.upgraded_coverage"]
         max_solar_mask = features["feature.semantic.OnsiteSolar"] == "MaxSolarPV"
         if max_solar_mask.any():
             max_feasible = self.calculate_feasible_solar_coverage(
@@ -1386,9 +1466,9 @@ class SBEMInferenceRequestSpec(BaseModel):
                 electricity_consumption.loc[max_solar_mask],
             )
             # Use the maximum feasible coverage for each sample
-            features.loc[max_solar_mask, "feature.solar.upgraded_coverage"] = (
-                max_feasible
-            )
+            base_coverage[max_solar_mask] = max_feasible
+
+        features["feature.solar.upgraded_coverage"] = base_coverage
 
         return features
 
@@ -1412,10 +1492,7 @@ class SBEMInferenceRequestSpec(BaseModel):
         )
         df = priors.sample(df, n, self.generator)
 
-        # Add solar features
-        df = self.add_solar_features(df)
-
-        # Defer solar upgrade capacity calculation to the post-prediction phase
+        # Solar features are now included in priors; avoid re-sampling here
 
         original_cooling = None
         mask = None
@@ -1451,8 +1528,6 @@ class SBEMInferenceRequestSpec(BaseModel):
 
         safety_factor = 1.2
         raw_capacity_kW = peak_heating_per_m2 * safety_factor
-
-        # Map calculated capacity to nearest available equipment size (unless above max)
         available_sizes_kW = np.array([
             5.3,
             7.0,
@@ -1535,13 +1610,11 @@ class SBEMInferenceRequestSpec(BaseModel):
             "feature.system.has_cooling.true"
         ]
 
-        # Add solar system size for retrofit cost calculations
         if features["feature.semantic.OnsiteSolar"].iloc[0] in [
             "LowSolarPV",
             "MedSolarPV",
             "MaxSolarPV",
         ]:
-            # Calculate the required solar system size for the upgrade
             electricity_consumption = elect_eui * self.actual_conditioned_area_m2
 
             # Update MaxSolarPV coverage if needed
@@ -1556,7 +1629,6 @@ class SBEMInferenceRequestSpec(BaseModel):
             cost_features["feature.upgrade.solar_pv_kW"] = required_system_size
 
         else:
-            # No solar upgrade, set to 0
             cost_features["feature.upgrade.solar_pv_kW"] = 0.0
 
         return cost_features
@@ -1795,7 +1867,8 @@ class SBEMInferenceRequestSpec(BaseModel):
         )
         end_use_costs = cast(
             pd.DataFrame,
-            base_end_use_costs.groupby(level="EndUse", axis=1).sum(),
+            # Avoid deprecated axis=1: use transpose-then-groupby pattern
+            base_end_use_costs.T.groupby(level="EndUse").sum().T,
         )
         solar_cost_total = net_elec_costs.sum(axis=1) - elec_costs.sum(axis=1)
         end_use_costs["Solar"] = solar_cost_total
@@ -1847,7 +1920,8 @@ class SBEMInferenceRequestSpec(BaseModel):
         )
         end_use_emissions = cast(
             pd.DataFrame,
-            allowed_end_use_emissions.groupby(level="EndUse", axis=1).sum(),
+            # Avoid deprecated axis=1: use transpose-then-groupby pattern
+            allowed_end_use_emissions.T.groupby(level="EndUse").sum().T,
         )
         solar_emissions_total = net_elec_emissions.sum(axis=1) - elec_emissions.sum(
             axis=1
@@ -1856,7 +1930,8 @@ class SBEMInferenceRequestSpec(BaseModel):
 
         fuel_emissions = cast(
             pd.DataFrame,
-            disaggregated_emissions.groupby(level="Fuel", axis=1).sum(),
+            # Avoid deprecated axis=1: use transpose-then-groupby pattern
+            disaggregated_emissions.T.groupby(level="Fuel").sum().T,
         )
 
         return fuel_emissions, end_use_emissions
@@ -2004,13 +2079,12 @@ class SBEMInferenceRequestSpec(BaseModel):
         roof_area_m2 = features["feature.geometry.computed.roof_surface_area"]
 
         # Solar panel assumptions
-        # panel_efficiency = 0.22
         panel_power_density = features["feature.solar.panel_power_density_w_per_m2"]
-        max_roof_utilization = 0.50  # Only 50% of roof can be covered, assuming we have a fire safety boundary. This is a very high level estimate
-        # TODO: Account for roof angle, orientation, and shading
 
-        # Calculate maximum solar capacity possible
-        max_solar_area_m2 = roof_area_m2 * max_roof_utilization
+        # TODO: Account for roof angle, orientation, and shading
+        max_solar_area_m2 = (
+            roof_area_m2 * features["feature.solar.max_roof_utilization"]
+        )
         max_solar_capacity_kW = (max_solar_area_m2 * panel_power_density) / 1000
         max_local_solar_capacity_kW = 25
         mask = max_solar_capacity_kW > max_local_solar_capacity_kW
@@ -2074,7 +2148,6 @@ class SBEMInferenceRequestSpec(BaseModel):
         """Apply solar generation to electricity consumption to get net consumption."""
         net_consumption = electricity_consumption.copy()
 
-        # Get the OnsiteSolar semantic field value - vectorized approach
         if "feature.semantic.OnsiteSolar" not in features.columns:
             # No solar column, return original consumption
             return net_consumption
@@ -2200,12 +2273,14 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         changed_feature_fields, changed_context_fields = self.changed_context_fields
 
         changed_feature_names = set(changed_feature_fields.keys())
+        print("CHANGED FEATURE NAMES", changed_feature_names)
 
         # then we will get the priors that must be re-run as they are downstream
         # of the changed features.
         changed_priors = original_priors.select_prior_tree_for_changed_features(
             changed_feature_names
         )
+        print(changed_priors.sampled_features.keys())
 
         # then we will take the original features and update the changed semantic
         # features.
@@ -2217,14 +2292,18 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
         new_features = changed_priors.sample(
             new_features, len(new_features), self.original.generator
         )
+        print(new_features.columns)
         new_transformed_features = self.original.source_feature_transform.transform(
             new_features
         )
         # Get peak results for cost calculations
         new_results_raw = self.original.predict(new_transformed_features)
-        new_results = self.original.compute_distributions(new_features, new_results_raw)
+        new_results_energy = cast(pd.DataFrame, new_results_raw["Energy"])
+
+        new_results = self.original.compute_distributions(
+            new_features, new_results_energy
+        )
         new_results_peak = cast(pd.DataFrame, new_results_raw["Peak"])
-        # new_results_energy = cast(pd.DataFrame, new_results_raw["Energy"])
 
         # finally, we compute the deltas and the corresponding summary
         # statistics.
@@ -2256,23 +2335,16 @@ class SBEMInferenceSavingsRequestSpec(BaseModel):
 
         # Compute features for cost calculations after inference
         # For solar upgrades, we need to use the ACTUAL electricity consumption (before solar)
-        # to calculate the system size needed, not the net consumption if there is alrearyd some solar
-        upgraded_spec = SBEMInferenceRequestSpec(
-            **{
-                k: v
-                for k, v in self.original.model_dump().items()
-                if k != "semantic_field_context"
-            },
-            semantic_field_context=self.upgraded_semantic_field_context,
-        )
+        # to calculate the system size needed, not the net consumption if there is already some solar
 
-        electricity_eui = upgraded_spec._actual_electricity_consumption.sum(axis=1)
+        # TODO: update the sampling to occur immidiately before the inference runs
+
+        electricity_eui = self.original._actual_electricity_consumption.sum(axis=1)
 
         # Calculate the feature distributions for solar features (yield, coverage)
-        new_features_with_solar = upgraded_spec.add_solar_features(new_features)
-
-        features_for_costs = upgraded_spec.make_retrofit_cost_features(
-            new_features_with_solar, new_results_peak, electricity_eui
+        # Solar features are included in priors; use new_features directly
+        features_for_costs = self.original.make_retrofit_cost_features(
+            new_features, new_results_peak, electricity_eui
         )
 
         retrofit_costs = self.compute_retrofit_costs(features_for_costs, cost_config)
