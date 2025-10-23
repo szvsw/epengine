@@ -786,7 +786,9 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 334,
-                    "indicator_cols": ["feature.system.has_cooling.true"],
+                    "indicator_cols": [
+                        "feature.system.has_cooling_central.true"
+                    ],
                     "error_scale": 0.05,
                     "description": "Cooling availability factor",
                     "source": "Heat pump cost model",
@@ -796,7 +798,9 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 0,
-                    "indicator_cols": ["feature.system.has_cooling.false"],
+                    "indicator_cols": [
+                        "feature.system.has_cooling_central.false"
+                    ],
                     "error_scale": 0,
                     "description": "Cooling availability factor",
                     "source": "Heat pump cost model",
@@ -1050,7 +1054,9 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 334,
-                    "indicator_cols": ["feature.system.has_cooling.true"],
+                    "indicator_cols": [
+                        "feature.system.has_cooling_central.true"
+                    ],
                     "error_scale": 0.1,
                     "description": "Cooling availability factor",
                     "source": "Heat pump cost model",
@@ -1060,7 +1066,9 @@
                 {
                     "type": "LinearQuantity",
                     "coefficient": 0,
-                    "indicator_cols": ["feature.system.has_cooling.false"],
+                    "indicator_cols": [
+                        "feature.system.has_cooling_central.false"
+                    ],
                     "error_scale": 0,
                     "description": "Cooling availability factor",
                     "source": "Heat pump cost model",
