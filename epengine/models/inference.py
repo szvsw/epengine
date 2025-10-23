@@ -1291,7 +1291,6 @@ class SBEMInferenceRequestSpec(BaseModel):
         # Ensure solar priors are part of the main Priors set, so changes to
         # feature.semantic.OnsiteSolar appear in the dependency graph and are
         # picked up by select_prior_tree_for_changed_features.
-
         # Annual yield kWh/kW-year
         solar_yield_prior = UnconditionalPrior(
             sampler=ClippedNormalSampler(
@@ -1566,6 +1565,8 @@ class SBEMInferenceRequestSpec(BaseModel):
             df_t (pd.DataFrame): The transformed features to use in prediction.
         """
         df = self.make_inference_features(n)
+        if "feature.semantic.OnsiteSolar" not in df.columns:
+            df["feature.semantic.OnsiteSolar"] = "NoSolarPV"
         priors = self.make_priors()
         # TODO: we should consider removing all features which are in the priors
         # to ensure that there are no strange overwrite behaviors...
