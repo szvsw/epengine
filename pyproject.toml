@@ -74,7 +74,7 @@ api = [
 
 
 [tool.uv.sources]
-epinterface = {git = "https://github.com/szvsw/epinterface", branch = "main"}
+epinterface = {git = "https://github.com/szvsw/epinterface", branch = "feature/bump-pydantic"}
 
 [build-system]
 requires = ["hatchling"]

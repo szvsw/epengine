@@ -508,7 +508,7 @@ class Priors(BaseModel):
         }
 
     def select_prior_tree_for_changed_features(
-        self, changed_features: set[str]
+        self, changed_features: set[str], resample_changed_features: bool = True
     ) -> "Priors":
         """Select the prior tree for the changed features.
 
@@ -517,21 +517,23 @@ class Priors(BaseModel):
 
         Args:
             changed_features (set[str]): The features that have changed.
+            resample_changed_features (bool): Whether to resample the changed features (dependencies always resampled! You probably want this to be False, but for backwards compatibility it is True by default).
 
         Returns:
             priors (Priors): A new Priors object with only the priors that are downstream of the changed features.
         """
         g = self.dependency_graph
         all_changing_priors: set[str] = set()
-        for root_feature in self.root_features:
+        for any_feature in self.root_features.union(set(self.sampled_features.keys())):
+            # for root_feature in self.sampled_features:
             # first, we check if this root feature is one of the changed features.
-            if any(f == root_feature for f in changed_features):
+            if any(f == any_feature for f in changed_features):
                 # if it is, we will grab all of its descendants.
-                desendants = nx.descendants(g, root_feature)
+                desendants = nx.descendants(g, any_feature)
 
                 # if the root feature is in the sampled features, we will add it to the set of changing priors.
-                if root_feature in self.sampled_features:
-                    all_changing_priors.add(root_feature)
+                if any_feature in self.sampled_features and resample_changed_features:
+                    all_changing_priors.add(any_feature)
 
                 # we will also add all of the descendants to the set of changing priors.
                 for dep in desendants:
