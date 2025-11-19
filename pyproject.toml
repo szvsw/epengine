@@ -8,7 +8,7 @@ authors = [
 requires-python =">=3.10,<3.13"
 readme = "README.md"
 dependencies = [
-    "epinterface",
+    "epinterface==1.0.0",
     "hatchet-sdk>=1,<1.17",
     "pydantic>=2.9.2,<3.0",
     "boto3>=1.35,<2.0",
@@ -73,8 +73,8 @@ api = [
 ]
 
 
-[tool.uv.sources]
-epinterface = {git = "https://github.com/szvsw/epinterface", branch = "main"}
+# [tool.uv.sources]
+# epinterface = {git = "https://github.com/szvsw/epinterface", branch = "main"}
 
 [build-system]
 requires = ["hatchling"]

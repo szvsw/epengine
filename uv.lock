@@ -201,7 +201,7 @@ wheels = [
 [[package]]
 name = "archetypal"
 version = "2.18.8"
-source = { git = "https://github.com/samuelduchesne/archetypal?branch=main#fdf22f9e6372cd69d5b2db196fc78e02e19721ae" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "click" },
@@ -244,6 +244,10 @@ dependencies = [
     { name = "transforms3d" },
     { name = "typing-extensions" },
     { name = "validator-collection" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/26/74/232bf83845c99fe71f4325334696f01d9975f43891762ce92cf6c49d380d/archetypal-2.18.8.tar.gz", hash = "sha256:9953f8967416f0b265ca6a26ab7207bf2bb4eaf5dc2d8e8a7f13419b71a73bd6", size = 238143, upload_time = "2025-07-17T17:59:11.646Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/85/32/97cd628dad2bcf70bc51a7e13cd10220e8e6f95894e2c2ccc49743ebfffb/archetypal-2.18.8-py3-none-any.whl", hash = "sha256:257e28d38435ad84b22491f97559213511285f5621ca3d84c99a23bf58a42c00", size = 289134, upload_time = "2025-07-17T17:59:10.394Z" },
 ]
 
 [[package]]
@@ -1256,7 +1260,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.35,<2.0" },
     { name = "coiled", marker = "extra == 'coiled'", specifier = ">=1.36,<2.0" },
     { name = "dask", extras = ["complete"], marker = "extra == 'coiled'", specifier = ">=2024.7,<2025.0" },
-    { name = "epinterface", git = "https://github.com/szvsw/epinterface?branch=main" },
+    { name = "epinterface", specifier = "==1.0.0" },
     { name = "fastparquet", specifier = "~=2024.11.0" },
     { name = "geopandas", specifier = "~=1.0.1" },
     { name = "hatchet-sdk", specifier = ">=1,<1.17" },
@@ -1306,7 +1310,7 @@ docs = [
 [[package]]
 name = "epinterface"
 version = "1.0.0"
-source = { git = "https://github.com/szvsw/epinterface?branch=main#eed59c54376d717793428670e276b3370b292bad" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "archetypal" },
     { name = "click" },
@@ -1316,6 +1320,10 @@ dependencies = [
     { name = "pandas" },
     { name = "prisma" },
     { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e1/78/429be660edc3218170772d4bf64279b30ee2967bde3b4966a9e9d0ff34cb/epinterface-1.0.0.tar.gz", hash = "sha256:9e8f0989d1021d44964cd0a6c1d7092c3b81b61d32f1640fe090bfcf2cb5938a", size = 3483434, upload_time = "2025-11-19T15:13:07.713Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/53/98/82b2de1985e9d29b1bebcfd3166ceaf64221b885d55ee33bc272d0aa54c5/epinterface-1.0.0-py3-none-any.whl", hash = "sha256:3ab85ad59a470c4a2506446454123469113b07f7bd20049e39316dd18c53437e", size = 865136, upload_time = "2025-11-19T15:13:06.095Z" },
 ]
 
 [[package]]
